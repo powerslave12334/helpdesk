@@ -1,0 +1,80 @@
+@using HELPDESK.Models.Menu
+@using HELPDESK.Services
+@using Microsoft.AspNetCore.Http
+@inject DBConector DbConector
+@{
+    int idUsuario = 0;
+    int.TryParse(Context.Session.GetString("IdUsuario"), out idUsuario);
+    List<menuModulo> modulosMenu = new menu().ObtenerMenu(DbConector, idUsuario, true);
+}
+
+<aside class="app-sidebar" id="appSidebar">
+    <div class="sidebar-top">
+        <div class="brand">
+            <div class="brand-mark">HD</div>
+            <div class="brand-text">
+                <strong>HELPDESK</strong>
+                <span>Soporte TI</span>
+            </div>
+        </div>
+
+        <button type="button" class="sidebar-toggle" id="btnSidebarToggle" aria-label="Contraer menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+
+    <nav class="sidebar-nav" aria-label="Menu principal">
+        @if (modulosMenu.Count == 0) {
+            <button type="button" class="nav-link active" data-title="Dashboard principal" data-view="dashboard">
+                <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
+                <span class="nav-text">Dashboard</span>
+            </button>
+        } else {
+            foreach (var modulo in modulosMenu) {
+                bool esDashboard = modulo.Llave.Contains("dashboard");
+
+                if (modulo.SubModulos.Count == 0) {
+                    <button type="button"
+                            class="nav-link @(esDashboard ? "active" : "")"
+                            data-title="@modulo.Nombre"
+                            data-view="@modulo.Llave">
+                        <span class="nav-icon"><i class="fa-solid @modulo.Icono"></i></span>
+                        <span class="nav-text">@modulo.Nombre</span>
+                    </button>
+                } else {
+                    <div class="nav-group">
+                        <button type="button" class="nav-link nav-parent @(esDashboard ? "active" : "")" data-submenu="@modulo.Llave">
+                            <span class="nav-icon"><i class="fa-solid @modulo.Icono"></i></span>
+                            <span class="nav-text">@modulo.Nombre</span>
+                            <span class="nav-chevron"><i class="fa-solid fa-chevron-right"></i></span>
+                        </button>
+                        <div class="submenu">
+                            @foreach (var subModulo in modulo.SubModulos) {
+                                if (subModulo.TieneRuta) {
+                                    <a href="@Url.Action(subModulo.Action, subModulo.Controller)">@subModulo.Nombre</a>
+                                } else {
+                                    <button type="button" data-title="@subModulo.Nombre" data-view="@($"{modulo.Llave}-{subModulo.IdSubModulo}")">
+                                        @subModulo.Nombre
+                                    </button>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+            }
+        }
+    </nav>
+
+    <div class="sidebar-footer">
+        <a href="@Url.Action("Logout", "Login")" class="footer-action" aria-label="Cerrar sesion">
+            <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+            <span class="nav-text">Cerrar sesion</span>
+        </a>
+        <button type="button" class="footer-action" id="btnThemeToggle" aria-label="Cambiar tema">
+            <span class="nav-icon" id="themeIcon"><i class="fa-solid fa-moon"></i></span>
+            <span class="nav-text" id="themeText">Modo oscuro</span>
+        </button>
+    </div>
+</aside>

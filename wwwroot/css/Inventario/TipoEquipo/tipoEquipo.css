@@ -1,0 +1,13 @@
+.equipment-type-form {
+    grid-template-columns: minmax(240px, 520px) auto;
+}
+
+.equipment-type-table {
+    min-width: 760px;
+}
+
+@media (max-width: 720px) {
+    .equipment-type-form {
+        grid-template-columns: 1fr;
+    }
+}

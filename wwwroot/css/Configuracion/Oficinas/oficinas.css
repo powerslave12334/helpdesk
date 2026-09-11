@@ -1,0 +1,17 @@
+.office-form {
+    grid-template-columns: minmax(90px, 140px) minmax(240px, 1fr) auto;
+}
+
+.office-table {
+    min-width: 820px;
+}
+
+.uppercase-input {
+    text-transform: uppercase;
+}
+
+@media (max-width: 900px) {
+    .office-form {
+        grid-template-columns: 1fr;
+    }
+}

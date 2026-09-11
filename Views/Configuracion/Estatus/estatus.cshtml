@@ -1,0 +1,176 @@
+@model HELPDESK.Models.Configuracion.Estatus.estatusModel
+@{
+    ViewData["Title"] = "Estatus";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Estatus - HELPDESK</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Dashboard/Principal/dashboard.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Menu/menu.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/SubModulos/subModulos.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Estatus/estatus.css")" />
+</head>
+<body>
+    <div class="dashboard-shell">
+        @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
+
+        <main class="workspace">
+            <header class="workspace-header">
+                <div>
+                    <span class="section-label">Configuracion</span>
+                    <h1>Estatus</h1>
+                </div>
+            </header>
+
+            <section class="catalog-layout">
+                @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage)) {
+                    <div class="catalog-alert success">@Model.SuccessMessage</div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) {
+                    <div class="catalog-alert error">@Model.ErrorMessage</div>
+                }
+
+                <div class="catalog-panel">
+                    <div class="catalog-panel-header">
+                        <div>
+                            <h2>Nuevo estatus</h2>
+                            <p>Registra estatus globales o relacionados a un modulo.</p>
+                        </div>
+                    </div>
+
+                    <form action="@Url.Action("Create", "estatus")" method="post" class="catalog-form status-form">
+                        @Html.AntiForgeryToken()
+                        <div class="form-field">
+                            <label for="IdModulos">Modulo</label>
+                            <select id="IdModulos" name="IdModulos">
+                                <option value="">Global</option>
+                                @foreach (var modulo in Model.Modulos) {
+                                    <option value="@modulo.IdModulos">@modulo.NombreModulo</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="Descripcion">Descripcion</label>
+                            <input id="Descripcion" name="Descripcion" type="text" maxlength="100" required autocomplete="off" />
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fa-solid fa-plus"></i>
+                            Agregar
+                        </button>
+                    </form>
+                </div>
+
+                <div class="catalog-panel">
+                    <div class="catalog-panel-header">
+                        <div>
+                            <h2>Listado de estatus</h2>
+                            <p>Administra estatus disponibles para los modulos del sistema.</p>
+                        </div>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="catalog-table status-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Modulo</th>
+                                    <th>Descripcion</th>
+                                    <th>Fecha alta</th>
+                                    <th>Estatus</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Estatus.Count == 0) {
+                                    <tr>
+                                        <td colspan="6" class="empty-cell">No hay estatus registrados.</td>
+                                    </tr>
+                                } else {
+                                    foreach (var item in Model.Estatus) {
+                                        <tr>
+                                            <td>@item.IdEstatus</td>
+                                            <td>@item.NombreModulo</td>
+                                            <td>@item.Descripcion</td>
+                                            <td>@item.FechaAlta.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>
+                                                <span class="status-pill @(item.Activo ? "active" : "inactive")">
+                                                    @(item.Activo ? "Activo" : "Inactivo")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="row-actions">
+                                                    <button type="button"
+                                                            class="icon-action"
+                                                            data-edit-id="@item.IdEstatus"
+                                                            data-edit-module="@(item.IdModulos?.ToString() ?? "")"
+                                                            data-edit-description="@item.Descripcion"
+                                                            aria-label="Editar estatus">
+                                                        <i class="fa-solid fa-pen"></i>
+                                                    </button>
+
+                                                    <form action="@Url.Action("ToggleActivo", "estatus")" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="idEstatus" value="@item.IdEstatus" />
+                                                        <button type="submit" class="icon-action" aria-label="Cambiar estatus">
+                                                            <i class="fa-solid @(item.Activo ? "fa-ban" : "fa-check")"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal-backdrop" id="editModal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+            <div class="modal-header">
+                <h2 id="editTitle">Editar estatus</h2>
+                <button type="button" class="modal-close" id="btnCloseModal" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form action="@Url.Action("Edit", "estatus")" method="post" class="catalog-form stacked">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="editIdEstatus" name="IdEstatus" />
+                <div class="form-field">
+                    <label for="editIdModulos">Modulo</label>
+                    <select id="editIdModulos" name="IdModulos">
+                        <option value="">Global</option>
+                        @foreach (var modulo in Model.Modulos) {
+                            <option value="@modulo.IdModulos">@modulo.NombreModulo</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="editDescripcion">Descripcion</label>
+                    <input id="editDescripcion" name="Descripcion" type="text" maxlength="100" required autocomplete="off" />
+                </div>
+                <button type="submit" class="btn-primary">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    Guardar cambios
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
+    <script src="@Url.Content("~/js/Menu/menu.js")"></script>
+    <script src="@Url.Content("~/js/Configuracion/Estatus/estatus.js")"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+.equipment-relation-form {
+    grid-template-columns: repeat(5, minmax(150px, 1fr)) auto;
+}
+
+.modal-equipment-relation-form {
+    grid-template-columns: repeat(2, minmax(180px, 1fr));
+}
+
+.form-field select,
+.form-field textarea {
+    width: 100%;
+    border: 1px solid var(--sidebar-border);
+    border-radius: 10px;
+    padding: 0 12px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+}
+
+.form-field select {
+    height: 42px;
+}
+
+.form-field textarea {
+    min-height: 42px;
+    padding-top: 10px;
+    resize: vertical;
+}
+
+.form-field select:focus,
+.form-field textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.form-field.wide {
+    grid-column: span 2;
+}
+
+.equipment-relation-table {
+    min-width: 1220px;
+}
+
+.equipment-relation-modal {
+    width: min(840px, 100%);
+}
+
+.modal-equipment-relation-form .btn-primary {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 1280px) {
+    .equipment-relation-form {
+        grid-template-columns: repeat(2, minmax(180px, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .equipment-relation-form,
+    .modal-equipment-relation-form {
+        grid-template-columns: 1fr;
+    }
+
+    .form-field.wide {
+        grid-column: auto;
+    }
+}

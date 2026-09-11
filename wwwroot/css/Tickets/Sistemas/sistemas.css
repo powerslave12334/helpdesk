@@ -1,0 +1,13 @@
+.systems-form {
+    grid-template-columns: minmax(220px, 420px) auto;
+}
+
+.systems-table {
+    min-width: 720px;
+}
+
+@media (max-width: 720px) {
+    .systems-form {
+        grid-template-columns: 1fr;
+    }
+}

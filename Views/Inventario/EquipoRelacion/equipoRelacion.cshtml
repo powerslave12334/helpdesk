@@ -1,0 +1,235 @@
+@model HELPDESK.Models.Inventario.EquipoRelacion.equipoRelacionModel
+@{
+    ViewData["Title"] = "Relacion de equipos";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Relacion de equipos - HELPDESK</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Dashboard/Principal/dashboard.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Menu/menu.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Inventario/EquipoRelacion/equipoRelacion.css")" />
+</head>
+<body>
+    <div class="dashboard-shell">
+        @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
+
+        <main class="workspace">
+            <header class="workspace-header">
+                <div>
+                    <span class="section-label">Inventario</span>
+                    <h1>Relacion de equipos</h1>
+                </div>
+            </header>
+
+            <section class="catalog-layout">
+                @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage)) {
+                    <div class="catalog-alert success">@Model.SuccessMessage</div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) {
+                    <div class="catalog-alert error">@Model.ErrorMessage</div>
+                }
+
+                <div class="catalog-panel">
+                    <div class="catalog-panel-header">
+                        <div>
+                            <h2>Nueva relacion</h2>
+                            <p>Relaciona equipos entre si, por ejemplo celular con SIM o GPS con SIM.</p>
+                        </div>
+                    </div>
+
+                    <form action="@Url.Action("Create", "equipoRelacion")" method="post" class="catalog-form equipment-relation-form">
+                        @Html.AntiForgeryToken()
+                        <div class="form-field">
+                            <label for="IdEquipoPadre">Equipo padre</label>
+                            <select id="IdEquipoPadre" name="IdEquipoPadre" required>
+                                <option value="">Seleccione</option>
+                                @foreach (var equipo in Model.Equipos) {
+                                    <option value="@equipo.IdEquipoPadre">@equipo.EquipoPadre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="IdEquipoHijo">Equipo hijo</label>
+                            <select id="IdEquipoHijo" name="IdEquipoHijo" required>
+                                <option value="">Seleccione</option>
+                                @foreach (var equipo in Model.Equipos) {
+                                    <option value="@equipo.IdEquipoHijo">@equipo.EquipoHijo</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="IdTipoRelacionEquipo">Tipo relacion</label>
+                            <select id="IdTipoRelacionEquipo" name="IdTipoRelacionEquipo" required>
+                                <option value="">Seleccione</option>
+                                @foreach (var tipo in Model.TiposRelacion) {
+                                    <option value="@tipo.IdTipoRelacionEquipo">@tipo.TipoRelacion</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="FechaAsignacion">Fecha asignacion</label>
+                            <input id="FechaAsignacion" name="FechaAsignacion" type="date" value="@Model.FechaAsignacion.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="form-field">
+                            <label for="FechaBaja">Fecha baja</label>
+                            <input id="FechaBaja" name="FechaBaja" type="date" />
+                        </div>
+                        <div class="form-field wide">
+                            <label for="Observaciones">Observaciones</label>
+                            <textarea id="Observaciones" name="Observaciones" rows="2"></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fa-solid fa-link"></i>
+                            Relacionar
+                        </button>
+                    </form>
+                </div>
+
+                <div class="catalog-panel">
+                    <div class="catalog-panel-header">
+                        <div>
+                            <h2>Listado de relaciones</h2>
+                            <p>Consulta los vinculos registrados entre equipos.</p>
+                        </div>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="catalog-table equipment-relation-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Equipo padre</th>
+                                    <th>Tipo</th>
+                                    <th>Equipo hijo</th>
+                                    <th>Asignacion</th>
+                                    <th>Baja</th>
+                                    <th>Estatus</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Relaciones.Count == 0) {
+                                    <tr>
+                                        <td colspan="8" class="empty-cell">No hay relaciones registradas.</td>
+                                    </tr>
+                                } else {
+                                    foreach (var item in Model.Relaciones) {
+                                        <tr>
+                                            <td>@item.IdEquipoRelacion</td>
+                                            <td>@item.EquipoPadre</td>
+                                            <td>@item.TipoRelacion</td>
+                                            <td>@item.EquipoHijo</td>
+                                            <td>@item.FechaAsignacion.ToString("dd/MM/yyyy")</td>
+                                            <td>@(item.FechaBaja.HasValue ? item.FechaBaja.Value.ToString("dd/MM/yyyy") : "")</td>
+                                            <td>
+                                                <span class="status-pill @(item.Activo ? "active" : "inactive")">
+                                                    @(item.Activo ? "Activo" : "Inactivo")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="row-actions">
+                                                    <button type="button"
+                                                            class="icon-action"
+                                                            data-edit-id="@item.IdEquipoRelacion"
+                                                            data-edit-parent="@item.IdEquipoPadre"
+                                                            data-edit-child="@item.IdEquipoHijo"
+                                                            data-edit-type="@item.IdTipoRelacionEquipo"
+                                                            data-edit-assignment="@item.FechaAsignacion.ToString("yyyy-MM-dd")"
+                                                            data-edit-end="@(item.FechaBaja.HasValue ? item.FechaBaja.Value.ToString("yyyy-MM-dd") : "")"
+                                                            data-edit-observations="@item.Observaciones"
+                                                            aria-label="Editar relacion">
+                                                        <i class="fa-solid fa-pen"></i>
+                                                    </button>
+
+                                                    <form action="@Url.Action("ToggleActivo", "equipoRelacion")" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="idEquipoRelacion" value="@item.IdEquipoRelacion" />
+                                                        <button type="submit" class="icon-action" aria-label="Cambiar estatus">
+                                                            <i class="fa-solid @(item.Activo ? "fa-ban" : "fa-check")"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal-backdrop" id="editModal" hidden>
+        <div class="modal-card equipment-relation-modal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+            <div class="modal-header">
+                <h2 id="editTitle">Editar relacion</h2>
+                <button type="button" class="modal-close" id="btnCloseModal" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form action="@Url.Action("Edit", "equipoRelacion")" method="post" class="catalog-form equipment-relation-form modal-equipment-relation-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="editIdEquipoRelacion" name="IdEquipoRelacion" />
+                <div class="form-field">
+                    <label for="editIdEquipoPadre">Equipo padre</label>
+                    <select id="editIdEquipoPadre" name="IdEquipoPadre" required>
+                        <option value="">Seleccione</option>
+                        @foreach (var equipo in Model.Equipos) {
+                            <option value="@equipo.IdEquipoPadre">@equipo.EquipoPadre</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="editIdEquipoHijo">Equipo hijo</label>
+                    <select id="editIdEquipoHijo" name="IdEquipoHijo" required>
+                        <option value="">Seleccione</option>
+                        @foreach (var equipo in Model.Equipos) {
+                            <option value="@equipo.IdEquipoHijo">@equipo.EquipoHijo</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="editIdTipoRelacionEquipo">Tipo relacion</label>
+                    <select id="editIdTipoRelacionEquipo" name="IdTipoRelacionEquipo" required>
+                        <option value="">Seleccione</option>
+                        @foreach (var tipo in Model.TiposRelacion) {
+                            <option value="@tipo.IdTipoRelacionEquipo">@tipo.TipoRelacion</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="editFechaAsignacion">Fecha asignacion</label>
+                    <input id="editFechaAsignacion" name="FechaAsignacion" type="date" required />
+                </div>
+                <div class="form-field">
+                    <label for="editFechaBaja">Fecha baja</label>
+                    <input id="editFechaBaja" name="FechaBaja" type="date" />
+                </div>
+                <div class="form-field wide">
+                    <label for="editObservaciones">Observaciones</label>
+                    <textarea id="editObservaciones" name="Observaciones" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn-primary">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    Guardar cambios
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
+    <script src="@Url.Content("~/js/Menu/menu.js")"></script>
+    <script src="@Url.Content("~/js/Inventario/EquipoRelacion/equipoRelacion.js")"></script>
+</body>
+</html>

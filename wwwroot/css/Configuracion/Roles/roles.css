@@ -1,0 +1,14 @@
+.role-form {
+    grid-template-columns: minmax(180px, 320px) minmax(220px, 420px) auto;
+}
+
+.role-form input::placeholder {
+    color: var(--muted);
+    opacity: .7;
+}
+
+@media (max-width: 900px) {
+    .role-form {
+        grid-template-columns: 1fr;
+    }
+}

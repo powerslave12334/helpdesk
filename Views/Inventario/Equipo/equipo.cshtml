@@ -1,0 +1,453 @@
+@model HELPDESK.Models.Inventario.Equipo.equipoModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Equipo";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Equipo - HELPDESK</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Dashboard/Principal/dashboard.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Menu/menu.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Inventario/Equipo/equipo.css")" />
+</head>
+<body>
+    <div class="dashboard-shell">
+        @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
+
+        <main class="workspace">
+            <header class="workspace-header">
+                <div>
+                    <span class="section-label">Inventario</span>
+                    <h1>Equipo</h1>
+                </div>
+            </header>
+
+            <section class="catalog-layout">
+                @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage)) {
+                    <div class="catalog-alert success">@Model.SuccessMessage</div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) {
+                    <div class="catalog-alert error">@Model.ErrorMessage</div>
+                }
+
+                <div class="modal-backdrop" id="createModal" hidden>
+                    <div class="modal-card equipment-modal" role="dialog" aria-modal="true" aria-labelledby="createTitle">
+                        <div class="modal-header">
+                            <h2 id="createTitle">Nuevo equipo</h2>
+                            <button type="button" class="modal-close" id="btnCloseCreateModal" aria-label="Cerrar">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <form action="@Url.Action("Create", "equipo")" method="post" class="catalog-form equipment-form modal-equipment-form">
+                            @Html.AntiForgeryToken()
+                            <div class="form-field">
+                                <label for="Marca">Marca</label>
+                                <input id="Marca" name="Marca" type="text" maxlength="150" required autocomplete="off" />
+                            </div>
+                            <div class="form-field">
+                                <label for="Modelo">Modelo</label>
+                                <input id="Modelo" name="Modelo" type="text" maxlength="150" required autocomplete="off" />
+                            </div>
+                            <div class="form-field">
+                                <label for="IdTipoEquipo">Tipo equipo</label>
+                                <select id="IdTipoEquipo" name="IdTipoEquipo" required>
+                                    <option value="">Seleccione</option>
+                                    @foreach (var tipo in Model.TiposEquipo) {
+                                        <option value="@tipo.IdTipoEquipo">@tipo.NombreTipoEquipo</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label for="IdEstatus">Estatus</label>
+                                <select id="IdEstatus" name="IdEstatus" required>
+                                    <option value="">Seleccione</option>
+                                    @foreach (var estatus in Model.Estatus) {
+                                        <option value="@estatus.IdEstatus">@estatus.NombreEstatus</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label for="FechaAdquisicion">Fecha adquisicion</label>
+                                <input id="FechaAdquisicion" name="FechaAdquisicion" type="date" />
+                            </div>
+                            <div class="form-field">
+                                <label for="NumeroSerie">Numero serie</label>
+                                <input id="NumeroSerie" name="NumeroSerie" type="text" maxlength="150" autocomplete="off" />
+                            </div>
+                            <div class="form-field">
+                                <label for="NombreEquipo">Nombre equipo</label>
+                                <input id="NombreEquipo" name="NombreEquipo" type="text" maxlength="150" autocomplete="off" />
+                            </div>
+                            <div class="form-field">
+                                <label for="Ubicacion">Ubicacion</label>
+                                <input id="Ubicacion" name="Ubicacion" type="text" maxlength="150" autocomplete="off" />
+                            </div>
+                            <div class="form-field">
+                                <label for="IdOficinas">Oficina</label>
+                                <select id="IdOficinas" name="IdOficinas">
+                                    <option value="">Sin oficina</option>
+                                    @foreach (var oficina in Model.Oficinas) {
+                                        <option value="@oficina.IdOficinas">@oficina.NombreOficina</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label for="IdPeriodoMantenimiento">Periodo mantenimiento</label>
+                                <input id="IdPeriodoMantenimiento" name="IdPeriodoMantenimiento" type="number" min="0" step="1" value="0" />
+                            </div>
+                            <label class="check-field">
+                                <input id="EsCompartido" name="EsCompartido" type="checkbox" value="true" />
+                                <span>Equipo compartido / uso comun</span>
+                            </label>
+                            <div class="form-field wide">
+                                <label for="Observaciones">Observaciones</label>
+                                <textarea id="Observaciones" name="Observaciones" rows="2"></textarea>
+                            </div>
+                            <div class="equipment-details" data-detail-form="create">
+                                <h3>Detalles del equipo</h3>
+                                <p>Los campos cambian segun el tipo de equipo seleccionado.</p>
+                                @{
+                                    int createDetailIndex = 0;
+                                }
+                                @foreach (var campo in Model.CamposPorTipo) {
+                                    <div class="form-field equipment-detail-group"
+                                         data-detail-form="create"
+                                         data-detail-type="@campo.IdTipoEquipo"
+                                         data-required="@campo.Requerido.ToString().ToLowerInvariant()"
+                                         hidden>
+                                        <label for="Detalle_@createDetailIndex">@campo.NombreCampo @(campo.Requerido ? "*" : "")</label>
+                                        <input type="hidden" name="Detalles[@createDetailIndex].IdEquipoCampo" value="@campo.IdEquipoCampo" />
+                                        <input id="Detalle_@createDetailIndex" name="Detalles[@createDetailIndex].Valor" type="text" maxlength="250" autocomplete="off" />
+                                    </div>
+                                    createDetailIndex++;
+                                }
+                            </div>
+                            <button type="submit" class="btn-primary">
+                                <i class="fa-solid fa-plus"></i>
+                                Agregar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="catalog-panel">
+                    <div class="catalog-panel-header">
+                        <div>
+                            <h2>Listado de equipos</h2>
+                            <p>Administra los equipos registrados en inventario.</p>
+                        </div>
+                        <button type="button" class="btn-primary" id="btnOpenCreateModal">
+                            <i class="fa-solid fa-plus"></i>
+                            Agregar equipo
+                        </button>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="catalog-table equipment-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Equipo</th>
+                                    <th>Tipo</th>
+                                    <th>Estatus</th>
+                                    <th>Serie</th>
+                                    <th>Uso</th>
+                                    <th>Ubicacion</th>
+                                    <th>Oficina</th>
+                                    <th>Adquisicion</th>
+                                    <th>Activo</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Equipos.Count == 0) {
+                                    <tr>
+                                        <td colspan="11" class="empty-cell">No hay equipos registrados.</td>
+                                    </tr>
+                                } else {
+                                    foreach (var item in Model.Equipos) {
+                                        <tr>
+                                            <td>@item.IdEquipo</td>
+                                            <td>
+                                                <div class="stacked-cell">
+                                                    <span>@item.Marca @item.Modelo</span>
+                                                    <small>@item.NombreEquipo</small>
+                                                </div>
+                                            </td>
+                                            <td>@item.NombreTipoEquipo</td>
+                                            <td>@item.NombreEstatus</td>
+                                            <td>@item.NumeroSerie</td>
+                                            <td>
+                                                <span class="status-pill @(item.EsCompartido ? "shared" : "assigned")">
+                                                    @(item.EsCompartido ? "Compartido" : "Asignable")
+                                                </span>
+                                            </td>
+                                            <td>@item.Ubicacion</td>
+                                            <td>@item.NombreOficina</td>
+                                            <td>@(item.FechaAdquisicion.HasValue ? item.FechaAdquisicion.Value.ToString("dd/MM/yyyy") : "")</td>
+                                            <td>
+                                                <span class="status-pill @(item.Activo ? "active" : "inactive")">
+                                                    @(item.Activo ? "Activo" : "Inactivo")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="row-actions">
+                                                    <button type="button"
+                                                            class="icon-action"
+                                                            data-view-id="@item.IdEquipo"
+                                                            data-view-equipment="@($"{item.Marca} {item.Modelo}".Trim())"
+                                                            data-view-name="@item.NombreEquipo"
+                                                            data-view-type="@item.NombreTipoEquipo"
+                                                            data-view-status="@item.NombreEstatus"
+                                                            data-view-serial="@item.NumeroSerie"
+                                                            data-view-shared="@(item.EsCompartido ? "Compartido" : "Asignable")"
+                                                            data-view-location="@item.Ubicacion"
+                                                            data-view-office="@item.NombreOficina"
+                                                            data-view-date="@(item.FechaAdquisicion.HasValue ? item.FechaAdquisicion.Value.ToString("dd/MM/yyyy") : "")"
+                                                            data-view-observations="@item.Observaciones"
+                                                            aria-label="Ver detalle de equipo">
+                                                        <i class="fa-solid fa-eye"></i>
+                                                    </button>
+
+                                                    <button type="button"
+                                                            class="icon-action"
+                                                            data-edit-id="@item.IdEquipo"
+                                                            data-edit-brand="@item.Marca"
+                                                            data-edit-model="@item.Modelo"
+                                                            data-edit-type="@item.IdTipoEquipo"
+                                                            data-edit-status="@item.IdEstatus"
+                                                            data-edit-date="@(item.FechaAdquisicion.HasValue ? item.FechaAdquisicion.Value.ToString("yyyy-MM-dd") : "")"
+                                                            data-edit-serial="@item.NumeroSerie"
+                                                            data-edit-name="@item.NombreEquipo"
+                                                            data-edit-location="@item.Ubicacion"
+                                                            data-edit-office="@(item.IdOficinas?.ToString() ?? "")"
+                                                            data-edit-period="@item.IdPeriodoMantenimiento"
+                                                            data-edit-shared="@item.EsCompartido.ToString().ToLowerInvariant()"
+                                                            data-edit-observations="@item.Observaciones"
+                                                            aria-label="Editar equipo">
+                                                        <i class="fa-solid fa-pen"></i>
+                                                    </button>
+
+                                                    <form action="@Url.Action("ToggleActivo", "equipo")" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="idEquipo" value="@item.IdEquipo" />
+                                                        <button type="submit" class="icon-action" aria-label="Cambiar estatus">
+                                                            <i class="fa-solid @(item.Activo ? "fa-ban" : "fa-check")"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                @foreach (var item in Model.Equipos) {
+                    <script type="application/json" id="equipment-details-@item.IdEquipo">
+                        @Html.Raw(JsonSerializer.Serialize(item.Detalles.Select(detalle => new { idEquipoCampo = detalle.IdEquipoCampo, valor = detalle.Valor })))
+                    </script>
+                    <script type="application/json" id="equipment-view-details-@item.IdEquipo">
+                        @Html.Raw(JsonSerializer.Serialize(item.Detalles.Select(detalle => new { campo = detalle.NombreCampo, valor = detalle.Valor })))
+                    </script>
+                    <script type="application/json" id="equipment-view-relations-@item.IdEquipo">
+                        @Html.Raw(JsonSerializer.Serialize(item.Relaciones.Select(relacion => new {
+                            direccion = relacion.Direccion,
+                            tipoRelacion = relacion.TipoRelacion,
+                            equipoRelacionado = relacion.EquipoRelacionado,
+                            fechaAsignacion = relacion.FechaAsignacion.ToString("dd/MM/yyyy"),
+                            fechaBaja = relacion.FechaBaja.HasValue ? relacion.FechaBaja.Value.ToString("dd/MM/yyyy") : ""
+                        })))
+                    </script>
+                }
+            </section>
+        </main>
+    </div>
+
+    <div class="modal-backdrop" id="viewModal" hidden>
+        <div class="modal-card equipment-view-modal" role="dialog" aria-modal="true" aria-labelledby="viewTitle">
+            <div class="modal-header">
+                <h2 id="viewTitle">Detalle de equipo</h2>
+                <button type="button" class="modal-close" id="btnCloseViewModal" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="equipment-view">
+                <section class="equipment-view-section">
+                    <h3>Datos del equipo</h3>
+                    <dl class="equipment-view-grid">
+                        <div>
+                            <dt>Equipo</dt>
+                            <dd id="viewEquipment"></dd>
+                        </div>
+                        <div>
+                            <dt>Nombre equipo</dt>
+                            <dd id="viewName"></dd>
+                        </div>
+                        <div>
+                            <dt>Tipo</dt>
+                            <dd id="viewType"></dd>
+                        </div>
+                        <div>
+                            <dt>Estatus</dt>
+                            <dd id="viewStatus"></dd>
+                        </div>
+                        <div>
+                            <dt>Serie</dt>
+                            <dd id="viewSerial"></dd>
+                        </div>
+                        <div>
+                            <dt>Uso</dt>
+                            <dd id="viewShared"></dd>
+                        </div>
+                        <div>
+                            <dt>Oficina</dt>
+                            <dd id="viewOffice"></dd>
+                        </div>
+                        <div>
+                            <dt>Ubicacion</dt>
+                            <dd id="viewLocation"></dd>
+                        </div>
+                        <div>
+                            <dt>Adquisicion</dt>
+                            <dd id="viewDate"></dd>
+                        </div>
+                    </dl>
+                    <div class="equipment-view-notes">
+                        <dt>Observaciones</dt>
+                        <dd id="viewObservations"></dd>
+                    </div>
+                </section>
+
+                <section class="equipment-view-section">
+                    <h3>Detalles del equipo</h3>
+                    <div id="viewDetails" class="equipment-view-list"></div>
+                </section>
+
+                <section class="equipment-view-section">
+                    <h3>Relaciones</h3>
+                    <div id="viewRelations" class="equipment-view-list"></div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="editModal" hidden>
+        <div class="modal-card equipment-modal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+            <div class="modal-header">
+                <h2 id="editTitle">Editar equipo</h2>
+                <button type="button" class="modal-close" id="btnCloseModal" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form action="@Url.Action("Edit", "equipo")" method="post" class="catalog-form equipment-form modal-equipment-form">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="editIdEquipo" name="IdEquipo" />
+                <div class="form-field">
+                    <label for="editMarca">Marca</label>
+                    <input id="editMarca" name="Marca" type="text" maxlength="150" required autocomplete="off" />
+                </div>
+                <div class="form-field">
+                    <label for="editModelo">Modelo</label>
+                    <input id="editModelo" name="Modelo" type="text" maxlength="150" required autocomplete="off" />
+                </div>
+                <div class="form-field">
+                    <label for="editIdTipoEquipo">Tipo equipo</label>
+                    <select id="editIdTipoEquipo" name="IdTipoEquipo" required>
+                        <option value="">Seleccione</option>
+                        @foreach (var tipo in Model.TiposEquipo) {
+                            <option value="@tipo.IdTipoEquipo">@tipo.NombreTipoEquipo</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="editIdEstatus">Estatus</label>
+                    <select id="editIdEstatus" name="IdEstatus" required>
+                        <option value="">Seleccione</option>
+                        @foreach (var estatus in Model.Estatus) {
+                            <option value="@estatus.IdEstatus">@estatus.NombreEstatus</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="editFechaAdquisicion">Fecha adquisicion</label>
+                    <input id="editFechaAdquisicion" name="FechaAdquisicion" type="date" />
+                </div>
+                <div class="form-field">
+                    <label for="editNumeroSerie">Numero serie</label>
+                    <input id="editNumeroSerie" name="NumeroSerie" type="text" maxlength="150" autocomplete="off" />
+                </div>
+                <div class="form-field">
+                    <label for="editNombreEquipo">Nombre equipo</label>
+                    <input id="editNombreEquipo" name="NombreEquipo" type="text" maxlength="150" autocomplete="off" />
+                </div>
+                <div class="form-field">
+                    <label for="editUbicacion">Ubicacion</label>
+                    <input id="editUbicacion" name="Ubicacion" type="text" maxlength="150" autocomplete="off" />
+                </div>
+                <div class="form-field">
+                    <label for="editIdOficinas">Oficina</label>
+                    <select id="editIdOficinas" name="IdOficinas">
+                        <option value="">Sin oficina</option>
+                        @foreach (var oficina in Model.Oficinas) {
+                            <option value="@oficina.IdOficinas">@oficina.NombreOficina</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="editIdPeriodoMantenimiento">Periodo mantenimiento</label>
+                    <input id="editIdPeriodoMantenimiento" name="IdPeriodoMantenimiento" type="number" min="0" step="1" />
+                </div>
+                <label class="check-field">
+                    <input id="editEsCompartido" name="EsCompartido" type="checkbox" value="true" />
+                    <span>Equipo compartido / uso comun</span>
+                </label>
+                <div class="form-field wide">
+                    <label for="editObservaciones">Observaciones</label>
+                    <textarea id="editObservaciones" name="Observaciones" rows="2"></textarea>
+                </div>
+                <div class="equipment-details" data-detail-form="edit">
+                    <h3>Detalles del equipo</h3>
+                    <p>Los campos cambian segun el tipo de equipo seleccionado.</p>
+                    @{
+                        int editDetailIndex = 0;
+                    }
+                    @foreach (var campo in Model.CamposPorTipo) {
+                        <div class="form-field equipment-detail-group"
+                             data-detail-form="edit"
+                             data-detail-type="@campo.IdTipoEquipo"
+                             data-detail-field="@campo.IdEquipoCampo"
+                             data-required="@campo.Requerido.ToString().ToLowerInvariant()"
+                             hidden>
+                            <label for="editDetalle_@editDetailIndex">@campo.NombreCampo @(campo.Requerido ? "*" : "")</label>
+                            <input type="hidden" name="Detalles[@editDetailIndex].IdEquipoCampo" value="@campo.IdEquipoCampo" />
+                            <input id="editDetalle_@editDetailIndex" name="Detalles[@editDetailIndex].Valor" type="text" maxlength="250" autocomplete="off" />
+                        </div>
+                        editDetailIndex++;
+                    }
+                </div>
+                <button type="submit" class="btn-primary">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    Guardar cambios
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
+    <script src="@Url.Content("~/js/Menu/menu.js")"></script>
+    <script src="@Url.Content("~/js/Inventario/Equipo/equipo.js")"></script>
+</body>
+</html>

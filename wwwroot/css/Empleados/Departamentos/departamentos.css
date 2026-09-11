@@ -1,0 +1,13 @@
+.employee-catalog-form {
+    grid-template-columns: minmax(240px, 460px) auto;
+}
+
+.employee-catalog-table {
+    min-width: 760px;
+}
+
+@media (max-width: 720px) {
+    .employee-catalog-form {
+        grid-template-columns: 1fr;
+    }
+}

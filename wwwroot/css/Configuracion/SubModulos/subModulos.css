@@ -1,0 +1,29 @@
+.submodule-form {
+    grid-template-columns: minmax(160px, 220px) minmax(180px, 1fr) minmax(100px, 140px) minmax(170px, 240px) minmax(120px, 160px) auto;
+}
+
+.form-field select {
+    width: 100%;
+    height: 42px;
+    border: 1px solid var(--sidebar-border);
+    border-radius: 10px;
+    padding: 0 12px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+}
+
+.form-field select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.submodule-table {
+    min-width: 1080px;
+}
+
+@media (max-width: 900px) {
+    .submodule-form {
+        grid-template-columns: 1fr;
+    }
+}

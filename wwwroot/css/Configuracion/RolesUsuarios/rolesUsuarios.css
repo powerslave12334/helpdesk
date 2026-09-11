@@ -1,0 +1,9 @@
+.user-role-form {
+    grid-template-columns: minmax(220px, 420px) minmax(180px, 320px) auto;
+}
+
+@media (max-width: 900px) {
+    .user-role-form {
+        grid-template-columns: 1fr;
+    }
+}

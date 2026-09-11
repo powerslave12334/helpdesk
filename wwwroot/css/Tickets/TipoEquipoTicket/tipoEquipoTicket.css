@@ -1,0 +1,14 @@
+.ticket-equipment-type-form {
+    grid-template-columns: minmax(160px, 220px) minmax(260px, 420px) auto;
+    align-items: end;
+}
+
+.ticket-equipment-type-table {
+    min-width: 880px;
+}
+
+@media (max-width: 720px) {
+    .ticket-equipment-type-form {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,0 +1,43 @@
+﻿body {
+}
+.support-category-form {
+    grid-template-columns: minmax(200px, 320px) minmax(220px, 380px) minmax(190px, 240px) auto;
+    align-items: end;
+}
+
+.support-category-table {
+    min-width: 1040px;
+}
+
+.form-field select {
+    width: 100%;
+    height: 42px;
+    border: 1px solid var(--sidebar-border);
+    border-radius: 10px;
+    padding: 0 12px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+}
+
+.form-field select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.check-field {
+    min-height: 42px;
+    align-items: center;
+}
+
+@media (max-width: 920px) {
+    .support-category-form {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .support-category-form {
+        grid-template-columns: 1fr;
+    }
+}

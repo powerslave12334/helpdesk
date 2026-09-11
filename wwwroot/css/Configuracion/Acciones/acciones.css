@@ -1,0 +1,4 @@
+.catalog-form input::placeholder {
+    color: var(--muted);
+    opacity: .7;
+}

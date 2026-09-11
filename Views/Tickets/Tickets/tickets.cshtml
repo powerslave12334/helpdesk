@@ -1,0 +1,548 @@
+@model HELPDESK.Models.Tickets.Tickets.ticketsModel
+@using HELPDESK.Models.Tickets.Tickets
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Tickets";
+    Layout = null;
+    @* Tabs que alimentan el grid principal: Mis tickets, Asignados y Todos segun permisos. *@
+    List<TicketTab> ticketTabs = new List<TicketTab> {
+        new TicketTab {
+            Id = "mis",
+            Label = "Mis tickets",
+            Description = "Consulta las solicitudes que has registrado.",
+            Empty = "No tienes tickets registrados.",
+            Items = Model.MisTickets
+        }
+    };
+
+    if (Model.PuedeVerAsignados) {
+        ticketTabs.Add(new TicketTab {
+            Id = "asignados",
+            Label = "Asignados a mi",
+            Description = "Tickets que tienes asignados para atender.",
+            Empty = "No tienes tickets asignados.",
+            Items = Model.TicketsAsignados
+        });
+    }
+
+    if (Model.PuedeVerTodos) {
+        ticketTabs.Add(new TicketTab {
+            Id = "todos",
+            Label = "Todos los tickets",
+            Description = "Consulta general de tickets activos.",
+            Empty = "No hay tickets registrados.",
+            Items = Model.TicketsTodos
+        });
+    }
+
+    @* Lista unificada usada para renderizar datos ocultos de historial/evidencias del modal Detalle. *@
+    List<ticketsModel> ticketsVista = ticketTabs
+        .SelectMany(tab => tab.Items)
+        .GroupBy(ticket => $"{ticket.TipoTicket}|{ticket.IdTicketOriginal}")
+        .Select(grupo => grupo.First())
+        .ToList();
+}
+
+@functions {
+    public class TicketTab {
+        public string Id { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string Empty { get; set; } = string.Empty;
+        public List<ticketsModel> Items { get; set; } = new List<ticketsModel>();
+    }
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tickets - HELPDESK</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Dashboard/Principal/dashboard.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Menu/menu.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Tickets/Tickets/tickets.css")" />
+</head>
+<body>
+    <div class="dashboard-shell">
+        @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
+
+        <main class="workspace">
+            <header class="workspace-header">
+                <div>
+                    <span class="section-label">Tickets</span>
+                    <h1>Tickets</h1>
+                </div>
+            </header>
+
+            <section class="catalog-layout">
+                @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage)) {
+                    <div class="catalog-alert success">@Model.SuccessMessage</div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) {
+                    <div class="catalog-alert error">@Model.ErrorMessage</div>
+                }
+
+                <div class="catalog-panel">
+                    <div class="catalog-panel-header">
+                        <div>
+                            <h2>Seguimiento de tickets</h2>
+                            <p>Consulta y gestiona los tickets disponibles para tu usuario.</p>
+                        </div>
+                        <div class="ticket-type-actions" aria-label="Tipo de ticket">
+                            <span>Tipo de ticket</span>
+                            <div>
+                                <button type="button" class="btn-primary" id="btnOpenCreateTicketModal">
+                                    <i class="fa-solid fa-headset"></i>
+                                    Soporte
+                                </button>
+                                <button type="button" class="btn-primary" id="btnOpenDevelopmentTicketModal">
+                                    <i class="fa-solid fa-code"></i>
+                                    Desarrollo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Pestañas del grid principal de tickets. *@
+                    <div class="ticket-tabs" role="tablist" aria-label="Vistas de tickets">
+                        @for (int index = 0; index < ticketTabs.Count; index++) {
+                            var tab = ticketTabs[index];
+                            <button type="button"
+                                    class="ticket-tab-button @(index == 0 ? "active" : "")"
+                                    data-ticket-tab="@tab.Id"
+                                    role="tab"
+                                    aria-selected="@(index == 0 ? "true" : "false")">
+                                @tab.Label
+                                <span>@tab.Items.Count</span>
+                            </button>
+                        }
+                    </div>
+
+                    @* Grid principal: renderiza una tabla por cada pestaña disponible. *@
+                    @for (int index = 0; index < ticketTabs.Count; index++) {
+                        var tab = ticketTabs[index];
+                        <div class="ticket-tab-panel @(index == 0 ? "active" : "")" data-ticket-panel="@tab.Id" role="tabpanel">
+                            <div class="ticket-tab-heading">
+                                <h3>@tab.Label</h3>
+                                <p>@tab.Description</p>
+                            </div>
+                            <div class="table-wrap">
+                                @* Tabla de tickets. El boton de acciones lleva los data-* que alimentan el modal Detalle. *@
+                                <table class="catalog-table ticket-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Folio</th>
+                                            <th>Usuario</th>
+                                            <th>Asunto</th>
+                                            <th>Tipo soporte</th>
+                                            <th>Area</th>
+                                            <th>Tecnico</th>
+                                            <th>Estatus</th>
+                                            <th>Sin actividad</th>
+                                            <th>Equipo</th>
+                                            <th>Fecha alta</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (tab.Items.Count == 0) {
+                                            <tr>
+                                                <td colspan="11" class="empty-cell">@tab.Empty</td>
+                                            </tr>
+                                        } else {
+                                            foreach (var item in tab.Items) {
+                                                string activityClass = item.DiasSinActividad >= 3 ? "danger" : item.DiasSinActividad >= 2 ? "warning" : "success";
+                                                string activityText = item.DiasSinActividad == 0 ? "Hoy" : item.DiasSinActividad == 1 ? "1 dia" : $"{item.DiasSinActividad} dias";
+                                                string statusClass = string.Equals(item.Estatus, "Cerrado", StringComparison.OrdinalIgnoreCase) ? "closed" : "active";
+                                                <tr>
+                                                    <td>@item.IdTicket</td>
+                                                    <td>@item.Usuario</td>
+                                                    <td>@item.Asunto</td>
+                                                    <td>@item.TipoSoporte</td>
+                                                    <td>@item.AreaAtiende</td>
+                                                    <td>@item.Tecnico</td>
+                                                    <td>
+                                                        <span class="status-pill @statusClass">@item.Estatus</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="activity-pill @activityClass" title="Ultima actividad: @item.UltimaActividad.ToString("dd/MM/yyyy HH:mm")">
+                                                            @activityText
+                                                        </span>
+                                                    </td>
+                                                    <td>@item.Equipo</td>
+                                                    <td>@item.FechaAlta.ToString("dd/MM/yyyy HH:mm")</td>
+                                                    <td>
+                                                        <button type="button"
+                                                                class="icon-action"
+                                                                data-view-id="@item.IdTicket"
+                                                                data-view-original-id="@item.IdTicketOriginal"
+                                                                data-view-ticket-type="@item.TipoTicket"
+                                                                data-view-type-id="@item.IdTipoSoporte"
+                                                                data-view-status-id="@(item.IdEstatus?.ToString() ?? "")"
+                                                                data-view-technician-id="@(item.IdTecnico?.ToString() ?? "")"
+                                                                data-can-close="@(item.PuedeCerrarTicket ? "true" : "false")"
+                                                                data-is-closed="@(string.Equals(item.Estatus, "Cerrado", StringComparison.OrdinalIgnoreCase) ? "true" : "false")"
+                                                                data-view-subject="@item.Asunto"
+                                                                data-view-type="@item.TipoSoporte"
+                                                                data-view-area="@item.AreaAtiende"
+                                                                data-view-status="@item.Estatus"
+                                                                data-view-equipment="@item.Equipo"
+                                                                data-view-technician="@item.Tecnico"
+                                                                data-view-image="@item.Img"
+                                                                data-view-date="@item.FechaAlta.ToString("dd/MM/yyyy HH:mm")"
+                                                                data-view-problem="@item.Problema"
+                                                                aria-label="Ver ticket">
+                                                            <i class="fa-solid fa-eye"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                </div>
+                @* Datos ocultos por ticket usados por JavaScript para pintar Historial y Evidencias en el modal Detalle. *@
+                @foreach (var item in ticketsVista) {
+                    <div id="ticket-comments-@item.TipoTicket-@item.IdTicketOriginal" hidden>
+                        @if (item.Detalles.Count == 0) {
+                            <div class="ticket-timeline-empty">Sin comentarios registrados.</div>
+                        } else {
+                            foreach (var detalle in item.Detalles) {
+                                <article class="ticket-timeline-item">
+                                    <div class="ticket-timeline-header">
+                                        <strong>@detalle.Usuario</strong>
+                                        <span>@detalle.FechaComentario.ToString("dd/MM/yyyy HH:mm")</span>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(detalle.Estatus)) {
+                                        <span class="ticket-timeline-status">@detalle.Estatus</span>
+                                    }
+                                    <p>@detalle.Comentario</p>
+                                </article>
+                            }
+                        }
+                    </div>
+                    <script type="application/json" id="ticket-evidences-@item.TipoTicket-@item.IdTicketOriginal">
+                        @Html.Raw(JsonSerializer.Serialize(item.Evidencias.Select(evidencia => new {
+                            idEvidencia = evidencia.IdTicketEvidencia,
+                            nombreArchivo = evidencia.NombreArchivo,
+                            usuarioAlta = evidencia.UsuarioAlta,
+                            fechaAlta = evidencia.FechaAlta.ToString("dd/MM/yyyy HH:mm"),
+                            tamanioBytes = evidencia.TamanioBytes,
+                            tipoContenido = evidencia.TipoContenido,
+                            url = Url.Action("ViewEvidence", "tickets", new { idEvidencia = evidencia.IdTicketEvidencia })
+                        })))
+                    </script>
+                }
+            </section>
+        </main>
+    </div>
+
+    @* Inicio modal: Crear ticket de soporte. *@
+    <div class="modal-backdrop" id="createTicketModal" hidden>
+        <div class="modal-card ticket-create-modal" role="dialog" aria-modal="true" aria-labelledby="createTicketTitle">
+            <div class="modal-header">
+                <h2 id="createTicketTitle">Nuevo ticket</h2>
+                <button type="button" class="modal-close" id="btnCloseCreateTicketModal" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form action="@Url.Action("Create", "tickets")" method="post" enctype="multipart/form-data" class="catalog-form ticket-form">
+                @Html.AntiForgeryToken()
+                <div class="form-field">
+                    <label for="IdTipoSoporte">Tipo soporte</label>
+                    <select id="IdTipoSoporte" name="IdTipoSoporte" required>
+                        <option value="">Seleccione</option>
+                        @foreach (var tipo in Model.TiposSoporte) {
+                            if (tipo.IdAreaAtiende == 2) {
+                                <option value="@tipo.IdTipoSoporte" data-area-id="@(tipo.IdAreaAtiende?.ToString() ?? "")" selected>@tipo.TipoSoporte</option>
+                            } else {
+                                <option value="@tipo.IdTipoSoporte" data-area-id="@(tipo.IdAreaAtiende?.ToString() ?? "")">@tipo.TipoSoporte</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="form-field" id="createEquipmentField">
+                    <label for="IdEquipo">Equipo</label>
+                    <select id="IdEquipo" name="IdEquipo">
+                        <option value="">Otro / servicio compartido</option>
+                        @foreach (var equipo in Model.Equipos) {
+                            <option value="@equipo.IdEquipo" data-equipment-source="ASIGNADO">@equipo.Equipo</option>
+                        }
+                        @foreach (var equipo in Model.EquiposCompartidos) {
+                            <option value="@equipo.IdEquipo" data-equipment-source="COMPARTIDO">@equipo.Equipo</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="evidenciaTicket">Seleccionar evidencia inicial</label>
+                    <input id="evidenciaTicket" name="evidenciaTicket" type="file" accept="image/*" />
+                </div>
+                <div class="form-field wide">
+                    <label for="Asunto">Asunto</label>
+                    <input id="Asunto" name="Asunto" type="text" maxlength="200" required autocomplete="off" />
+                </div>
+                <div class="form-field full">
+                    <label for="Problema">Problema</label>
+                    <textarea id="Problema" name="Problema" rows="4" required></textarea>
+                </div>
+                <div class="form-actions full">
+                    <button type="submit" class="btn-primary">
+                        <i class="fa-solid fa-plus"></i>
+                        Crear ticket
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @* Fin modal: Crear ticket de soporte. *@
+
+    @* Inicio modal: Crear ticket de desarrollo. *@
+    <div class="modal-backdrop" id="developmentTicketModal" hidden>
+        <div class="modal-card ticket-development-modal" role="dialog" aria-modal="true" aria-labelledby="developmentTicketTitle">
+            <div class="modal-header">
+                <h2 id="developmentTicketTitle">Ticket de desarrollo</h2>
+                <button type="button" class="modal-close" id="btnCloseDevelopmentTicketModal" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form action="@Url.Action("CreateDevelopment", "tickets")" method="post" class="catalog-form ticket-form development-ticket-form" id="developmentTicketForm">
+                @Html.AntiForgeryToken()
+                <div class="form-field">
+                    <label for="developmentIdUsuarioSolicita">Quien solicita</label>
+                    <input id="developmentUsuarioSolicita" name="UsuarioSolicita" type="text" value="@Model.UsuarioSolicita" readonly />
+                    <input id="developmentIdUsuarioSolicita" name="IdUsuarioSolicita" type="hidden" value="@Model.IdUsuarioSolicita" />
+                </div>
+                <div class="form-field">
+                    <label for="developmentIdTipoRequerimiento">Tipo de requerimiento</label>
+                    <select id="developmentIdTipoRequerimiento" name="IdTipoDesarrollo" required>
+                        <option value="">Seleccione</option>
+                        @foreach (var tipo in Model.TiposDesarrollo) {
+                            <option value="@tipo.IdTipoDesarrollo">@tipo.TipoDesarrollo</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="developmentIdTipoSistema">Tipo de sistema</label>
+                    <select id="developmentIdTipoSistema" name="IdSistemas" required>
+                        <option value="">Seleccione</option>
+                        @foreach (var sistema in Model.SistemasDesarrollo) {
+                            <option value="@sistema.IdSistemas">@sistema.Sistema</option>
+                        }
+                    </select>
+                </div>
+                @* Selects en cascada: Tipo de sistema carga Modulo; Modulo carga Submodulo. *@
+                <div class="form-field">
+                    <label for="developmentIdTecnico">Desarrollador</label>
+                    <select id="developmentIdTecnico" name="IdTecnico" required>
+                        <option value="">Seleccione</option>
+                        @foreach (var desarrollador in Model.Desarrolladores) {
+                            <option value="@desarrollador.IdTecnico">@desarrollador.Tecnico</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="developmentIdModulo">Modulo</label>
+                    <select id="developmentIdModulo" name="IdModulo" required disabled>
+                        <option value="">Seleccione un tipo de sistema</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="developmentIdSubModulo">Submodulo</label>
+                    <select id="developmentIdSubModulo" name="IdSubModulo" disabled>
+                        <option value="">Seleccione un modulo</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="developmentAsunto">Asunto</label>
+                    <input id="developmentAsunto" name="Asunto" type="text" maxlength="100" required autocomplete="off" />
+                </div>
+                <div class="form-field full">
+                    <label for="developmentDescripcionTicket">Descripcion del desarrollo</label>
+                    <textarea id="developmentDescripcionTicket" name="DescripcionTicket" rows="4" required></textarea>
+                </div>
+
+                <div class="form-actions full">
+                    <button type="button" class="btn-primary" id="btnSaveDevelopmentTicket">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        Guardar
+                    </button>
+                    <button type="button" class="btn-secondary" id="btnCancelDevelopmentTicketModal">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    @* Fin modal: Crear ticket de desarrollo. *@
+
+    @* Inicio modal: Detalle de ticket. Muestra informacion, evidencias, historial, gestion y comentarios. *@
+    <div class="modal-backdrop" id="viewModal" hidden>
+        <div class="modal-card ticket-view-modal" role="dialog" aria-modal="true" aria-labelledby="viewTitle">
+            <div class="modal-header">
+                <h2 id="viewTitle">Detalle de ticket</h2>
+                <button type="button" class="modal-close" id="btnCloseViewModal" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="ticket-view">
+                @* Datos generales del ticket seleccionado. *@
+                <section class="ticket-view-section">
+                    <h3 id="viewSubject"></h3>
+                    <dl class="ticket-view-grid">
+                        <div>
+                            <dt>Folio</dt>
+                            <dd id="viewId"></dd>
+                        </div>
+                        <div>
+                            <dt>Tipo soporte</dt>
+                            <dd id="viewType"></dd>
+                        </div>
+                        <div>
+                            <dt>Area</dt>
+                            <dd id="viewArea"></dd>
+                        </div>
+                        <div>
+                            <dt>Estatus</dt>
+                            <dd id="viewStatus"></dd>
+                        </div>
+                        <div>
+                            <dt>Equipo</dt>
+                            <dd id="viewEquipment"></dd>
+                        </div>
+                        <div>
+                            <dt>Tecnico</dt>
+                            <dd id="viewTechnician"></dd>
+                        </div>
+                        <div>
+                            <dt>Fecha alta</dt>
+                            <dd id="viewDate"></dd>
+                        </div>
+                        <div>
+                            <dt>Imagen/ruta</dt>
+                            <dd id="viewImage"></dd>
+                        </div>
+                    </dl>
+                </section>
+
+                @* Evidencias del ticket y formulario para agregar archivos. *@
+                <section class="ticket-view-section">
+                    <h3>Problema</h3>
+                    <p id="viewProblem" class="ticket-problem"></p>
+                </section>
+
+                @* Historial de comentarios cargado desde tblTicketComentarios. *@
+                <section class="ticket-view-section">
+                    <h3>Evidencias</h3>
+                    <div id="viewEvidences" class="ticket-evidences"></div>
+
+                    <form action="@Url.Action("AddEvidence", "tickets")" method="post" enctype="multipart/form-data" class="ticket-evidence-form" id="evidenceTicketForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" id="evidenceIdTicket" name="idTicket" />
+                        <input type="hidden" id="evidenceIdTipoSoporte" name="idTipoSoporte" />
+                        <div class="form-field">
+                            <label for="modalEvidenciaTicket">Seleccionar evidencia</label>
+                            <input id="modalEvidenciaTicket" name="evidenciaTicket" type="file" accept="image/*" required />
+                            <span class="field-help">Despues de seleccionar la imagen, presiona Guardar evidencia.</span>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fa-solid fa-image"></i>
+                            Guardar evidencia
+                        </button>
+                    </form>
+                </section>
+
+                <section class="ticket-view-section">
+                    <h3>Historial</h3>
+                    <div id="viewTimeline" class="ticket-timeline"></div>
+                </section>
+
+                @* Cierre visible solo cuando el usuario puede dar visto bueno. *@
+                <section class="ticket-view-section ticket-close-section" id="closeTicketSection" hidden>
+                    <h3>Cierre del ticket</h3>
+                    <p class="ticket-close-text">Si la solucion fue correcta, puedes dar tu visto bueno y cerrar el ticket.</p>
+                    <form action="@Url.Action("CloseWithApproval", "tickets")" method="post" class="ticket-close-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" id="closeIdTicket" name="idTicket" />
+                        <button type="submit" class="btn-primary">
+                            <i class="fa-solid fa-circle-check"></i>
+                            Dar visto bueno y cerrar
+                        </button>
+                    </form>
+                </section>
+
+                @* Gestion visible para usuarios con permiso de actualizar tickets. *@
+                @if (Model.PuedeActualizar) {
+                    <section class="ticket-view-section" id="managementTicketSection">
+                        <h3>Gestion del ticket</h3>
+                        <form action="@Url.Action("UpdateManagement", "tickets")" method="post" class="ticket-management-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" id="managementIdTicket" name="IdTicket" />
+                            <div class="readonly-field">
+                                <span>Tipo soporte</span>
+                                <strong id="managementTipoSoporteText">-</strong>
+                            </div>
+                            <div class="form-field">
+                                <label for="managementIdEstatus">Estatus</label>
+                                <select id="managementIdEstatus" name="IdEstatus" required>
+                                    <option value="">Seleccione</option>
+                                @foreach (var estatus in Model.EstatusTicket) {
+                                    if (!string.Equals(estatus.Estatus, "Cerrado", StringComparison.OrdinalIgnoreCase)) {
+                                        <option value="@estatus.IdEstatus">@estatus.Estatus</option>
+                                    }
+                                }
+                                </select>
+                            </div>
+                            <div class="form-field">
+                                <label for="managementIdTecnico">Tecnico asignado</label>
+                                <select id="managementIdTecnico" name="IdTecnico">
+                                    <option value="">Automatico por area</option>
+                                    @foreach (var tecnico in Model.Tecnicos) {
+                                        <option value="@tecnico.IdTecnico" data-area-id="@(tecnico.IdAreaAtiende?.ToString() ?? "")" data-area-name="@tecnico.AreaAtiende">@tecnico.Tecnico</option>
+                                    }
+                                </select>
+                            </div>
+                            <button type="submit" class="btn-primary">
+                                <i class="fa-solid fa-floppy-disk"></i>
+                                Guardar gestion
+                            </button>
+                        </form>
+                    </section>
+                }
+
+                @* Alta de comentario del ticket seleccionado. *@
+                <section class="ticket-view-section" id="commentTicketSection">
+                    <h3>Agregar comentario</h3>
+                    <form action="@Url.Action("AddComment", "tickets")" method="post" class="ticket-comment-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" id="commentIdTicket" name="idTicket" />
+                        <input type="hidden" id="commentIdTipoSoporte" name="idTipoSoporte" />
+                        <div class="form-field full">
+                            <label for="comentario">Comentario</label>
+                            <textarea id="comentario" name="comentario" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            Agregar comentario
+                        </button>
+                    </form>
+                </section>
+            </div>
+        </div>
+    </div>
+    @* Fin modal: Detalle de ticket. *@
+
+    <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
+    <script src="@Url.Content("~/js/Menu/menu.js")"></script>
+    <script src="@Url.Content("~/js/Tickets/Tickets/tickets.js")?v=20260814-desarrollo-modulos-sistemas"></script>
+</body>
+</html>

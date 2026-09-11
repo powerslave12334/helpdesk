@@ -1,0 +1,60 @@
+@model HELPDESK.Models.Dashboard.dashboardModel
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - HELPDESK</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Dashboard/Principal/dashboard.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Menu/menu.css")" />
+</head>
+<body>
+    <div class="dashboard-shell">
+        @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
+
+        <main class="workspace">
+            <header class="workspace-header">
+                <div>
+                    <span class="section-label">Panel de trabajo</span>
+                    <h1 id="workspaceTitle">Dashboard principal</h1>
+                </div>
+                <div class="user-chip">
+                    <span class="user-dot"></span>
+                    <span>@Model.NombreUsuario</span>
+                </div>
+            </header>
+
+            <section class="workspace-content" id="workspaceContent">
+                <div class="summary-grid">
+                    <article class="summary-card">
+                        <span>Tickets abiertos</span>
+                        <strong>0</strong>
+                    </article>
+                    <article class="summary-card">
+                        <span>Equipos registrados</span>
+                        <strong>0</strong>
+                    </article>
+                    <article class="summary-card">
+                        <span>GPS instalados</span>
+                        <strong>0</strong>
+                    </article>
+                </div>
+
+                <div class="work-panel">
+                    <h2>Dashboard principal</h2>
+                    <p>Aquí se cargará el contenido del módulo seleccionado sin cambiar el menú lateral.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
+    <script src="@Url.Content("~/js/Menu/menu.js")"></script>
+</body>
+</html>

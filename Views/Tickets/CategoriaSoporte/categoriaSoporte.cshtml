@@ -1,0 +1,205 @@
+﻿@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}
+@model HELPDESK.Models.Tickets.CategoriaSoporte.categoriaSoporteModel
+@{
+    ViewData["Title"] = "Categoria soporte";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Categoria soporte - HELPDESK</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Dashboard/Principal/dashboard.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Menu/menu.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Tickets/CategoriaSoporte/categoriaSoporte.css")" />
+</head>
+<body>
+    <div class="dashboard-shell">
+        @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
+
+        <main class="workspace">
+            <header class="workspace-header">
+                <div>
+                    <span class="section-label">Ticket</span>
+                    <h1>Categoria soporte</h1>
+                </div>
+            </header>
+
+            <section class="catalog-layout">
+                @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage)) {
+                    <div class="catalog-alert success">@Model.SuccessMessage</div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) {
+                    <div class="catalog-alert error">@Model.ErrorMessage</div>
+                }
+
+                <div class="catalog-panel">
+                    <div class="catalog-panel-header">
+                        <div>
+                            <h2>Nueva categoria</h2>
+                            <p>Clasifica los tickets por modulo, servicio o tipo de incidencia.</p>
+                        </div>
+                    </div>
+
+                    <form action="@Url.Action("Create", "categoriaSoporte")" method="post" class="catalog-form support-category-form">
+                        @Html.AntiForgeryToken()
+                        <div class="form-field">
+                            <label for="IdTipoSoporte">Tipo soporte</label>
+                            <select id="IdTipoSoporte" name="IdTipoSoporte" required>
+                                <option value="">Seleccione</option>
+                                @foreach (var tipo in Model.TiposSoporte) {
+                                    <option value="@tipo.IdTipoSoporte">@tipo.TipoSoporte</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="Descripcion">Descripcion</label>
+                            <input id="Descripcion" name="Descripcion" type="text" maxlength="100" required autocomplete="off" />
+                        </div>
+                        <div class="form-field">
+                            <label for="TipoEquipoTicket">Equipo en ticket</label>
+                            <select id="TipoEquipoTicket" name="IdTipoEquipoTicket" required>
+                                <option value="">Seleccione</option>
+                                @foreach (var tipoEquipoTicket in Model.TiposEquipoTicket) {
+                                    <option value="@tipoEquipoTicket.IdTipoEquipoTicket">@tipoEquipoTicket.Descripcion</option>
+                                }
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fa-solid fa-plus"></i>
+                            Agregar
+                        </button>
+                    </form>
+                </div>
+
+                <div class="catalog-panel">
+                    <div class="catalog-panel-header">
+                        <div>
+                            <h2>Listado de categorias</h2>
+                            <p>Administra las categorias disponibles para cada tipo de soporte.</p>
+                        </div>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="catalog-table support-category-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Tipo soporte</th>
+                                    <th>Descripcion</th>
+                                    <th>Equipo en ticket</th>
+                                    <th>Fecha alta</th>
+                                    <th>Estatus</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.CategoriasSoporte.Count == 0) {
+                                    <tr>
+                                        <td colspan="7" class="empty-cell">No hay categorias de soporte registradas.</td>
+                                    </tr>
+                                } else {
+                                    foreach (var item in Model.CategoriasSoporte) {
+                                        <tr>
+                                            <td>@item.IdCategoriaSoporte</td>
+                                            <td>@item.TipoSoporte</td>
+                                            <td>@item.Descripcion</td>
+                                            <td>
+                                                <span class="status-pill @(item.RequiereEquipo ? "active" : "inactive")">
+                                                    @item.TipoEquipoTicketNombre
+                                                </span>
+                                            </td>
+                                            <td>@item.FechaAlta.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>
+                                                <span class="status-pill @(item.Activo ? "active" : "inactive")">
+                                                    @(item.Activo ? "Activo" : "Inactivo")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="row-actions">
+                                                    <button type="button"
+                                                            class="icon-action"
+                                                            data-edit-id="@item.IdCategoriaSoporte"
+                                                            data-edit-type="@item.IdTipoSoporte"
+                                                            data-edit-description="@item.Descripcion"
+                                                            data-edit-equipment-type="@item.IdTipoEquipoTicket"
+                                                            aria-label="Editar categoria de soporte">
+                                                        <i class="fa-solid fa-pen"></i>
+                                                    </button>
+
+                                                    <form action="@Url.Action("ToggleActivo", "categoriaSoporte")" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="idCategoriaSoporte" value="@item.IdCategoriaSoporte" />
+                                                        <button type="submit" class="icon-action" aria-label="Cambiar estatus">
+                                                            <i class="fa-solid @(item.Activo ? "fa-ban" : "fa-check")"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal-backdrop" id="editModal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+            <div class="modal-header">
+                <h2 id="editTitle">Editar categoria</h2>
+                <button type="button" class="modal-close" id="btnCloseModal" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form action="@Url.Action("Edit", "categoriaSoporte")" method="post" class="catalog-form stacked">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="editIdCategoriaSoporte" name="IdCategoriaSoporte" />
+                <div class="form-field">
+                    <label for="editIdTipoSoporte">Tipo soporte</label>
+                    <select id="editIdTipoSoporte" name="IdTipoSoporte" required>
+                        <option value="">Seleccione</option>
+                        @foreach (var tipo in Model.TiposSoporte) {
+                            <option value="@tipo.IdTipoSoporte">@tipo.TipoSoporte</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="editDescripcion">Descripcion</label>
+                    <input id="editDescripcion" name="Descripcion" type="text" maxlength="100" required autocomplete="off" />
+                </div>
+                <div class="form-field">
+                    <label for="editTipoEquipoTicket">Equipo en ticket</label>
+                    <select id="editTipoEquipoTicket" name="IdTipoEquipoTicket" required>
+                        <option value="">Seleccione</option>
+                        @foreach (var tipoEquipoTicket in Model.TiposEquipoTicket) {
+                            <option value="@tipoEquipoTicket.IdTipoEquipoTicket">@tipoEquipoTicket.Descripcion</option>
+                        }
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    Guardar cambios
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
+    <script src="@Url.Content("~/js/Menu/menu.js")"></script>
+    <script src="@Url.Content("~/js/Tickets/CategoriaSoporte/categoriaSoporte.js")"></script>
+</body>
+</html>

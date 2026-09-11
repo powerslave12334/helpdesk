@@ -1,0 +1,13 @@
+.relation-type-form {
+    grid-template-columns: minmax(220px, 420px) auto;
+}
+
+.relation-type-table {
+    min-width: 820px;
+}
+
+@media (max-width: 720px) {
+    .relation-type-form {
+        grid-template-columns: 1fr;
+    }
+}

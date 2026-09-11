@@ -1,0 +1,94 @@
+.system-submodules-form {
+    align-items: end;
+    grid-template-columns: minmax(220px, 300px) minmax(220px, 320px) minmax(220px, 380px) auto;
+}
+
+.system-submodules-edit-form {
+    grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr);
+}
+
+.system-submodules-form .system-field,
+.system-submodules-edit-form .system-field {
+    grid-column: 1;
+}
+
+.system-submodules-form .module-field,
+.system-submodules-edit-form .module-field {
+    grid-column: 2;
+}
+
+.system-submodules-form .submodule-name-field {
+    grid-column: 3;
+}
+
+.system-submodules-edit-form .submodule-name-field,
+.system-submodules-edit-form .btn-primary {
+    grid-column: 1 / -1;
+}
+
+.system-submodules-edit-form .btn-primary {
+    justify-self: start;
+}
+
+.system-submodules-form select,
+.modal-card select {
+    width: 100%;
+    height: 42px;
+    border: 1px solid var(--sidebar-border);
+    border-radius: 10px;
+    padding: 0 40px 0 12px;
+    background-color: var(--surface);
+    background-image:
+        linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+        linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+    background-position:
+        calc(100% - 18px) 18px,
+        calc(100% - 13px) 18px;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    color: var(--text);
+    outline: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+.system-submodules-form select:disabled,
+.modal-card select:disabled {
+    cursor: not-allowed;
+    opacity: .65;
+}
+
+.system-submodules-form select:focus,
+.modal-card select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.system-submodules-table th:nth-child(1),
+.system-submodules-table td:nth-child(1) {
+    width: 90px;
+}
+
+.system-submodules-table th:nth-child(5),
+.system-submodules-table td:nth-child(5),
+.system-submodules-table th:nth-child(6),
+.system-submodules-table td:nth-child(6) {
+    width: 130px;
+}
+
+@media (max-width: 980px) {
+    .system-submodules-form,
+    .system-submodules-edit-form {
+        grid-template-columns: 1fr;
+    }
+
+    .system-submodules-form .system-field,
+    .system-submodules-edit-form .system-field,
+    .system-submodules-form .module-field,
+    .system-submodules-edit-form .module-field,
+    .system-submodules-form .submodule-name-field,
+    .system-submodules-edit-form .submodule-name-field,
+    .system-submodules-edit-form .btn-primary {
+        grid-column: 1;
+    }
+}

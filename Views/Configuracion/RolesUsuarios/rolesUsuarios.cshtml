@@ -1,0 +1,137 @@
+@model HELPDESK.Models.Configuracion.RolesUsuarios.rolesUsuariosModel
+@{
+    ViewData["Title"] = "Roles de usuarios";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Roles de usuarios - HELPDESK</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Dashboard/Principal/dashboard.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Menu/menu.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/SubModulos/subModulos.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/RolesUsuarios/rolesUsuarios.css")" />
+</head>
+<body>
+    <div class="dashboard-shell">
+        @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
+
+        <main class="workspace">
+            <header class="workspace-header">
+                <div>
+                    <span class="section-label">Configuración</span>
+                    <h1>Roles de usuarios</h1>
+                </div>
+            </header>
+
+            <section class="catalog-layout">
+                @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage)) {
+                    <div class="catalog-alert success">@Model.SuccessMessage</div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) {
+                    <div class="catalog-alert error">@Model.ErrorMessage</div>
+                }
+
+                <div class="catalog-panel">
+                    <div class="catalog-panel-header">
+                        <div>
+                            <h2>Asignar rol</h2>
+                            <p>Relaciona usuarios activos con roles del sistema.</p>
+                        </div>
+                    </div>
+
+                    <form action="@Url.Action("Create", "rolesUsuarios")" method="post" class="catalog-form user-role-form">
+                        @Html.AntiForgeryToken()
+                        <div class="form-field">
+                            <label for="IdUsuario">Usuario</label>
+                            <select id="IdUsuario" name="IdUsuario" required>
+                                <option value="">Selecciona un usuario</option>
+                                @foreach (var usuario in Model.Usuarios) {
+                                    <option value="@usuario.IdUsuario">@usuario.NombreUsuario</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label for="IdRol">Rol</label>
+                            <select id="IdRol" name="IdRol" required>
+                                <option value="">Selecciona un rol</option>
+                                @foreach (var rol in Model.Roles) {
+                                    <option value="@rol.IdRol">@rol.NombreRol</option>
+                                }
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fa-solid fa-plus"></i>
+                            Asignar
+                        </button>
+                    </form>
+                </div>
+
+                <div class="catalog-panel">
+                    <div class="catalog-panel-header">
+                        <div>
+                            <h2>Listado de asignaciones</h2>
+                            <p>Consulta y administra los roles asignados a usuarios.</p>
+                        </div>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="catalog-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Usuario</th>
+                                    <th>Rol</th>
+                                    <th>Fecha alta</th>
+                                    <th>Estatus</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.RolesUsuarios.Count == 0) {
+                                    <tr>
+                                        <td colspan="6" class="empty-cell">No hay roles asignados.</td>
+                                    </tr>
+                                } else {
+                                    foreach (var item in Model.RolesUsuarios) {
+                                        <tr>
+                                            <td>@item.IdRolesUsuario</td>
+                                            <td>@item.NombreUsuario</td>
+                                            <td>@item.NombreRol</td>
+                                            <td>@item.FechaAlta.ToString("dd/MM/yyyy HH:mm")</td>
+                                            <td>
+                                                <span class="status-pill @(item.Activo ? "active" : "inactive")">
+                                                    @(item.Activo ? "Activo" : "Inactivo")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <form action="@Url.Action("ToggleActivo", "rolesUsuarios")" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="idRolesUsuario" value="@item.IdRolesUsuario" />
+                                                    <button type="submit" class="icon-action" aria-label="Cambiar estatus">
+                                                        <i class="fa-solid @(item.Activo ? "fa-ban" : "fa-check")"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
+    <script src="@Url.Content("~/js/Menu/menu.js")"></script>
+    <script src="@Url.Content("~/js/Configuracion/RolesUsuarios/rolesUsuarios.js")"></script>
+</body>
+</html>

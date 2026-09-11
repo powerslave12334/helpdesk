@@ -1,0 +1,29 @@
+.support-type-form {
+    grid-template-columns: minmax(220px, 380px) minmax(180px, 320px) auto;
+}
+
+.support-type-table {
+    min-width: 920px;
+}
+
+.form-field select {
+    width: 100%;
+    height: 42px;
+    border: 1px solid var(--sidebar-border);
+    border-radius: 10px;
+    padding: 0 12px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+}
+
+.form-field select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+@media (max-width: 720px) {
+    .support-type-form {
+        grid-template-columns: 1fr;
+    }
+}

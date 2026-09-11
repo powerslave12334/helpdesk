@@ -1,0 +1,13 @@
+.status-form {
+    grid-template-columns: minmax(180px, 260px) minmax(240px, 1fr) auto;
+}
+
+.status-table {
+    min-width: 860px;
+}
+
+@media (max-width: 900px) {
+    .status-form {
+        grid-template-columns: 1fr;
+    }
+}

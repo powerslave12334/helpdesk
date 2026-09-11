@@ -1,0 +1,163 @@
+@model HELPDESK.Models.Tickets.TipoDesarrollo.tipoDesarrolloModel
+@{
+    ViewData["Title"] = "Tipo de desarrollo";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tipo de desarrollo - HELPDESK</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Dashboard/Principal/dashboard.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Menu/menu.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Tickets/TipoDesarrollo/tipoDesarrollo.css")" />
+</head>
+<body>
+    <div class="dashboard-shell">
+        @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
+
+        <main class="workspace">
+            <header class="workspace-header">
+                <div>
+                    <span class="section-label">Tickets</span>
+                    <h1>Tipo de desarrollo</h1>
+                </div>
+            </header>
+
+            <section class="catalog-layout">
+                @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage)) {
+                    <div class="catalog-alert success">@Model.SuccessMessage</div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) {
+                    <div class="catalog-alert error">@Model.ErrorMessage</div>
+                }
+
+                <div class="catalog-panel">
+                    <div class="catalog-panel-header">
+                        <div>
+                            <h2>Nuevo tipo de desarrollo</h2>
+                            <p>Registra los tipos usados para clasificar solicitudes de desarrollo.</p>
+                        </div>
+                    </div>
+
+                    <form action="@Url.Action("Create", "tipoDesarrollo")" method="post" class="catalog-form development-type-form">
+                        @Html.AntiForgeryToken()
+                        <div class="form-field">
+                            <label for="Nombre">Nombre</label>
+                            <input id="Nombre" name="Nombre" type="text" maxlength="100" required autocomplete="off" />
+                        </div>
+                        <div class="form-field">
+                            <label for="Descripcion">Descripcion</label>
+                            <input id="Descripcion" name="Descripcion" type="text" maxlength="500" autocomplete="off" />
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fa-solid fa-plus"></i>
+                            Agregar
+                        </button>
+                    </form>
+                </div>
+
+                <div class="catalog-panel">
+                    <div class="catalog-panel-header">
+                        <div>
+                            <h2>Listado de tipos de desarrollo</h2>
+                            <p>Administra tipos como Nuevo, Corregir error o Mejora.</p>
+                        </div>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="catalog-table development-type-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Descripcion</th>
+                                    <th>Estatus</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.TiposDesarrollo.Count == 0) {
+                                    <tr>
+                                        <td colspan="5" class="empty-cell">No hay tipos de desarrollo registrados.</td>
+                                    </tr>
+                                } else {
+                                    foreach (var item in Model.TiposDesarrollo) {
+                                        <tr>
+                                            <td>@item.IdTipoDesarrollo</td>
+                                            <td>@item.Nombre</td>
+                                            <td>@item.Descripcion</td>
+                                            <td>
+                                                <span class="status-pill @(item.Enabled ? "active" : "inactive")">
+                                                    @(item.Enabled ? "Activo" : "Inactivo")
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="row-actions">
+                                                    <button type="button"
+                                                            class="icon-action"
+                                                            data-edit-id="@item.IdTipoDesarrollo"
+                                                            data-edit-name="@item.Nombre"
+                                                            data-edit-description="@item.Descripcion"
+                                                            aria-label="Editar tipo de desarrollo">
+                                                        <i class="fa-solid fa-pen"></i>
+                                                    </button>
+
+                                                    <form action="@Url.Action("ToggleEnabled", "tipoDesarrollo")" method="post">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="idTipoDesarrollo" value="@item.IdTipoDesarrollo" />
+                                                        <button type="submit" class="icon-action" aria-label="Cambiar estatus">
+                                                            <i class="fa-solid @(item.Enabled ? "fa-ban" : "fa-check")"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal-backdrop" id="editModal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+            <div class="modal-header">
+                <h2 id="editTitle">Editar tipo de desarrollo</h2>
+                <button type="button" class="modal-close" id="btnCloseModal" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form action="@Url.Action("Edit", "tipoDesarrollo")" method="post" class="catalog-form stacked">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="editIdTipoDesarrollo" name="IdTipoDesarrollo" />
+                <div class="form-field">
+                    <label for="editNombre">Nombre</label>
+                    <input id="editNombre" name="Nombre" type="text" maxlength="100" required autocomplete="off" />
+                </div>
+                <div class="form-field">
+                    <label for="editDescripcion">Descripcion</label>
+                    <input id="editDescripcion" name="Descripcion" type="text" maxlength="500" autocomplete="off" />
+                </div>
+                <button type="submit" class="btn-primary">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    Guardar cambios
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
+    <script src="@Url.Content("~/js/Menu/menu.js")"></script>
+    <script src="@Url.Content("~/js/Tickets/TipoDesarrollo/tipoDesarrollo.js")"></script>
+</body>
+</html>

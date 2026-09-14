@@ -1,0 +1,119 @@
+@model HELPDESK.Models.Inventario.EquipoHistorial.equipoHistorialModel
+@{
+    ViewData["Title"] = "Historial de asignaciones";
+    Layout = null;
+    int idUsuario = 0;
+    int.TryParse(Context.Session.GetString("IdUsuario"), out idUsuario);
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Historial de asignaciones - HELPDESK</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Dashboard/Principal/dashboard.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Menu/menu.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Inventario/EquipoHistorial/equipoHistorial.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Notificaciones/notificaciones.css")" />
+</head>
+<body data-user-id="@idUsuario">
+    <div class="dashboard-shell">
+        @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
+
+        <main class="workspace">
+            <header class="workspace-header">
+                <div>
+                    <span class="section-label">Inventario</span>
+                    <h1>Historial de asignaciones</h1>
+                </div>
+            </header>
+
+            <section class="catalog-layout">
+                @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage)) {
+                    <div class="catalog-alert success">@Model.SuccessMessage</div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage)) {
+                    <div class="catalog-alert error">@Model.ErrorMessage</div>
+                }
+
+                <div class="catalog-panel">
+                    <div class="catalog-panel-header">
+                        <div>
+                            <h2>Registro de acciones</h2>
+                            <p>Historial de desvinculaciones, liberaciones y re-vinculaciones de equipos.</p>
+                        </div>
+                        <div class="table-search">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" placeholder="Buscar por equipo, usuario, accion..." />
+                        </div>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="catalog-table history-table" id="historyTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Equipo</th>
+                                    <th>Marca / Modelo</th>
+                                    <th>No. Serie</th>
+                                    <th>Usuario</th>
+                                    <th>Area</th>
+                                    <th>Asignacion</th>
+                                    <th>Baja</th>
+                                    <th>Accion</th>
+                                    <th>Motivo</th>
+                                    <th>Registrado por</th>
+                                    <th>Fecha accion</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                @if (Model.Historial.Count == 0) {
+                                    <tr>
+                                        <td colspan="12" class="empty-cell">No hay registros en el historial.</td>
+                                    </tr>
+                                } else {
+                                    foreach (var item in Model.Historial) {
+                                        <tr>
+                                            <td>@item.IdHistorialEquipoUsuario</td>
+                                            <td>@item.NombreEquipo</td>
+                                            <td>@item.EquipoMarca @item.EquipoModelo</td>
+                                            <td>@item.EquipoNumeroSerie</td>
+                                            <td>@item.NombreUsuario</td>
+                                            <td>@item.NombreArea</td>
+                                            <td>@item.FechaAsignacion.ToString("dd/MM/yyyy")</td>
+                                            <td>@(item.FechaBaja.HasValue ? item.FechaBaja.Value.ToString("dd/MM/yyyy") : "")</td>
+                                            <td>
+                                                <span class="action-pill @item.Accion.ToLower().Replace("-", "")">
+                                                    @item.Accion
+                                                </span>
+                                            </td>
+                                            <td>@(item.Motivo ?? "")</td>
+                                            <td>@item.NombreUsuarioAccion</td>
+                                            <td>@item.FechaAccion.ToString("dd/MM/yyyy HH:mm")</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="table-footer">
+                        <span class="row-count" id="rowCount"></span>
+                        <div class="pagination" id="pagination"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
+    <script src="@Url.Content("~/js/Menu/menu.js")"></script>
+    <script src="@Url.Content("~/js/Inventario/EquipoHistorial/equipoHistorial.js")"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="@Url.Content("~/js/Notificaciones/notificaciones.js")"></script>
+</body>
+</html>

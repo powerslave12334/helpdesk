@@ -1,24 +1,193 @@
-document.addEventListener("DOMContentLoaded", function () {
-    const createTicketModal = document.getElementById("createTicketModal");
-    const btnOpenCreateTicketModal = document.getElementById("btnOpenCreateTicketModal");
-    const btnCloseCreateTicketModal = document.getElementById("btnCloseCreateTicketModal");
-    const developmentTicketModal = document.getElementById("developmentTicketModal");
-    const btnOpenDevelopmentTicketModal = document.getElementById("btnOpenDevelopmentTicketModal");
-    const btnCloseDevelopmentTicketModal = document.getElementById("btnCloseDevelopmentTicketModal");
-    const btnCancelDevelopmentTicketModal = document.getElementById("btnCancelDevelopmentTicketModal");
-    const btnSaveDevelopmentTicket = document.getElementById("btnSaveDevelopmentTicket");
-    const developmentTicketForm = document.getElementById("developmentTicketForm");
-    const developmentSystem = document.getElementById("developmentIdTipoSistema");
-    const developmentModule = document.getElementById("developmentIdModulo");
-    const developmentSubModule = document.getElementById("developmentIdSubModulo");
-    const createType = document.getElementById("IdTipoSoporte");
-    const createEquipmentField = document.getElementById("createEquipmentField");
-    const createEquipment = document.getElementById("IdEquipo");
-    const viewModal = document.getElementById("viewModal");
-    const btnCloseViewModal = document.getElementById("btnCloseViewModal");
-    const tabButtons = document.querySelectorAll("[data-ticket-tab]");
-    const tabPanels = document.querySelectorAll("[data-ticket-panel]");
-    const fields = {
+(function () {
+    var ROWS_PER_PAGE = 10;
+    var tabState = {};
+    var activeTabId = null;
+
+    var searchInput = document.getElementById("searchInput");
+    var rowCountEl = document.getElementById("rowCount");
+    var paginationEl = document.getElementById("pagination");
+    var tabButtons = document.querySelectorAll("[data-ticket-tab]");
+    var tabPanels = document.querySelectorAll("[data-ticket-panel]");
+
+    function normalize(t) { return (t || "").toLowerCase(); }
+
+    function getRowText(row) {
+        var cells = row.querySelectorAll("td");
+        var parts = [];
+        for (var i = 0; i < cells.length - 1; i++) {
+            parts.push(normalize(cells[i].textContent));
+        }
+        return parts.join(" ");
+    }
+
+    function initTab(tabId) {
+        var tbody = document.getElementById("tableBody" + tabId.charAt(0).toUpperCase() + tabId.slice(1));
+        var allRows = tbody ? Array.from(tbody.querySelectorAll("tr")) : [];
+        tabState[tabId] = {
+            tbody: tbody,
+            allRows: allRows,
+            filteredRows: allRows.slice(),
+            currentPage: 1
+        };
+    }
+
+    function filterTabRows(tabId) {
+        var state = tabState[tabId];
+        if (!state) return;
+        var q = normalize(searchInput ? searchInput.value : "");
+        state.filteredRows = state.allRows.filter(function (row) {
+            if (!q) return true;
+            return getRowText(row).indexOf(q) !== -1;
+        });
+        state.currentPage = 1;
+    }
+
+    function renderTabTable(tabId) {
+        var state = tabState[tabId];
+        if (!state || !state.tbody) return;
+        state.tbody.innerHTML = "";
+        var colSpan = state.allRows.length > 0 ? state.allRows[0].querySelectorAll("td").length : 11;
+        if (state.filteredRows.length === 0) {
+            var tr = document.createElement("tr");
+            var td = document.createElement("td");
+            td.colSpan = colSpan;
+            td.className = "empty-cell";
+            td.textContent = "No hay resultados.";
+            tr.appendChild(td);
+            state.tbody.appendChild(tr);
+        } else {
+            var start = (state.currentPage - 1) * ROWS_PER_PAGE;
+            var end = Math.min(start + ROWS_PER_PAGE, state.filteredRows.length);
+            for (var i = start; i < end; i++) {
+                state.tbody.appendChild(state.filteredRows[i]);
+            }
+        }
+        renderInfo(state.filteredRows.length, state.currentPage);
+        renderPagination(state);
+    }
+
+    function renderInfo(total, currentPage) {
+        if (!rowCountEl) return;
+        if (total === 0) { rowCountEl.textContent = "Mostrando 0 registros"; return; }
+        var start = (currentPage - 1) * ROWS_PER_PAGE + 1;
+        var end = Math.min(currentPage * ROWS_PER_PAGE, total);
+        rowCountEl.textContent = "Mostrando " + start + " a " + end + " de " + total + " registros";
+    }
+
+    function renderPagination(state) {
+        if (!paginationEl) return;
+        paginationEl.innerHTML = "";
+        var total = state.filteredRows.length;
+        var totalPages = Math.max(1, Math.ceil(total / ROWS_PER_PAGE));
+        if (state.currentPage > totalPages) state.currentPage = totalPages;
+        var prev = document.createElement("button");
+        prev.type = "button"; prev.className = "page-btn";
+        prev.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+        prev.disabled = state.currentPage <= 1;
+        prev.addEventListener("click", function () { state.currentPage--; renderTabTable(activeTabId); });
+        paginationEl.appendChild(prev);
+        var startP = Math.max(1, state.currentPage - 2);
+        var endP = Math.min(totalPages, state.currentPage + 2);
+        if (startP > 1) {
+            var b = document.createElement("button");
+            b.type = "button"; b.className = "page-btn"; b.textContent = "1";
+            b.addEventListener("click", function () { state.currentPage = 1; renderTabTable(activeTabId); });
+            paginationEl.appendChild(b);
+            if (startP > 2) {
+                var d = document.createElement("span"); d.className = "page-dots"; d.textContent = "...";
+                paginationEl.appendChild(d);
+            }
+        }
+        for (var p = startP; p <= endP; p++) {
+            var btn = document.createElement("button");
+            btn.type = "button"; btn.className = "page-btn" + (p === state.currentPage ? " active" : "");
+            btn.textContent = p; btn.setAttribute("data-page", p);
+            btn.addEventListener("click", function () {
+                state.currentPage = parseInt(this.getAttribute("data-page"), 10); renderTabTable(activeTabId);
+            });
+            paginationEl.appendChild(btn);
+        }
+        if (endP < totalPages) {
+            if (endP < totalPages - 1) {
+                var d2 = document.createElement("span"); d2.className = "page-dots"; d2.textContent = "...";
+                paginationEl.appendChild(d2);
+            }
+            var bLast = document.createElement("button");
+            bLast.type = "button"; bLast.className = "page-btn"; bLast.textContent = totalPages;
+            bLast.addEventListener("click", function () { state.currentPage = totalPages; renderTabTable(activeTabId); });
+            paginationEl.appendChild(bLast);
+        }
+        var next = document.createElement("button");
+        next.type = "button"; next.className = "page-btn";
+        next.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+        next.disabled = state.currentPage >= totalPages;
+        next.addEventListener("click", function () { state.currentPage++; renderTabTable(activeTabId); });
+        paginationEl.appendChild(next);
+    }
+
+    function switchToTab(tabId) {
+        activeTabId = tabId;
+        tabButtons.forEach(function (item) {
+            var isActive = item.getAttribute("data-ticket-tab") === tabId;
+            item.classList.toggle("active", isActive);
+            item.setAttribute("aria-selected", isActive ? "true" : "false");
+        });
+        tabPanels.forEach(function (panel) {
+            panel.classList.toggle("active", panel.getAttribute("data-ticket-panel") === tabId);
+        });
+        if (tabState[tabId]) {
+            filterTabRows(tabId);
+            renderTabTable(tabId);
+        }
+    }
+
+    tabButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            var tabId = button.getAttribute("data-ticket-tab") || "";
+            switchToTab(tabId);
+        });
+    });
+
+    if (searchInput) {
+        searchInput.addEventListener("input", function () {
+            if (activeTabId) {
+                filterTabRows(activeTabId);
+                renderTabTable(activeTabId);
+            }
+        });
+    }
+
+    // Initialize all tabs
+    tabButtons.forEach(function (button) {
+        var tabId = button.getAttribute("data-ticket-tab") || "";
+        initTab(tabId);
+    });
+
+    // Activate first tab
+    if (tabButtons.length > 0) {
+        var firstTabId = tabButtons[0].getAttribute("data-ticket-tab") || "";
+        switchToTab(firstTabId);
+    }
+
+    // === EXISTING MODAL LOGIC ===
+    var createTicketModal = document.getElementById("createTicketModal");
+    var btnOpenCreateTicketModal = document.getElementById("btnOpenCreateTicketModal");
+    var btnCloseCreateTicketModal = document.getElementById("btnCloseCreateTicketModal");
+    var developmentTicketModal = document.getElementById("developmentTicketModal");
+    var btnOpenDevelopmentTicketModal = document.getElementById("btnOpenDevelopmentTicketModal");
+    var btnCloseDevelopmentTicketModal = document.getElementById("btnCloseDevelopmentTicketModal");
+    var btnCancelDevelopmentTicketModal = document.getElementById("btnCancelDevelopmentTicketModal");
+    var btnSaveDevelopmentTicket = document.getElementById("btnSaveDevelopmentTicket");
+    var developmentTicketForm = document.getElementById("developmentTicketForm");
+    var developmentSystem = document.getElementById("developmentIdTipoSistema");
+    var developmentModule = document.getElementById("developmentIdModulo");
+    var developmentSubModule = document.getElementById("developmentIdSubModulo");
+    var createType = document.getElementById("IdTipoSoporte");
+    var createEquipmentField = document.getElementById("createEquipmentField");
+    var createEquipment = document.getElementById("IdEquipo");
+    var viewModal = document.getElementById("viewModal");
+    var btnCloseViewModal = document.getElementById("btnCloseViewModal");
+    var fields = {
         id: document.getElementById("viewId"),
         subject: document.getElementById("viewSubject"),
         type: document.getElementById("viewType"),
@@ -55,8 +224,8 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             setText(fields.id, button.getAttribute("data-view-id"));
-            const idTipoSoporte = button.getAttribute("data-view-ticket-type") || "2";
-            const idTicketOriginal = button.getAttribute("data-view-original-id") || button.getAttribute("data-view-id") || "";
+            var idTipoSoporte = button.getAttribute("data-view-ticket-type") || "2";
+            var idTicketOriginal = button.getAttribute("data-view-original-id") || button.getAttribute("data-view-id") || "";
             setText(fields.subject, button.getAttribute("data-view-subject"));
             setText(fields.type, button.getAttribute("data-view-type"));
             setText(fields.area, button.getAttribute("data-view-area"));
@@ -81,7 +250,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (fields.closeIdTicket) {
                 fields.closeIdTicket.value = button.getAttribute("data-view-id") || "";
             }
-            const isClosed = button.getAttribute("data-is-closed") === "true";
+            var isClosed = button.getAttribute("data-is-closed") === "true";
             if (fields.closeSection) {
                 toggleHidden(fields.closeSection, isClosed || button.getAttribute("data-can-close") !== "true");
             }
@@ -111,9 +280,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 fields.managementStatus.value = button.getAttribute("data-view-status-id") || "";
             }
             if (fields.managementTechnician) {
-                const technicianId = button.getAttribute("data-view-technician-id") || "";
+                var technicianId = button.getAttribute("data-view-technician-id") || "";
                 fields.managementTechnician.value = technicianId;
-                const selectedTechnician = fields.managementTechnician.options[fields.managementTechnician.selectedIndex];
+                var selectedTechnician = fields.managementTechnician.options[fields.managementTechnician.selectedIndex];
                 if (!selectedTechnician || selectedTechnician.disabled || fields.managementTechnician.value !== technicianId) {
                     fields.managementTechnician.value = "";
                 }
@@ -121,22 +290,6 @@ document.addEventListener("DOMContentLoaded", function () {
             renderTimeline(idTicketOriginal, idTipoSoporte);
             renderEvidences(idTicketOriginal, idTipoSoporte);
             viewModal.hidden = false;
-        });
-    });
-
-    tabButtons.forEach(function (button) {
-        button.addEventListener("click", function () {
-            const tabId = button.getAttribute("data-ticket-tab") || "";
-
-            tabButtons.forEach(function (item) {
-                const isActive = item === button;
-                item.classList.toggle("active", isActive);
-                item.setAttribute("aria-selected", isActive ? "true" : "false");
-            });
-
-            tabPanels.forEach(function (panel) {
-                panel.classList.toggle("active", panel.getAttribute("data-ticket-panel") === tabId);
-            });
         });
     });
 
@@ -151,7 +304,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (createTicketModal) {
                 toggleCreateEquipment();
                 createTicketModal.hidden = false;
-                const firstField = createTicketModal.querySelector("select, input, textarea");
+                var firstField = createTicketModal.querySelector("select, input, textarea");
                 if (firstField) {
                     firstField.focus();
                 }
@@ -169,7 +322,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 resetSelect(developmentModule, "Seleccione un tipo de sistema");
                 resetSelect(developmentSubModule, "Seleccione un modulo");
                 developmentTicketModal.hidden = false;
-                const firstField = developmentTicketModal.querySelector("select, input, textarea");
+                var firstField = developmentTicketModal.querySelector("select, input, textarea");
                 if (firstField) {
                     firstField.focus();
                 }
@@ -260,7 +413,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const idSistemas = developmentSystem.value || "";
+        var idSistemas = developmentSystem.value || "";
         resetSelect(developmentModule, idSistemas ? "Cargando..." : "Seleccione un tipo de sistema");
         resetSelect(developmentSubModule, "Seleccione un modulo");
 
@@ -269,7 +422,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         try {
-            const response = await fetch("/tickets/ObtenerModulosSistema?idSistemas=" + encodeURIComponent(idSistemas), {
+            var response = await fetch("/tickets/ObtenerModulosSistema?idSistemas=" + encodeURIComponent(idSistemas), {
                 headers: { "Accept": "application/json" }
             });
 
@@ -278,9 +431,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
-            const modules = await response.json();
+            var modules = await response.json();
             fillSelect(developmentModule, modules, "idModulo", "nombre", "Seleccione");
-        } catch {
+        } catch (e) {
             resetSelect(developmentModule, "No fue posible cargar modulos");
         }
     }
@@ -290,7 +443,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const idModulo = developmentModule.value || "";
+        var idModulo = developmentModule.value || "";
         resetSelect(developmentSubModule, idModulo ? "Cargando..." : "Seleccione un modulo");
 
         if (!idModulo) {
@@ -298,7 +451,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         try {
-            const response = await fetch("/tickets/ObtenerSubModulosSistema?idModulo=" + encodeURIComponent(idModulo), {
+            var response = await fetch("/tickets/ObtenerSubModulosSistema?idModulo=" + encodeURIComponent(idModulo), {
                 headers: { "Accept": "application/json" }
             });
 
@@ -307,9 +460,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
-            const subModules = await response.json();
+            var subModules = await response.json();
             fillSelect(developmentSubModule, subModules, "idSubModulo", "nombre", "Seleccione");
-        } catch {
+        } catch (e) {
             resetSelect(developmentSubModule, "No fue posible cargar submodulos");
         }
     }
@@ -320,7 +473,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         select.innerHTML = "";
-        const option = document.createElement("option");
+        var option = document.createElement("option");
         option.value = "";
         option.textContent = text;
         select.appendChild(option);
@@ -333,13 +486,13 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         select.innerHTML = "";
-        const emptyOption = document.createElement("option");
+        var emptyOption = document.createElement("option");
         emptyOption.value = "";
         emptyOption.textContent = placeholder;
         select.appendChild(emptyOption);
 
         items.forEach(function (item) {
-            const option = document.createElement("option");
+            var option = document.createElement("option");
             option.value = item[valueField];
             option.textContent = item[textField];
             select.appendChild(option);
@@ -394,7 +547,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         fields.timeline.innerHTML = "";
-        const source = document.getElementById("ticket-comments-" + (idTipoSoporte || "2") + "-" + idTicket);
+        var source = document.getElementById("ticket-comments-" + (idTipoSoporte || "2") + "-" + idTicket);
 
         if (!source) {
             fields.timeline.innerHTML = '<div class="ticket-timeline-empty">Sin comentarios registrados.</div>';
@@ -410,10 +563,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         fields.evidences.innerHTML = "";
-        const evidences = getJsonData("ticket-evidences-" + (idTipoSoporte || "2") + "-" + idTicket);
+        var evidences = getJsonData("ticket-evidences-" + (idTipoSoporte || "2") + "-" + idTicket);
 
         if (evidences.length === 0) {
-            const empty = document.createElement("div");
+            var empty = document.createElement("div");
             empty.className = "ticket-evidences-empty";
             empty.textContent = "Sin evidencias registradas.";
             fields.evidences.appendChild(empty);
@@ -421,23 +574,23 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         evidences.forEach(function (evidence) {
-            const item = document.createElement("article");
+            var item = document.createElement("article");
             item.className = "ticket-evidence-item";
 
-            const icon = document.createElement("i");
+            var icon = document.createElement("i");
             icon.className = "fa-solid fa-image";
 
-            const content = document.createElement("div");
+            var content = document.createElement("div");
             content.className = "ticket-evidence-content";
 
-            const link = document.createElement("a");
+            var link = document.createElement("a");
             link.href = evidence.url || "#";
             link.target = "_blank";
             link.rel = "noopener";
             link.textContent = evidence.nombreArchivo || "Evidencia";
 
-            const meta = document.createElement("span");
-            meta.textContent = `${evidence.usuarioAlta || "Usuario"} - ${evidence.fechaAlta || ""} - ${formatBytes(evidence.tamanioBytes)}`;
+            var meta = document.createElement("span");
+            meta.textContent = evidence.usuarioAlta + " - " + evidence.fechaAlta + " - " + formatBytes(evidence.tamanioBytes);
 
             content.appendChild(link);
             content.appendChild(meta);
@@ -453,10 +606,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         if (bytes < 1024 * 1024) {
-            return `${Math.ceil(bytes / 1024)} KB`;
+            return Math.ceil(bytes / 1024) + " KB";
         }
 
-        return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+        return (bytes / 1024 / 1024).toFixed(2) + " MB";
     }
 
     function filterTechniciansByTicketArea(areaName) {
@@ -464,7 +617,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        const normalizedAreaName = normalizeText(areaName);
+        var normalizedAreaName = normalizeText(areaName);
 
         Array.from(fields.managementTechnician.options).forEach(function (option) {
             if (!option.value) {
@@ -473,8 +626,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
-            const optionAreaName = normalizeText(option.getAttribute("data-area-name") || "");
-            const visible = normalizedAreaName !== "" && optionAreaName === normalizedAreaName;
+            var optionAreaName = normalizeText(option.getAttribute("data-area-name") || "");
+            var visible = normalizedAreaName !== "" && optionAreaName === normalizedAreaName;
             option.hidden = !visible;
             option.disabled = !visible;
         });
@@ -485,23 +638,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function getJsonData(id) {
-        const source = document.getElementById(id);
+        var source = document.getElementById(id);
         if (!source) {
             return [];
         }
 
         try {
             return JSON.parse(source.textContent || "[]");
-        } catch {
+        } catch (e) {
             return [];
         }
     }
-
-    function cssEscape(value) {
-        if (window.CSS && typeof window.CSS.escape === "function") {
-            return window.CSS.escape(value || "");
-        }
-
-        return (value || "").replace(/["\\]/g, "\\$&");
-    }
-});
+})();

@@ -1,4 +1,6 @@
 using HELPDESK.Services;
+using HELPDESK.Services.Pdf;
+using HELPDESK.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,9 +11,12 @@ builder.Services.AddSession(options => {
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
+builder.Services.AddSignalR();
 builder.Services.AddScoped<DBConector>();
 builder.Services.AddScoped<PermisosService>();
 builder.Services.AddScoped<CorreoService>();
+builder.Services.AddScoped<NotificacionService>();
+builder.Services.AddScoped<actaEntregaService>();
 
 var app = builder.Build();
 
@@ -20,7 +25,6 @@ if (!app.Environment.IsDevelopment()) {
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
@@ -29,5 +33,6 @@ app.UseAuthorization();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Login}/{action=Login}/{id?}");
+app.MapHub<NotificationHub>("/notificationHub");
 
 app.Run();

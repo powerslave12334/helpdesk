@@ -18,6 +18,10 @@ body {
     --primary-strong: #155995;
     --primary-soft: #e9f2fc;
     --shadow: 0 16px 40px rgba(18, 34, 66, 0.10);
+    --success: #25b46b;
+    --warning: #f0a500;
+    --danger: #e74c3c;
+    --info: #3498db;
     min-height: 100vh;
     overflow: hidden;
     background: var(--bg);
@@ -62,8 +66,8 @@ button {
 .workspace {
     min-width: 0;
     height: 100vh;
-    overflow: auto;
-    padding: 26px;
+    padding: 0 20px 20px 20px;
+    overflow-y: auto;
     background: var(--bg);
 }
 
@@ -77,6 +81,7 @@ button {
     justify-content: space-between;
     gap: 18px;
     margin-bottom: 24px;
+    margin-top:12px;
 }
 
 .section-label {
@@ -108,7 +113,7 @@ button {
     width: 9px;
     height: 9px;
     border-radius: 50%;
-    background: #25b46b;
+    background: var(--success);
 }
 
 .workspace-content {
@@ -116,40 +121,222 @@ button {
     gap: 18px;
 }
 
+/* ── Summary Cards ── */
 .summary-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 14px;
 }
 
-.summary-card,
+.summary-card {
+    background: var(--surface);
+    border: 1px solid var(--sidebar-border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    min-height: 100px;
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(18, 34, 66, 0.14);
+}
+
+.summary-icon {
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    font-size: 20px;
+}
+
+.card-tickets .summary-icon {
+    background: rgba(28, 107, 179, 0.12);
+    color: var(--primary);
+}
+
+.card-equipos .summary-icon {
+    background: rgba(37, 180, 107, 0.12);
+    color: var(--success);
+}
+
+.card-usuarios .summary-icon {
+    background: rgba(240, 165, 0, 0.12);
+    color: var(--warning);
+}
+
+.card-notif .summary-icon {
+    background: rgba(231, 76, 60, 0.12);
+    color: var(--danger);
+}
+
+.summary-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.summary-info span {
+    color: var(--muted);
+    font-size: 13px;
+}
+
+.summary-info strong {
+    font-size: 30px;
+    line-height: 1;
+    color: var(--text);
+}
+
+/* ── Charts ── */
+.chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.chart-card {
+    background: var(--surface);
+    border: 1px solid var(--sidebar-border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 20px;
+}
+
+.chart-card h3 {
+    font-size: 15px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+}
+
+.chart-card h3 i {
+    color: var(--primary);
+    font-size: 14px;
+}
+
+.chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 240px;
+}
+
+.chart-wrap canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* ── Recent Tickets Table ── */
+.recent-card {
+    background: var(--surface);
+    border: 1px solid var(--sidebar-border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.recent-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--sidebar-border);
+}
+
+.recent-header h3 {
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+}
+
+.recent-header h3 i {
+    color: var(--primary);
+    font-size: 14px;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+.recent-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.recent-table thead th {
+    text-align: left;
+    padding: 12px 16px;
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--sidebar-border);
+    white-space: nowrap;
+}
+
+.recent-table tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--sidebar-border);
+    color: var(--text);
+}
+
+.recent-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.recent-table tbody tr:hover {
+    background: var(--primary-soft);
+}
+
+.cell-id {
+    font-weight: 700;
+    color: var(--primary);
+    width: 50px;
+}
+
+.cell-date {
+    white-space: nowrap;
+    color: var(--muted);
+}
+
+.cell-empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 32px 16px !important;
+}
+
+.pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.pill-type {
+    background: var(--primary-soft);
+    color: var(--primary);
+}
+
+.pill-status {
+    background: var(--surface-strong);
+    color: var(--muted);
+}
+
+/* ── Workspace panels (renderWorkspace) ── */
 .work-panel {
     background: var(--surface);
     border: 1px solid var(--sidebar-border);
     border-radius: 12px;
     box-shadow: var(--shadow);
-}
-
-.summary-card {
-    min-height: 112px;
-    display: grid;
-    align-content: center;
-    gap: 10px;
-    padding: 20px;
-}
-
-.summary-card span {
-    color: var(--muted);
-    font-size: 14px;
-}
-
-.summary-card strong {
-    font-size: 34px;
-    color: var(--primary);
-}
-
-.work-panel {
-    min-height: 340px;
     padding: 24px;
 }
 
@@ -161,6 +348,13 @@ button {
 .work-panel p {
     color: var(--muted);
     line-height: 1.6;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1100px) {
+    .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 900px) {
@@ -185,11 +379,21 @@ button {
     }
 
     .summary-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .chart-grid {
         grid-template-columns: 1fr;
     }
 
     .workspace-header {
         align-items: flex-start;
         flex-direction: column;
+    }
+}
+
+@media (max-width: 600px) {
+    .summary-grid {
+        grid-template-columns: 1fr;
     }
 }

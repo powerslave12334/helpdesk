@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Registrar empleados";
     Layout = null;
+    int idUsuario = 0;
+    int.TryParse(Context.Session.GetString("IdUsuario"), out idUsuario);
     string soloLecturaLaboral = Model.PuedeEditarDatosLaborales ? string.Empty : "disabled";
     int idUsuarioSesion = Convert.ToInt32(ViewBag.IdUsuarioSesion ?? 0);
     bool esAdministradorUsuarios = Convert.ToBoolean(ViewBag.EsAdministradorUsuarios ?? false);
@@ -18,8 +20,9 @@
     <link rel="stylesheet" href="@Url.Content("~/css/Menu/menu.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Empleados/Usuarios/usuarios.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Notificaciones/notificaciones.css")" />
 </head>
-<body>
+<body data-user-id="@idUsuario">
     <div class="dashboard-shell">
         @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
 
@@ -52,10 +55,14 @@
                                 Agregar empleado
                             </button>
                         }
+                        <div class="table-search">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" placeholder="Buscar por nombre, contacto o departamento..." />
+                        </div>
                     </div>
 
                     <div class="table-wrap">
-                        <table class="catalog-table user-table">
+                        <table class="catalog-table user-table" id="dataTable">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -71,7 +78,7 @@
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="tableBody">
                                 @if (Model.Usuarios.Count == 0) {
                                     <tr>
                                         <td colspan="11" class="empty-cell">No hay empleados registrados.</td>
@@ -162,6 +169,10 @@
                                 }
                             </tbody>
                         </table>
+                        <div class="table-footer" id="tableFooter">
+                            <div class="table-info" id="rowCount"></div>
+                            <div class="pagination" id="pagination"></div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -403,5 +414,7 @@
     <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
     <script src="@Url.Content("~/js/Menu/menu.js")"></script>
     <script src="@Url.Content("~/js/Empleados/Usuarios/usuarios.js")"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="@Url.Content("~/js/Notificaciones/notificaciones.js")"></script>
 </body>
 </html>

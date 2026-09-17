@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Departamentos";
     Layout = null;
+    int idUsuario = 0;
+    int.TryParse(Context.Session.GetString("IdUsuario"), out idUsuario);
 }
 
 <!DOCTYPE html>
@@ -15,8 +17,9 @@
     <link rel="stylesheet" href="@Url.Content("~/css/Menu/menu.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Empleados/Departamentos/departamentos.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Notificaciones/notificaciones.css")" />
 </head>
-<body>
+<body data-user-id="@idUsuario">
     <div class="dashboard-shell">
         @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
 
@@ -64,10 +67,14 @@
                             <h2>Listado de departamentos</h2>
                             <p>Administra los departamentos disponibles para empleados.</p>
                         </div>
+                        <div class="table-search">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" placeholder="Buscar por nombre..." />
+                        </div>
                     </div>
 
                     <div class="table-wrap">
-                        <table class="catalog-table employee-catalog-table">
+                        <table class="catalog-table employee-catalog-table" id="dataTable">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -77,7 +84,7 @@
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="tableBody">
                                 @if (Model.Departamentos.Count == 0) {
                                     <tr>
                                         <td colspan="5" class="empty-cell">No hay departamentos registrados.</td>
@@ -117,6 +124,10 @@
                                 }
                             </tbody>
                         </table>
+                        <div class="table-footer" id="tableFooter">
+                            <div class="table-info" id="rowCount"></div>
+                            <div class="pagination" id="pagination"></div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -150,5 +161,7 @@
     <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
     <script src="@Url.Content("~/js/Menu/menu.js")"></script>
     <script src="@Url.Content("~/js/Empleados/Departamentos/departamentos.js")"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="@Url.Content("~/js/Notificaciones/notificaciones.js")"></script>
 </body>
 </html>

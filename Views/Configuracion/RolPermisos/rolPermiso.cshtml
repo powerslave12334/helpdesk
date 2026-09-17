@@ -3,6 +3,8 @@
 @{
     ViewData["Title"] = "Permisos por rol";
     Layout = null;
+    int idUsuario = 0;
+    int.TryParse(Context.Session.GetString("IdUsuario"), out idUsuario);
 }
 
 <!DOCTYPE html>
@@ -17,8 +19,9 @@
     <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/SubModulos/subModulos.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/RolPermisos/rolPermiso.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Notificaciones/notificaciones.css")" />
 </head>
-<body>
+<body data-user-id="@idUsuario">
     <div class="dashboard-shell">
         @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
 
@@ -160,5 +163,7 @@
     <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
     <script src="@Url.Content("~/js/Menu/menu.js")"></script>
     <script src="@Url.Content("~/js/Configuracion/RolPermisos/rolPermiso.js")"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="@Url.Content("~/js/Notificaciones/notificaciones.js")"></script>
 </body>
 </html>

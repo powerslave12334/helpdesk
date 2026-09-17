@@ -11,12 +11,14 @@ namespace HELPDESK.Controllers.Tickets.Tickets {
         private readonly DBConector _dbConector;
         private readonly PermisosService _permisosService;
         private readonly CorreoService _correoService;
+        private readonly NotificacionService _notificacionService;
         private readonly IWebHostEnvironment _environment;
 
-        public ticketsController(DBConector dbConector, PermisosService permisosService, CorreoService correoService, IWebHostEnvironment environment) {
+        public ticketsController(DBConector dbConector, PermisosService permisosService, CorreoService correoService, NotificacionService notificacionService, IWebHostEnvironment environment) {
             _dbConector = dbConector;
             _permisosService = permisosService;
             _correoService = correoService;
+            _notificacionService = notificacionService;
             _environment = environment;
         }
 
@@ -121,6 +123,10 @@ namespace HELPDESK.Controllers.Tickets.Tickets {
 
             NotificarTicketCreado(model);
 
+            if (model.IdTecnico.HasValue && model.IdTecnico.Value > 0) {
+                _ = _notificacionService.NotificarAsync(model.IdTecnico.Value, $"Se te asigno el ticket #{model.IdTicket}: {model.Asunto}", "ticket_asignado", "/tickets/Index");
+            }
+
             return RedirectToAction("Index");
         }
 
@@ -192,6 +198,14 @@ namespace HELPDESK.Controllers.Tickets.Tickets {
 
             if (insertado) {
                 NotificarComentarioTicket(idTicket, idUsuario, comentario.Trim());
+
+                ticketsModel? ticketInfo = ObtenerTicketCorreo(idTicket);
+                if (ticketInfo != null) {
+                    int idDestino = (idUsuario == ticketInfo.IdUsuario && ticketInfo.IdTecnico.HasValue) ? ticketInfo.IdTecnico.Value : ticketInfo.IdUsuario;
+                    if (idDestino != idUsuario) {
+                        _ = _notificacionService.NotificarAsync(idDestino, $"Nuevo comentario en ticket #{idTicket}", "comentario", "/tickets/Index");
+                    }
+                }
             }
 
             return RedirectToAction("Index");
@@ -274,6 +288,11 @@ namespace HELPDESK.Controllers.Tickets.Tickets {
 
             if (cerrado) {
                 NotificarTicketCerrado(idTicket);
+
+                ticketsModel? ticketCerrado = ObtenerTicketCorreo(idTicket);
+                if (ticketCerrado != null && ticketCerrado.IdTecnico.HasValue) {
+                    _ = _notificacionService.NotificarAsync(ticketCerrado.IdTecnico.Value, $"Ticket #{idTicket} cerrado", "cerrado", "/tickets/Index");
+                }
             }
 
             return RedirectToAction("Index");
@@ -393,6 +412,18 @@ namespace HELPDESK.Controllers.Tickets.Tickets {
 
             if (actualizado) {
                 NotificarGestionTicket(ticketAnterior, model.IdTicket);
+
+                if (model.IdTecnico.HasValue && ticketAnterior != null && model.IdTecnico.Value != ticketAnterior.IdTecnico) {
+                    _ = _notificacionService.NotificarAsync(model.IdTecnico.Value, $"Se te asigno el ticket #{model.IdTicket}", "ticket_asignado", "/tickets/Index");
+                }
+                if (model.IdUsuario > 0) {
+                    bool cambioEst = ticketAnterior != null && model.IdEstatus != ticketAnterior.IdEstatus;
+                    if (cambioEst) {
+                        string msg = $"Ticket #{model.IdTicket} actualizado";
+                        string tipoNotif = "comentario";
+                        _ = _notificacionService.NotificarAsync(model.IdUsuario, msg, tipoNotif, "/tickets/Index");
+                    }
+                }
             }
 
             return RedirectToAction("Index");

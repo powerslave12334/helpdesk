@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Estatus";
     Layout = null;
+    int idUsuario = 0;
+    int.TryParse(Context.Session.GetString("IdUsuario"), out idUsuario);
 }
 
 <!DOCTYPE html>
@@ -16,8 +18,9 @@
     <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/SubModulos/subModulos.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Estatus/estatus.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Notificaciones/notificaciones.css")" />
 </head>
-<body>
+<body data-user-id="@idUsuario">
     <div class="dashboard-shell">
         @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
 
@@ -74,10 +77,14 @@
                             <h2>Listado de estatus</h2>
                             <p>Administra estatus disponibles para los modulos del sistema.</p>
                         </div>
+                        <div class="table-search">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" placeholder="Buscar por modulo o descripcion..." />
+                        </div>
                     </div>
 
                     <div class="table-wrap">
-                        <table class="catalog-table status-table">
+                        <table id="dataTable" class="catalog-table status-table">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -88,7 +95,7 @@
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="tableBody">
                                 @if (Model.Estatus.Count == 0) {
                                     <tr>
                                         <td colspan="6" class="empty-cell">No hay estatus registrados.</td>
@@ -130,6 +137,10 @@
                                 }
                             </tbody>
                         </table>
+                        <div class="table-footer" id="tableFooter">
+                            <div class="table-info" id="rowCount"></div>
+                            <div class="pagination" id="pagination"></div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -172,5 +183,7 @@
     <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
     <script src="@Url.Content("~/js/Menu/menu.js")"></script>
     <script src="@Url.Content("~/js/Configuracion/Estatus/estatus.js")"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="@Url.Content("~/js/Notificaciones/notificaciones.js")"></script>
 </body>
 </html>

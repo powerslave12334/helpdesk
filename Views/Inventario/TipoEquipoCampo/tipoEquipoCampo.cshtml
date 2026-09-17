@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Campos por tipo";
     Layout = null;
+    int idUsuario = 0;
+    int.TryParse(Context.Session.GetString("IdUsuario"), out idUsuario);
 }
 
 <!DOCTYPE html>
@@ -15,8 +17,9 @@
     <link rel="stylesheet" href="@Url.Content("~/css/Menu/menu.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Inventario/TipoEquipoCampo/tipoEquipoCampo.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Notificaciones/notificaciones.css")" />
 </head>
-<body>
+<body data-user-id="@idUsuario">
     <div class="dashboard-shell">
         @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
 
@@ -83,10 +86,14 @@
                             <h2>Listado de relaciones</h2>
                             <p>Administra los campos solicitados por tipo de equipo.</p>
                         </div>
+                        <div class="table-search">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" placeholder="Buscar por tipo o campo..." />
+                        </div>
                     </div>
 
                     <div class="table-wrap">
-                        <table class="catalog-table type-field-table">
+                        <table id="dataTable" class="catalog-table type-field-table">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -98,7 +105,7 @@
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="tableBody">
                                 @if (Model.Relaciones.Count == 0) {
                                     <tr>
                                         <td colspan="7" class="empty-cell">No hay relaciones registradas.</td>
@@ -146,6 +153,10 @@
                                 }
                             </tbody>
                         </table>
+                    </div>
+                    <div class="table-footer" id="tableFooter">
+                        <div class="table-info" id="rowCount"></div>
+                        <div class="pagination" id="pagination"></div>
                     </div>
                 </div>
             </section>
@@ -198,5 +209,7 @@
     <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
     <script src="@Url.Content("~/js/Menu/menu.js")"></script>
     <script src="@Url.Content("~/js/Inventario/TipoEquipoCampo/tipoEquipoCampo.js")"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="@Url.Content("~/js/Notificaciones/notificaciones.js")"></script>
 </body>
 </html>

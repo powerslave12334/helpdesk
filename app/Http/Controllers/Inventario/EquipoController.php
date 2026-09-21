@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Inventario;
 use App\Http\Controllers\Controller;
 use App\Models\Equipo;
 use App\Models\EquipoCampo;
-use App\Models\EquipoDetalle;
 use App\Models\TipoEquipo;
 use App\Models\TipoEquipoCampo;
+use App\Models\EquipoCampoDefinicion;
 use App\Models\Estatus;
 use App\Models\Oficina;
 use Illuminate\Http\Request;
@@ -21,9 +21,17 @@ class EquipoController extends Controller
         $tiposEquipo = TipoEquipo::where('activo', true)->get();
         $estatus = Estatus::where('activo', true)->where('id_Modulos', 2)->get();
         $oficinas = Oficina::where('activo', true)->get();
-        $campos = EquipoCampo::where('activo', true)->get();
+        $campos = EquipoCampoDefinicion::where('activo', true)->get();
 
         return view('inventario.equipo', compact('equipos', 'tiposEquipo', 'estatus', 'oficinas', 'campos'));
+    }
+
+    public function create()
+    {
+        $tiposEquipo = TipoEquipo::where('activo', true)->get();
+        $estatus = Estatus::where('activo', true)->where('id_Modulos', 2)->get();
+        $oficinas = Oficina::where('activo', true)->get();
+        return view('inventario.equipo_create', compact('tiposEquipo', 'estatus', 'oficinas'));
     }
 
     public function store(Request $request)
@@ -56,7 +64,7 @@ class EquipoController extends Controller
         if ($request->campos_dinamicos) {
             foreach ($requiredFields as $rf) {
                 if (empty($request->campos_dinamicos[$rf])) {
-                    $campo = EquipoCampo::find($rf);
+                    $campo = EquipoCampoDefinicion::find($rf);
                     return back()->with('error', "El campo '{$campo->nombre}' es requerido");
                 }
             }
@@ -141,7 +149,7 @@ class EquipoController extends Controller
                 'esCompartido' => $request->has('esCompartido') ? 1 : 0,
             ]);
 
-            EquipoDetalle::where('id_Equipo', $id)->update(['activo' => false]);
+            EquipoCampo::where('id_Equipo', $id)->update(['activo' => false]);
             $this->guardarDetalles($id, $request->campos_dinamicos ?? []);
 
             DB::commit();
@@ -172,7 +180,7 @@ class EquipoController extends Controller
     {
         foreach ($campos as $idCampo => $valor) {
             if (!empty($valor)) {
-                EquipoDetalle::updateOrCreate(
+                EquipoCampo::updateOrCreate(
                     ['id_Equipo' => $idEquipo, 'id_EquipoCampo' => $idCampo],
                     ['valor' => $valor, 'activo' => true, 'fechaAlta' => now()]
                 );

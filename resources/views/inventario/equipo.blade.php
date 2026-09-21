@@ -21,7 +21,7 @@
                         <th>Serie</th>
                         <th>Estatus</th>
                         <th>Ubicación</th>
-                        <th>Estatus</th>
+                        <th>Activo</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -33,7 +33,7 @@
                         <td>{{ $eq->modelo }}</td>
                         <td><span class="badge bg-info">{{ $eq->tipoEquipo->descripcion ?? 'N/A' }}</span></td>
                         <td><small>{{ $eq->numeroSerie ?? 'N/A' }}</small></td>
-                        <td><span class="badge bg-{{ $eq->estatus->id_Estatus == 1 ? 'success' : 'secondary' }}">{{ $eq->estatus->descripcion ?? 'N/A' }}</span></td>
+                        <td><span class="badge bg-{{ optional($eq->estatus)->id_Estatus == 1 ? 'success' : 'secondary' }}">{{ optional($eq->estatus)->descripcion ?? 'N/A' }}</span></td>
                         <td>{{ $eq->ubicacion ?? 'N/A' }}</td>
                         <td><span class="badge bg-{{ $eq->activo ? 'success' : 'danger' }}">{{ $eq->activo ? 'Activo' : 'Inactivo' }}</span></td>
                         <td>

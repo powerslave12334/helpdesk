@@ -21,7 +21,6 @@ class Equipo extends Model
     public function oficina() { return $this->belongsTo(Oficina::class, 'id_Oficinas'); }
     public function usuarios() { return $this->belongsToMany(Usuario::class, 'tblEquipoUsuario', 'id_Equipo', 'id_Usuario'); }
     public function asignaciones() { return $this->hasMany(EquipoUsuario::class, 'id_Equipo'); }
-    public function campos() { return $this->hasMany(EquipoCampo::class, 'id_Equipo'); }
     public function historial() { return $this->hasMany(HistorialEquipoUsuario::class, 'id_Equipo'); }
     public function equipoDetalle() { return $this->hasMany(EquipoCampo::class, 'id_Equipo'); }
 }

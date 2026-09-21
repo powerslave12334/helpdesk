@@ -72,6 +72,7 @@ Route::middleware('auth')->group(function () {
     // Inventario - Equipos
     Route::prefix('inventario')->name('inventario.')->middleware('permiso:equipo,Consultar')->group(function () {
         Route::get('/equipo', [EquipoController::class, 'index'])->name('equipo.index');
+        Route::get('/equipo/crear', [EquipoController::class, 'create'])->name('equipo.create');
         Route::post('/equipo', [EquipoController::class, 'store'])->name('equipo.store');
         Route::get('/equipo/{id}/editar', [EquipoController::class, 'edit'])->name('equipo.edit');
         Route::put('/equipo/{id}', [EquipoController::class, 'update'])->name('equipo.update');

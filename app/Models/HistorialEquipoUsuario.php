@@ -25,4 +25,6 @@ class HistorialEquipoUsuario extends Model
 
     public function equipo() { return $this->belongsTo(Equipo::class, 'id_Equipo'); }
     public function usuario() { return $this->belongsTo(Usuario::class, 'id_Usuario'); }
+    public function usuarioAccion() { return $this->belongsTo(Usuario::class, 'id_UsuarioAccion'); }
+    public function area() { return $this->belongsTo(Area::class, 'id_Area'); }
 }

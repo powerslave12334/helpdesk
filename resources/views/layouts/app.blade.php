@@ -46,9 +46,30 @@
             <a href="{{ route('empleados.index') }}" class="nav-link {{ request()->routeIs('empleados.*') ? 'active' : '' }}">
                 <i class="fas fa-users"></i> Empleados
             </a>
-            <a href="{{ route('inventario.index') }}" class="nav-link {{ request()->routeIs('inventario.*') ? 'active' : '' }}">
+            <a href="{{ route('inventario.equipo.index') }}" class="nav-link {{ request()->routeIs('inventario.*') ? 'active' : '' }}">
                 <i class="fas fa-boxes-stacked"></i> Inventario
+                <span class="ms-auto"><i class="fas fa-chevron-down fa-xs"></i></span>
             </a>
+            <div class="ms-4">
+                <a href="{{ route('inventario.equipo.index') }}" class="nav-link {{ request()->routeIs('inventario.equipo.*') ? 'active' : '' }}">
+                    <i class="fas fa-laptop"></i> Equipos
+                </a>
+                <a href="{{ route('inventario.asignacion.index') }}" class="nav-link {{ request()->routeIs('inventario.asignacion.*') ? 'active' : '' }}">
+                    <i class="fas fa-user-tag"></i> Asignaciones
+                </a>
+                <a href="{{ route('inventario.historial.index') }}" class="nav-link {{ request()->routeIs('inventario.historial.*') ? 'active' : '' }}">
+                    <i class="fas fa-history"></i> Historial
+                </a>
+                <a href="{{ route('inventario.relacion.index') }}" class="nav-link {{ request()->routeIs('inventario.relacion.*') ? 'active' : '' }}">
+                    <i class="fas fa-link"></i> Relaciones
+                </a>
+                <a href="{{ route('inventario.tipoEquipo.index') }}" class="nav-link {{ request()->routeIs('inventario.tipoEquipo.*') ? 'active' : '' }}">
+                    <i class="fas fa-tags"></i> Tipos
+                </a>
+                <a href="{{ route('inventario.campo.index') }}" class="nav-link {{ request()->routeIs('inventario.campo.*') ? 'active' : '' }}">
+                    <i class="fas fa-sliders"></i> Campos
+                </a>
+            </div>
 
             <div class="nav-section">Administración</div>
             <a href="{{ route('configuracion.roles.index') }}" class="nav-link {{ request()->routeIs('configuracion.roles.*') ? 'active' : '' }}">

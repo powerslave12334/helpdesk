@@ -75,17 +75,38 @@
             <a href="{{ route('configuracion.roles.index') }}" class="nav-link {{ request()->routeIs('configuracion.roles.*') ? 'active' : '' }}">
                 <i class="fas fa-user-shield"></i> Roles
             </a>
+            <a href="{{ route('configuracion.rolesUsuarios.index') }}" class="nav-link {{ request()->routeIs('configuracion.rolesUsuarios.*') ? 'active' : '' }}">
+                <i class="fas fa-user-tag"></i> Roles-Usuarios
+            </a>
+            <a href="{{ route('configuracion.rolPermiso.index') }}" class="nav-link {{ request()->routeIs('configuracion.rolPermiso.*') ? 'active' : '' }}">
+                <i class="fas fa-lock"></i> Permisos Rol
+            </a>
+            <a href="{{ route('configuracion.permisoUsuarios.index') }}" class="nav-link {{ request()->routeIs('configuracion.permisoUsuarios.*') ? 'active' : '' }}">
+                <i class="fas fa-user-lock"></i> Permisos Usuario
+            </a>
             <a href="{{ route('configuracion.estatus.index') }}" class="nav-link {{ request()->routeIs('configuracion.estatus.*') ? 'active' : '' }}">
                 <i class="fas fa-list-check"></i> Estatus
             </a>
             <a href="{{ route('configuracion.modulos.index') }}" class="nav-link {{ request()->routeIs('configuracion.modulos.*') ? 'active' : '' }}">
                 <i class="fas fa-puzzle-piece"></i> Módulos
             </a>
+            <a href="{{ route('configuracion.submodulos.index') }}" class="nav-link {{ request()->routeIs('configuracion.submodulos.*') ? 'active' : '' }}">
+                <i class="fas fa-puzzle-piece"></i> SubMódulos
+            </a>
+            <a href="{{ route('configuracion.acciones.index') }}" class="nav-link {{ request()->routeIs('configuracion.acciones.*') ? 'active' : '' }}">
+                <i class="fas fa-bolt"></i> Acciones
+            </a>
             <a href="{{ route('configuracion.areas.index') }}" class="nav-link {{ request()->routeIs('configuracion.areas.*') ? 'active' : '' }}">
                 <i class="fas fa-building"></i> Áreas
             </a>
             <a href="{{ route('configuracion.deptos.index') }}" class="nav-link {{ request()->routeIs('configuracion.deptos.*') ? 'active' : '' }}">
                 <i class="fas fa-sitemap"></i> Departamentos
+            </a>
+            <a href="{{ route('configuracion.oficinas.index') }}" class="nav-link {{ request()->routeIs('configuracion.oficinas.*') ? 'active' : '' }}">
+                <i class="fas fa-map-marker-alt"></i> Oficinas
+            </a>
+            <a href="{{ route('configuracion.configGeneral.index') }}" class="nav-link {{ request()->routeIs('configuracion.configGeneral.*') ? 'active' : '' }}">
+                <i class="fas fa-cog"></i> Config Sistema
             </a>
         </nav>
     </div>

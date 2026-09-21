@@ -13,6 +13,13 @@ use App\Http\Controllers\Inventario\TipoEquipoController;
 use App\Http\Controllers\Inventario\TipoEquipoCampoController;
 use App\Http\Controllers\Inventario\TipoRelacionEquipoController;
 use App\Http\Controllers\Configuracion\RolController;
+use App\Http\Controllers\Configuracion\RolPermisoController;
+use App\Http\Controllers\Configuracion\PermisoUsuariosController;
+use App\Http\Controllers\Configuracion\RolesUsuariosController;
+use App\Http\Controllers\Configuracion\ConfiguracionGeneralController;
+use App\Http\Controllers\Configuracion\SubModuloController;
+use App\Http\Controllers\Configuracion\AccionController;
+use App\Http\Controllers\Configuracion\OficinaController;
 use App\Http\Controllers\Configuracion\EstatusController;
 use App\Http\Controllers\Configuracion\ModuloController;
 use App\Http\Controllers\Configuracion\AreaController;
@@ -101,28 +108,70 @@ Route::middleware('auth')->group(function () {
 
     // Configuración
     Route::prefix('configuracion')->name('configuracion.')->group(function () {
+        // Roles
         Route::get('/roles', [RolController::class, 'index'])->name('roles.index');
         Route::post('/roles', [RolController::class, 'store'])->name('roles.store');
         Route::put('/roles/{id}', [RolController::class, 'update'])->name('roles.update');
         Route::post('/roles/toggle/{id}', [RolController::class, 'toggleActivo'])->name('roles.toggle');
 
+        // Permisos por Rol
+        Route::get('/rol-permisos', [RolPermisoController::class, 'index'])->name('rolPermiso.index');
+        Route::post('/rol-permisos/guardar-matriz', [RolPermisoController::class, 'guardarMatriz'])->name('rolPermiso.guardarMatriz');
+
+        // Permisos por Usuario
+        Route::get('/permiso-usuarios', [PermisoUsuariosController::class, 'index'])->name('permisoUsuarios.index');
+        Route::post('/permiso-usuarios/guardar-matriz', [PermisoUsuariosController::class, 'guardarMatriz'])->name('permisoUsuarios.guardarMatriz');
+
+        // Asignación de Roles a Usuarios
+        Route::get('/roles-usuarios', [RolesUsuariosController::class, 'index'])->name('rolesUsuarios.index');
+        Route::post('/roles-usuarios', [RolesUsuariosController::class, 'store'])->name('rolesUsuarios.store');
+        Route::post('/roles-usuarios/toggle/{id}', [RolesUsuariosController::class, 'toggleActivo'])->name('rolesUsuarios.toggle');
+
+        // Configuración General
+        Route::get('/config-general', [ConfiguracionGeneralController::class, 'index'])->name('configGeneral.index');
+        Route::post('/config-general', [ConfiguracionGeneralController::class, 'store'])->name('configGeneral.store');
+        Route::put('/config-general/{id}', [ConfiguracionGeneralController::class, 'update'])->name('configGeneral.update');
+        Route::post('/config-general/toggle/{id}', [ConfiguracionGeneralController::class, 'toggleActivo'])->name('configGeneral.toggle');
+
+        // Estatus
         Route::get('/estatus', [EstatusController::class, 'index'])->name('estatus.index');
         Route::post('/estatus', [EstatusController::class, 'store'])->name('estatus.store');
         Route::put('/estatus/{id}', [EstatusController::class, 'update'])->name('estatus.update');
         Route::post('/estatus/toggle/{id}', [EstatusController::class, 'toggleActivo'])->name('estatus.toggle');
 
+        // Módulos
         Route::get('/modulos', [ModuloController::class, 'index'])->name('modulos.index');
         Route::post('/modulos', [ModuloController::class, 'store'])->name('modulos.store');
         Route::put('/modulos/{id}', [ModuloController::class, 'update'])->name('modulos.update');
 
+        // SubMódulos
+        Route::get('/submodulos', [SubModuloController::class, 'index'])->name('submodulos.index');
+        Route::post('/submodulos', [SubModuloController::class, 'store'])->name('submodulos.store');
+        Route::put('/submodulos/{id}', [SubModuloController::class, 'update'])->name('submodulos.update');
+        Route::post('/submodulos/toggle/{id}', [SubModuloController::class, 'toggleActivo'])->name('submodulos.toggle');
+
+        // Acciones
+        Route::get('/acciones', [AccionController::class, 'index'])->name('acciones.index');
+        Route::post('/acciones', [AccionController::class, 'store'])->name('acciones.store');
+        Route::put('/acciones/{id}', [AccionController::class, 'update'])->name('acciones.update');
+        Route::post('/acciones/toggle/{id}', [AccionController::class, 'toggleActivo'])->name('acciones.toggle');
+
+        // Áreas
         Route::get('/areas', [AreaController::class, 'index'])->name('areas.index');
         Route::post('/areas', [AreaController::class, 'store'])->name('areas.store');
         Route::put('/areas/{id}', [AreaController::class, 'update'])->name('areas.update');
         Route::post('/areas/toggle/{id}', [AreaController::class, 'toggleActivo'])->name('areas.toggle');
 
+        // Departamentos
         Route::get('/deptos', [DeptoController::class, 'index'])->name('deptos.index');
         Route::post('/deptos', [DeptoController::class, 'store'])->name('deptos.store');
         Route::put('/deptos/{id}', [DeptoController::class, 'update'])->name('deptos.update');
         Route::post('/deptos/toggle/{id}', [DeptoController::class, 'toggleActivo'])->name('deptos.toggle');
+
+        // Oficinas
+        Route::get('/oficinas', [OficinaController::class, 'index'])->name('oficinas.index');
+        Route::post('/oficinas', [OficinaController::class, 'store'])->name('oficinas.store');
+        Route::put('/oficinas/{id}', [OficinaController::class, 'update'])->name('oficinas.update');
+        Route::post('/oficinas/toggle/{id}', [OficinaController::class, 'toggleActivo'])->name('oficinas.toggle');
     });
 });

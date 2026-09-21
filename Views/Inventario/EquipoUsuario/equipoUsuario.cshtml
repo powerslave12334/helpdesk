@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Asignacion de equipo";
     Layout = null;
+    int idUsuario = 0;
+    int.TryParse(Context.Session.GetString("IdUsuario"), out idUsuario);
 }
 
 <!DOCTYPE html>
@@ -15,8 +17,9 @@
     <link rel="stylesheet" href="@Url.Content("~/css/Menu/menu.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Inventario/EquipoUsuario/equipoUsuario.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Notificaciones/notificaciones.css")" />
 </head>
-<body>
+<body data-user-id="@idUsuario">
     <div class="dashboard-shell">
         @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
 
@@ -97,14 +100,27 @@
                     <div class="catalog-panel-header">
                         <div>
                             <h2>Listado de asignaciones</h2>
-                            <p>Consulta el historial de asignaciones de equipos.</p>
+                            <p>Consulta y gestiona las asignaciones de equipos.</p>
+                        </div>
+                        <div class="table-actions">
+                            <button type="button" class="btn-primary btn-danger" id="btnDesvincularSeleccionados" disabled>
+                                <i class="fa-solid fa-link-slash"></i>
+                                Desvincular seleccionados
+                            </button>
+                            <div class="table-search">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="searchInput" placeholder="Buscar por equipo, usuario, area..." />
+                            </div>
                         </div>
                     </div>
 
                     <div class="table-wrap">
-                        <table class="catalog-table assignment-table">
+                        <table class="catalog-table assignment-table" id="assignmentTable">
                             <thead>
                                 <tr>
+                                    <th class="th-check">
+                                        <input type="checkbox" id="selectAll" title="Seleccionar todos" />
+                                    </th>
                                     <th>ID</th>
                                     <th>Equipo</th>
                                     <th>Oficina equipo</th>
@@ -117,14 +133,19 @@
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="tableBody">
                                 @if (Model.Asignaciones.Count == 0) {
                                     <tr>
-                                        <td colspan="10" class="empty-cell">No hay asignaciones registradas.</td>
+                                        <td colspan="11" class="empty-cell">No hay asignaciones registradas.</td>
                                     </tr>
                                 } else {
                                     foreach (var item in Model.Asignaciones) {
                                         <tr>
+                                            <td class="td-check">
+                                                @if (item.Activo) {
+                                                    <input type="checkbox" class="row-check" data-id="@item.IdEquipoUsuario" />
+                                                }
+                                            </td>
                                             <td>@item.IdEquipoUsuario</td>
                                             <td>@item.NombreEquipo</td>
                                             <td>@item.OficinaEquipo</td>
@@ -140,8 +161,15 @@
                                             </td>
                                             <td>
                                                 <div class="row-actions">
+                                                    <a href="@Url.Action("GenerarActa", new { id = item.IdEquipoUsuario })"
+                                                       class="icon-action acta-link"
+                                                       target="_blank"
+                                                       aria-label="Generar acta de entrega"
+                                                       title="Generar acta">
+                                                        <i class="fa-solid fa-file-pdf"></i>
+                                                    </a>
                                                     <button type="button"
-                                                            class="icon-action"
+                                                            class="icon-action relink"
                                                             data-edit-id="@item.IdEquipoUsuario"
                                                             data-edit-equipment="@item.IdEquipo"
                                                             data-edit-user="@item.IdUsuario"
@@ -149,17 +177,17 @@
                                                             data-edit-assignment="@item.FechaAsignacion.ToString("yyyy-MM-dd")"
                                                             data-edit-end="@(item.FechaBaja.HasValue ? item.FechaBaja.Value.ToString("yyyy-MM-dd") : "")"
                                                             data-edit-observations="@item.Observaciones"
-                                                            aria-label="Editar asignacion">
-                                                        <i class="fa-solid fa-pen"></i>
+                                                            aria-label="Re-vincular equipo"
+                                                            title="Re-vincular">
+                                                        <i class="fa-solid fa-user-pen"></i>
                                                     </button>
 
-                                                    <form action="@Url.Action("ToggleActivo", "equipoUsuario")" method="post">
-                                                        @Html.AntiForgeryToken()
-                                                        <input type="hidden" name="idEquipoUsuario" value="@item.IdEquipoUsuario" />
-                                                        <button type="submit" class="icon-action" aria-label="Cambiar estatus">
-                                                            <i class="fa-solid @(item.Activo ? "fa-ban" : "fa-check")"></i>
+                                                    @if (item.Activo) {
+                                                        <button type="button" class="icon-action danger" aria-label="Desvincular equipo" title="Desvincular"
+                                                                data-desvincular-id="@item.IdEquipoUsuario">
+                                                            <i class="fa-solid fa-link-slash"></i>
                                                         </button>
-                                                    </form>
+                                                    }
                                                 </div>
                                             </td>
                                         </tr>
@@ -167,6 +195,11 @@
                                 }
                             </tbody>
                         </table>
+                    </div>
+
+                    <div class="table-footer">
+                        <span class="row-count" id="rowCount"></span>
+                        <div class="pagination" id="pagination"></div>
                     </div>
                 </div>
             </section>
@@ -232,8 +265,56 @@
         </div>
     </div>
 
+    <div class="modal-backdrop" id="motivoModal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="motivoTitle">
+            <div class="modal-header">
+                <h2 id="motivoTitle">Desvincular equipo</h2>
+                <button type="button" class="modal-close" id="btnCloseMotivoModal" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form id="motivoForm" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="idEquipoUsuario" id="motivoIdEquipoUsuario" />
+                <div class="form-field" style="margin-bottom: 16px;">
+                    <label for="motivoTexto">Motivo de desvinculacion (opcional)</label>
+                    <textarea id="motivoTexto" name="motivo" rows="3" placeholder="Describe el motivo..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary btn-danger" style="width: 100%;">
+                    <i class="fa-solid fa-link-slash"></i>
+                    Confirmar desvinculacion
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="motivoBulkModal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="motivoBulkTitle">
+            <div class="modal-header">
+                <h2 id="motivoBulkTitle">Desvincular equipos seleccionados</h2>
+                <button type="button" class="modal-close" id="btnCloseMotivoBulkModal" aria-label="Cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form id="motivoBulkForm" method="post">
+                @Html.AntiForgeryToken()
+                <div id="motivoBulkIds"></div>
+                <div class="form-field" style="margin-bottom: 16px;">
+                    <label for="motivoBulkTexto">Motivo de desvinculacion (opcional)</label>
+                    <textarea id="motivoBulkTexto" name="motivo" rows="3" placeholder="Describe el motivo..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary btn-danger" style="width: 100%;">
+                    <i class="fa-solid fa-link-slash"></i>
+                    Confirmar desvinculacion
+                </button>
+            </form>
+        </div>
+    </div>
+
     <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
     <script src="@Url.Content("~/js/Menu/menu.js")"></script>
-    <script src="@Url.Content("~/js/Inventario/EquipoUsuario/equipoUsuario.js")"></script>
+    <script src="@Url.Content("~/js/Inventario/EquipoUsuario/equipoUsuario.js?v=2")"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="@Url.Content("~/js/Notificaciones/notificaciones.js")"></script>
 </body>
 </html>

@@ -4,6 +4,8 @@
 @{
     ViewData["Title"] = "Tickets";
     Layout = null;
+    int idUsuario = 0;
+    int.TryParse(Context.Session.GetString("IdUsuario"), out idUsuario);
     @* Tabs que alimentan el grid principal: Mis tickets, Asignados y Todos segun permisos. *@
     List<TicketTab> ticketTabs = new List<TicketTab> {
         new TicketTab {
@@ -64,6 +66,7 @@
     <link rel="stylesheet" href="@Url.Content("~/css/Menu/menu.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Tickets/Tickets/tickets.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Notificaciones/notificaciones.css")" />
 </head>
 <body>
     <div class="dashboard-shell">
@@ -91,6 +94,10 @@
                         <div>
                             <h2>Seguimiento de tickets</h2>
                             <p>Consulta y gestiona los tickets disponibles para tu usuario.</p>
+                        </div>
+                        <div class="table-search">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" placeholder="Buscar por folio, usuario o asunto..." />
                         </div>
                         <div class="ticket-type-actions" aria-label="Tipo de ticket">
                             <span>Tipo de ticket</span>
@@ -148,7 +155,7 @@
                                             <th>Acciones</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody id="tableBody@(tab.Id.Substring(0,1).ToUpper()+tab.Id.Substring(1))">
                                         @if (tab.Items.Count == 0) {
                                             <tr>
                                                 <td colspan="11" class="empty-cell">@tab.Empty</td>
@@ -207,6 +214,10 @@
                             </div>
                         </div>
                     }
+                    <div class="table-footer" id="tableFooter">
+                        <div class="table-info" id="rowCount"></div>
+                        <div class="pagination" id="pagination"></div>
+                    </div>
                 </div>
                 @* Datos ocultos por ticket usados por JavaScript para pintar Historial y Evidencias en el modal Detalle. *@
                 @foreach (var item in ticketsVista) {
@@ -470,7 +481,7 @@
                 <section class="ticket-view-section ticket-close-section" id="closeTicketSection" hidden>
                     <h3>Cierre del ticket</h3>
                     <p class="ticket-close-text">Si la solucion fue correcta, puedes dar tu visto bueno y cerrar el ticket.</p>
-                    <form action="@Url.Action("CloseWithApproval", "tickets")" method="post" class="ticket-close-form">
+                    <form id="closeTicketForm" action="@Url.Action("CloseWithApproval", "tickets")" method="post" class="ticket-close-form">
                         @Html.AntiForgeryToken()
                         <input type="hidden" id="closeIdTicket" name="idTicket" />
                         <button type="submit" class="btn-primary">
@@ -484,7 +495,7 @@
                 @if (Model.PuedeActualizar) {
                     <section class="ticket-view-section" id="managementTicketSection">
                         <h3>Gestion del ticket</h3>
-                        <form action="@Url.Action("UpdateManagement", "tickets")" method="post" class="ticket-management-form">
+                        <form id="managementTicketForm" action="@Url.Action("UpdateManagement", "tickets")" method="post" class="ticket-management-form">
                             @Html.AntiForgeryToken()
                             <input type="hidden" id="managementIdTicket" name="IdTicket" />
                             <div class="readonly-field">
@@ -522,7 +533,7 @@
                 @* Alta de comentario del ticket seleccionado. *@
                 <section class="ticket-view-section" id="commentTicketSection">
                     <h3>Agregar comentario</h3>
-                    <form action="@Url.Action("AddComment", "tickets")" method="post" class="ticket-comment-form">
+                    <form id="commentTicketForm" action="@Url.Action("AddComment", "tickets")" method="post" class="ticket-comment-form">
                         @Html.AntiForgeryToken()
                         <input type="hidden" id="commentIdTicket" name="idTicket" />
                         <input type="hidden" id="commentIdTipoSoporte" name="idTipoSoporte" />
@@ -541,8 +552,13 @@
     </div>
     @* Fin modal: Detalle de ticket. *@
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
     <script src="@Url.Content("~/js/Menu/menu.js")"></script>
     <script src="@Url.Content("~/js/Tickets/Tickets/tickets.js")?v=20260814-desarrollo-modulos-sistemas"></script>
+    <script src="@Url.Content("~/js/Notificaciones/notificaciones.js")"></script>
+    <script>
+        HelpDeskNotifications.init(@idUsuario);
+    </script>
 </body>
 </html>

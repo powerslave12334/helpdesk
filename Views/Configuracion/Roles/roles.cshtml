@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Roles";
     Layout = null;
+    int idUsuario = 0;
+    int.TryParse(Context.Session.GetString("IdUsuario"), out idUsuario);
 }
 
 <!DOCTYPE html>
@@ -15,8 +17,9 @@
     <link rel="stylesheet" href="@Url.Content("~/css/Menu/menu.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Modulos/modulos.css")" />
     <link rel="stylesheet" href="@Url.Content("~/css/Configuracion/Roles/roles.css")" />
+    <link rel="stylesheet" href="@Url.Content("~/css/Notificaciones/notificaciones.css")" />
 </head>
-<body>
+<body data-user-id="@idUsuario">
     <div class="dashboard-shell">
         @await Html.PartialAsync("~/Views/Menu/menu.cshtml")
 
@@ -68,10 +71,14 @@
                             <h2>Listado de roles</h2>
                             <p>Administra los perfiles de acceso del sistema.</p>
                         </div>
+                        <div class="table-search">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="searchInput" placeholder="Buscar por nombre o descripcion..." />
+                        </div>
                     </div>
 
                     <div class="table-wrap">
-                        <table class="catalog-table">
+                        <table id="dataTable" class="catalog-table">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -82,7 +89,7 @@
                                     <th>Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="tableBody">
                                 @if (Model.Roles.Count == 0) {
                                     <tr>
                                         <td colspan="6" class="empty-cell">No hay roles registrados.</td>
@@ -124,6 +131,10 @@
                                 }
                             </tbody>
                         </table>
+                        <div class="table-footer" id="tableFooter">
+                            <div class="table-info" id="rowCount"></div>
+                            <div class="pagination" id="pagination"></div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -161,5 +172,7 @@
     <script src="@Url.Content("~/js/Dashboard/Principal/dashboard.js")"></script>
     <script src="@Url.Content("~/js/Menu/menu.js")"></script>
     <script src="@Url.Content("~/js/Configuracion/Roles/roles.js")"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="@Url.Content("~/js/Notificaciones/notificaciones.js")"></script>
 </body>
 </html>

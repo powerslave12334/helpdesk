@@ -1,13 +1,138 @@
-document.addEventListener("DOMContentLoaded", function () {
-    const createModal = document.getElementById("createModal");
-    const modal = document.getElementById("editModal");
-    const accessModal = document.getElementById("accessModal");
-    const btnOpenCreateModal = document.getElementById("btnOpenCreateModal");
-    const btnCloseCreateModal = document.getElementById("btnCloseCreateModal");
-    const btnCloseModal = document.getElementById("btnCloseModal");
-    const btnCloseAccessModal = document.getElementById("btnCloseAccessModal");
-    const createName = document.getElementById("Nombre");
-    const fields = {
+(function () {
+    var ROWS_PER_PAGE = 10;
+    var currentPage = 1;
+    var filteredRows = [];
+
+    var searchInput = document.getElementById("searchInput");
+    var tableBody = document.getElementById("tableBody");
+    var rowCountEl = document.getElementById("rowCount");
+    var paginationEl = document.getElementById("pagination");
+    var allRows = tableBody ? Array.from(tableBody.querySelectorAll("tr")) : [];
+
+    function normalize(t) { return (t || "").toLowerCase(); }
+
+    function getRowText(row) {
+        var cells = row.querySelectorAll("td");
+        var parts = [];
+        for (var i = 0; i < cells.length - 1; i++) {
+            parts.push(normalize(cells[i].textContent));
+        }
+        return parts.join(" ");
+    }
+
+    function filterRows() {
+        var q = normalize(searchInput ? searchInput.value : "");
+        filteredRows = allRows.filter(function (row) {
+            if (!q) return true;
+            return getRowText(row).indexOf(q) !== -1;
+        });
+    }
+
+    function renderTable() {
+        if (!tableBody) return;
+        tableBody.innerHTML = "";
+        var colSpan = allRows.length > 0 ? allRows[0].querySelectorAll("td").length : 11;
+        if (filteredRows.length === 0) {
+            var tr = document.createElement("tr");
+            var td = document.createElement("td");
+            td.colSpan = colSpan;
+            td.className = "empty-cell";
+            td.textContent = "No hay resultados.";
+            tr.appendChild(td);
+            tableBody.appendChild(tr);
+        } else {
+            var start = (currentPage - 1) * ROWS_PER_PAGE;
+            var end = Math.min(start + ROWS_PER_PAGE, filteredRows.length);
+            for (var i = start; i < end; i++) {
+                tableBody.appendChild(filteredRows[i]);
+            }
+        }
+        renderInfo();
+        renderPagination();
+    }
+
+    function renderInfo() {
+        if (!rowCountEl) return;
+        var total = filteredRows.length;
+        if (total === 0) { rowCountEl.textContent = "Mostrando 0 registros"; return; }
+        var start = (currentPage - 1) * ROWS_PER_PAGE + 1;
+        var end = Math.min(currentPage * ROWS_PER_PAGE, total);
+        rowCountEl.textContent = "Mostrando " + start + " a " + end + " de " + total + " registros";
+    }
+
+    function renderPagination() {
+        if (!paginationEl) return;
+        paginationEl.innerHTML = "";
+        var total = filteredRows.length;
+        var totalPages = Math.max(1, Math.ceil(total / ROWS_PER_PAGE));
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        var prev = document.createElement("button");
+        prev.type = "button"; prev.className = "page-btn";
+        prev.innerHTML = '<i class="fa-solid fa-chevron-left"></i>';
+        prev.disabled = currentPage <= 1;
+        prev.addEventListener("click", function () { currentPage--; renderTable(); });
+        paginationEl.appendChild(prev);
+
+        var startP = Math.max(1, currentPage - 2);
+        var endP = Math.min(totalPages, currentPage + 2);
+        if (startP > 1) {
+            var b = document.createElement("button");
+            b.type = "button"; b.className = "page-btn"; b.textContent = "1";
+            b.addEventListener("click", function () { currentPage = 1; renderTable(); });
+            paginationEl.appendChild(b);
+            if (startP > 2) {
+                var d = document.createElement("span"); d.className = "page-dots"; d.textContent = "...";
+                paginationEl.appendChild(d);
+            }
+        }
+        for (var p = startP; p <= endP; p++) {
+            var btn = document.createElement("button");
+            btn.type = "button"; btn.className = "page-btn" + (p === currentPage ? " active" : "");
+            btn.textContent = p; btn.setAttribute("data-page", p);
+            btn.addEventListener("click", function () {
+                currentPage = parseInt(this.getAttribute("data-page"), 10); renderTable();
+            });
+            paginationEl.appendChild(btn);
+        }
+        if (endP < totalPages) {
+            if (endP < totalPages - 1) {
+                var d2 = document.createElement("span"); d2.className = "page-dots"; d2.textContent = "...";
+                paginationEl.appendChild(d2);
+            }
+            var bLast = document.createElement("button");
+            bLast.type = "button"; bLast.className = "page-btn"; bLast.textContent = totalPages;
+            bLast.addEventListener("click", function () { currentPage = totalPages; renderTable(); });
+            paginationEl.appendChild(bLast);
+        }
+
+        var next = document.createElement("button");
+        next.type = "button"; next.className = "page-btn";
+        next.innerHTML = '<i class="fa-solid fa-chevron-right"></i>';
+        next.disabled = currentPage >= totalPages;
+        next.addEventListener("click", function () { currentPage++; renderTable(); });
+        paginationEl.appendChild(next);
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener("input", function () {
+            currentPage = 1; filterRows(); renderTable();
+        });
+    }
+
+    filterRows();
+    renderTable();
+
+    // === EXISTING MODAL LOGIC ===
+    var createModal = document.getElementById("createModal");
+    var modal = document.getElementById("editModal");
+    var accessModal = document.getElementById("accessModal");
+    var btnOpenCreateModal = document.getElementById("btnOpenCreateModal");
+    var btnCloseCreateModal = document.getElementById("btnCloseCreateModal");
+    var btnCloseModal = document.getElementById("btnCloseModal");
+    var btnCloseAccessModal = document.getElementById("btnCloseAccessModal");
+    var createName = document.getElementById("Nombre");
+    var fields = {
         id: document.getElementById("editIdUsuario"),
         name: document.getElementById("editNombre"),
         app: document.getElementById("editApp"),
@@ -20,7 +145,7 @@ document.addEventListener("DOMContentLoaded", function () {
         type: document.getElementById("editIdTipoEmpleado"),
         tech: document.getElementById("editEsTecnico")
     };
-    const accessFields = {
+    var accessFields = {
         id: document.getElementById("accessIdUsuario"),
         employee: document.getElementById("accessEmployeeName"),
         user: document.getElementById("accessUsuario"),
@@ -30,9 +155,9 @@ document.addEventListener("DOMContentLoaded", function () {
         password: document.getElementById("accessPassword"),
         confirm: document.getElementById("accessConfirmPassword")
     };
-    const restorePasswordForm = document.getElementById("restorePasswordForm");
-    const restorePasswordId = document.getElementById("restorePasswordIdUsuario");
-    const passwordToggles = document.querySelectorAll("[data-password-toggle]");
+    var restorePasswordForm = document.getElementById("restorePasswordForm");
+    var restorePasswordId = document.getElementById("restorePasswordIdUsuario");
+    var passwordToggles = document.querySelectorAll("[data-password-toggle]");
 
     document.querySelectorAll("[data-edit-id]").forEach(function (button) {
         button.addEventListener("click", function () {
@@ -64,10 +189,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
-            const hasAccess = (button.getAttribute("data-access-has") || "") === "true";
-            const isSelfAccess = (button.getAttribute("data-access-self") || "") === "true";
-            const canEditActive = (button.getAttribute("data-access-can-edit-active") || "") === "true";
-            const canRestorePassword = (button.getAttribute("data-access-can-restore") || "") === "true";
+            var hasAccess = (button.getAttribute("data-access-has") || "") === "true";
+            var isSelfAccess = (button.getAttribute("data-access-self") || "") === "true";
+            var canEditActive = (button.getAttribute("data-access-can-edit-active") || "") === "true";
+            var canRestorePassword = (button.getAttribute("data-access-can-restore") || "") === "true";
             accessFields.id.value = button.getAttribute("data-access-id") || "";
             if (restorePasswordId) {
                 restorePasswordId.value = accessFields.id.value;
@@ -99,12 +224,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     passwordToggles.forEach(function (button) {
         button.addEventListener("click", function () {
-            const input = document.getElementById(button.getAttribute("data-password-toggle") || "");
+            var input = document.getElementById(button.getAttribute("data-password-toggle") || "");
             if (!input) {
                 return;
             }
 
-            const showPassword = input.getAttribute("type") === "password";
+            var showPassword = input.getAttribute("type") === "password";
             input.setAttribute("type", showPassword ? "text" : "password");
             updatePasswordToggle(button, showPassword);
         });
@@ -211,7 +336,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function updatePasswordToggle(button, isVisible) {
-        const icon = button.querySelector("i");
+        var icon = button.querySelector("i");
         button.setAttribute("aria-label", isVisible ? "Ocultar contrasena" : "Mostrar contrasena");
 
         if (icon) {
@@ -219,4 +344,4 @@ document.addEventListener("DOMContentLoaded", function () {
             icon.classList.toggle("fa-eye-slash", isVisible);
         }
     }
-});
+})();

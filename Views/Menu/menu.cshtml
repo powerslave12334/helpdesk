@@ -6,7 +6,11 @@
     int idUsuario = 0;
     int.TryParse(Context.Session.GetString("IdUsuario"), out idUsuario);
     List<menuModulo> modulosMenu = new menu().ObtenerMenu(DbConector, idUsuario, true);
+    string controllerActual = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    string actionActual = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
 }
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <aside class="app-sidebar" id="appSidebar">
     <div class="sidebar-top">
@@ -27,17 +31,22 @@
 
     <nav class="sidebar-nav" aria-label="Menu principal">
         @if (modulosMenu.Count == 0) {
-            <button type="button" class="nav-link active" data-title="Dashboard principal" data-view="dashboard">
+            <a href="@Url.Action("Index", "Dashboard")" class="nav-link @(controllerActual == "Dashboard" ? "active" : "")">
                 <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
                 <span class="nav-text">Dashboard</span>
-            </button>
+            </a>
         } else {
             foreach (var modulo in modulosMenu) {
                 bool esDashboard = modulo.Llave.Contains("dashboard");
 
-                if (modulo.SubModulos.Count == 0) {
+                if (esDashboard) {
+                    <a href="@Url.Action("Index", "Dashboard")" class="nav-link active">
+                        <span class="nav-icon"><i class="fa-solid @modulo.Icono"></i></span>
+                        <span class="nav-text">@modulo.Nombre</span>
+                    </a>
+                } else if (modulo.SubModulos.Count == 0) {
                     <button type="button"
-                            class="nav-link @(esDashboard ? "active" : "")"
+                            class="nav-link"
                             data-title="@modulo.Nombre"
                             data-view="@modulo.Llave">
                         <span class="nav-icon"><i class="fa-solid @modulo.Icono"></i></span>
@@ -45,7 +54,7 @@
                     </button>
                 } else {
                     <div class="nav-group">
-                        <button type="button" class="nav-link nav-parent @(esDashboard ? "active" : "")" data-submenu="@modulo.Llave">
+                        <button type="button" class="nav-link nav-parent" aria-expanded="false">
                             <span class="nav-icon"><i class="fa-solid @modulo.Icono"></i></span>
                             <span class="nav-text">@modulo.Nombre</span>
                             <span class="nav-chevron"><i class="fa-solid fa-chevron-right"></i></span>

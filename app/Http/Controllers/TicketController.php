@@ -16,9 +16,13 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use App\Services\PermisosService;
 
 class TicketController extends Controller
 {
+    public function __construct(private PermisosService $permisosService)
+    {
+    }
     public function index()
     {
         $idUsuario = session('IdUsuario');
@@ -328,14 +332,6 @@ class TicketController extends Controller
 
     private function esAdmin($idUsuario)
     {
-        return DB::table('tblRolesUsuarios')
-            ->join('tblRoles', 'tblRoles.id_Rol', '=', 'tblRolesUsuarios.id_Rol')
-            ->where('tblRolesUsuarios.id_Usuario', $idUsuario)
-            ->where('tblRolesUsuarios.activo', true)
-            ->where(function ($q) {
-                $q->where('tblRoles.nombre', 'like', '%admin%')
-                  ->orWhere('tblRoles.nombre', 'root');
-            })
-            ->exists();
+        return $this->permisosService->esAdministrador($idUsuario);
     }
 }

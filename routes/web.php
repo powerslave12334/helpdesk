@@ -45,7 +45,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Tickets
-    Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
+    Route::middleware('permiso:ticket,Consultar')->group(function () {
+        Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
+    });
     Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
     Route::post('/tickets/desarrollo', [TicketController::class, 'storeDesarrollo'])->name('tickets.storeDesarrollo');
     Route::get('/tickets/{id}', [TicketController::class, 'show'])->name('tickets.show');
@@ -58,7 +60,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/tickets/evidencia/{id}', [TicketController::class, 'viewEvidence'])->name('tickets.viewEvidence');
 
     // Empleados
-    Route::get('/empleados', [EmpleadoController::class, 'index'])->name('empleados.index');
+    Route::middleware('permiso:empleado,Consultar')->group(function () {
+        Route::get('/empleados', [EmpleadoController::class, 'index'])->name('empleados.index');
+    });
     Route::post('/empleados', [EmpleadoController::class, 'store'])->name('empleados.store');
     Route::put('/empleados/{id}', [EmpleadoController::class, 'update'])->name('empleados.update');
     Route::post('/empleados/acceso', [EmpleadoController::class, 'guardarAcceso'])->name('empleados.acceso');
@@ -66,7 +70,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/empleados/toggle/{id}', [EmpleadoController::class, 'toggleActivo'])->name('empleados.toggle');
 
     // Inventario - Equipos
-    Route::prefix('inventario')->name('inventario.')->group(function () {
+    Route::prefix('inventario')->name('inventario.')->middleware('permiso:equipo,Consultar')->group(function () {
         Route::get('/equipo', [EquipoController::class, 'index'])->name('equipo.index');
         Route::post('/equipo', [EquipoController::class, 'store'])->name('equipo.store');
         Route::get('/equipo/{id}/editar', [EquipoController::class, 'edit'])->name('equipo.edit');
@@ -118,7 +122,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Configuración
-    Route::prefix('configuracion')->name('configuracion.')->group(function () {
+    Route::prefix('configuracion')->name('configuracion.')->middleware('permiso:rol,Consultar')->group(function () {
         // Roles
         Route::get('/roles', [RolController::class, 'index'])->name('roles.index');
         Route::post('/roles', [RolController::class, 'store'])->name('roles.store');
@@ -193,7 +197,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/empleados/tipo-empleado/toggle/{id}', [TipoEmpleadoController::class, 'toggleActivo'])->name('empleados.tipoEmpleado.toggle');
 
     // Ticket Config
-    Route::prefix('ticketconfig')->name('ticketconfig.')->group(function () {
+    Route::prefix('ticketconfig')->name('ticketconfig.')->middleware('permiso:tipoSoporte,Consultar')->group(function () {
         // Tipos de Soporte
         Route::get('/tipos-soporte', [TipoSoporteController::class, 'index'])->name('tipossoporte.index');
         Route::post('/tipos-soporte', [TipoSoporteController::class, 'store'])->name('tipossoporte.store');

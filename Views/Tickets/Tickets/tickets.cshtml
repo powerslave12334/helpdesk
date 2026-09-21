@@ -481,7 +481,7 @@
                 <section class="ticket-view-section ticket-close-section" id="closeTicketSection" hidden>
                     <h3>Cierre del ticket</h3>
                     <p class="ticket-close-text">Si la solucion fue correcta, puedes dar tu visto bueno y cerrar el ticket.</p>
-                    <form action="@Url.Action("CloseWithApproval", "tickets")" method="post" class="ticket-close-form">
+                    <form id="closeTicketForm" action="@Url.Action("CloseWithApproval", "tickets")" method="post" class="ticket-close-form">
                         @Html.AntiForgeryToken()
                         <input type="hidden" id="closeIdTicket" name="idTicket" />
                         <button type="submit" class="btn-primary">
@@ -495,7 +495,7 @@
                 @if (Model.PuedeActualizar) {
                     <section class="ticket-view-section" id="managementTicketSection">
                         <h3>Gestion del ticket</h3>
-                        <form action="@Url.Action("UpdateManagement", "tickets")" method="post" class="ticket-management-form">
+                        <form id="managementTicketForm" action="@Url.Action("UpdateManagement", "tickets")" method="post" class="ticket-management-form">
                             @Html.AntiForgeryToken()
                             <input type="hidden" id="managementIdTicket" name="IdTicket" />
                             <div class="readonly-field">
@@ -533,7 +533,7 @@
                 @* Alta de comentario del ticket seleccionado. *@
                 <section class="ticket-view-section" id="commentTicketSection">
                     <h3>Agregar comentario</h3>
-                    <form action="@Url.Action("AddComment", "tickets")" method="post" class="ticket-comment-form">
+                    <form id="commentTicketForm" action="@Url.Action("AddComment", "tickets")" method="post" class="ticket-comment-form">
                         @Html.AntiForgeryToken()
                         <input type="hidden" id="commentIdTicket" name="idTicket" />
                         <input type="hidden" id="commentIdTipoSoporte" name="idTipoSoporte" />

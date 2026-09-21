@@ -559,3 +559,7 @@
 @media (max-width: 720px) { .catalog-panel-header { flex-direction: column; align-items: stretch; } .table-search { width: 100%; } .table-footer { flex-direction: column; align-items: stretch; gap: 12px; } .pagination { justify-content: center; } }
 body.dark-mode .table-search { background: var(--surface); border-color: var(--sidebar-border); }
 body.dark-mode .page-btn { background: var(--surface); border-color: var(--sidebar-border); color: var(--text); }
+
+.ticket-toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 10px; background: #1a7f37; color: #fff; font-size: 14px; font-weight: 600; z-index: 10000; opacity: 0; transform: translateY(12px); transition: opacity .25s ease, transform .25s ease; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
+.ticket-toast-visible { opacity: 1; transform: translateY(0); }
+.ticket-toast-error { background: #cf222e; }

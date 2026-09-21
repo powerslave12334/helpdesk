@@ -3,6 +3,7 @@ using HELPDESK.Models.Inventario.EquipoHistorial;
 using HELPDESK.Services;
 using HELPDESK.Services.Pdf;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 
 namespace HELPDESK.Controllers.Inventario.EquipoUsuario {
     public class equipoUsuarioController : Controller {
@@ -43,13 +44,28 @@ namespace HELPDESK.Controllers.Inventario.EquipoUsuario {
                 return RedirectToAction("Index");
             }
 
-            string? usuario = HttpContext.Session.GetString("Usuario") ?? "Soporte Tecnico";
+            int.TryParse(HttpContext.Session.GetString("IdUsuario"), out int idUsuarioSesion);
+            string? nombreEntrega = ObtenerNombreUsuario(idUsuarioSesion);
 
-            byte[] pdfBytes = _actaEntregaService.GenerarActa(asignacion, usuario);
+            byte[] pdfBytes = _actaEntregaService.GenerarActa(asignacion, nombreEntrega);
 
             Response.Headers.Append("Content-Disposition", $"inline; filename=\"Acta_Entrega_{asignacion.NombreEquipo.Replace(" ", "_")}_{asignacion.FechaAsignacion:yyyyMMdd}.pdf\"");
 
             return File(pdfBytes, "application/pdf");
+        }
+
+        private string ObtenerNombreUsuario(int idUsuario) {
+            using SqlConnection? cn = _dbConector.AbrirConexion();
+            if (cn == null)
+                return "Soporte Tecnico";
+
+            string query = "SELECT LTRIM(RTRIM(ISNULL(nombre, '') + ' ' + ISNULL(app, '') + ' ' + ISNULL(apm, ''))) FROM dbo.tblUsuario WHERE id_Usuario = @idUsuario";
+
+            using SqlCommand cmd = new SqlCommand(query, cn);
+            cmd.Parameters.Add("@idUsuario", System.Data.SqlDbType.Int).Value = idUsuario;
+            object? result = cmd.ExecuteScalar();
+            string nombre = result?.ToString()?.Trim() ?? string.Empty;
+            return string.IsNullOrEmpty(nombre) ? "Soporte Tecnico" : nombre;
         }
 
         [HttpPost]

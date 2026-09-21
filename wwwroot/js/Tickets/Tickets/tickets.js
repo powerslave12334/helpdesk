@@ -649,4 +649,129 @@
             return [];
         }
     }
+
+    function showToast(message, isError) {
+        var existing = document.querySelector(".ticket-toast");
+        if (existing) existing.remove();
+
+        var toast = document.createElement("div");
+        toast.className = "ticket-toast" + (isError ? " ticket-toast-error" : "");
+        toast.textContent = message;
+        document.body.appendChild(toast);
+
+        requestAnimationFrame(function () {
+            toast.classList.add("ticket-toast-visible");
+        });
+
+        setTimeout(function () {
+            toast.classList.remove("ticket-toast-visible");
+            setTimeout(function () { toast.remove(); }, 300);
+        }, 3000);
+    }
+
+    function serializeForm(form) {
+        var data = new FormData(form);
+        return data;
+    }
+
+    function closeViewModalAndRefresh() {
+        closeViewModal();
+        window.location.reload();
+    }
+
+    var closeTicketForm = document.getElementById("closeTicketForm");
+    if (closeTicketForm) {
+        closeTicketForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+            var btn = closeTicketForm.querySelector("button[type=submit]");
+            if (btn) btn.disabled = true;
+
+            fetch(closeTicketForm.action, {
+                method: "POST",
+                body: serializeForm(closeTicketForm),
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                showToast(res.message, !res.success);
+                if (res.success) {
+                    var section = document.getElementById("closeTicketSection");
+                    if (section) section.hidden = true;
+                    var statusEl = document.getElementById("viewStatus");
+                    if (statusEl) statusEl.textContent = "Cerrado";
+                }
+            })
+            .catch(function () {
+                showToast("Error de conexion.", true);
+            })
+            .finally(function () {
+                if (btn) btn.disabled = false;
+            });
+        });
+    }
+
+    var commentTicketForm = document.getElementById("commentTicketForm");
+    if (commentTicketForm) {
+        commentTicketForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+            var btn = commentTicketForm.querySelector("button[type=submit]");
+            if (btn) btn.disabled = true;
+
+            fetch(commentTicketForm.action, {
+                method: "POST",
+                body: serializeForm(commentTicketForm),
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                showToast(res.message, !res.success);
+                if (res.success) {
+                    var textarea = document.getElementById("comentario");
+                    if (textarea) textarea.value = "";
+                    var idTicket = document.getElementById("commentIdTicket");
+                    var idTipoSoporte = document.getElementById("commentIdTipoSoporte");
+                    if (idTicket && idTipoSoporte) {
+                        renderTimeline(idTicket.value, idTipoSoporte.value);
+                    }
+                }
+            })
+            .catch(function () {
+                showToast("Error de conexion.", true);
+            })
+            .finally(function () {
+                if (btn) btn.disabled = false;
+            });
+        });
+    }
+
+    var managementTicketForm = document.getElementById("managementTicketForm");
+    if (managementTicketForm) {
+        managementTicketForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+            var btn = managementTicketForm.querySelector("button[type=submit]");
+            if (btn) btn.disabled = true;
+
+            fetch(managementTicketForm.action, {
+                method: "POST",
+                body: serializeForm(managementTicketForm),
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                showToast(res.message, !res.success);
+                if (res.success) {
+                    var statusEl = document.getElementById("viewStatus");
+                    if (statusEl && res.estatus) statusEl.textContent = res.estatus;
+                    var techEl = document.getElementById("viewTechnician");
+                    if (techEl && res.tecnico) techEl.textContent = res.tecnico;
+                }
+            })
+            .catch(function () {
+                showToast("Error de conexion.", true);
+            })
+            .finally(function () {
+                if (btn) btn.disabled = false;
+            });
+        });
+    }
 })();

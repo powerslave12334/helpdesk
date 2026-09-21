@@ -154,47 +154,45 @@ namespace HELPDESK.Controllers.Tickets.Tickets {
             return RedirectToAction("Index");
         }
 
+        private bool EsPeticionAjax() {
+            return string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult AddComment(int idTicket, int idTipoSoporte, string comentario) {
             string? usuario = HttpContext.Session.GetString("Usuario");
             if (string.IsNullOrEmpty(usuario))
-                return RedirectToAction("Login", "Login");
+                return EsPeticionAjax() ? Json(new { success = false, message = "Sesion expirada." }) : RedirectToAction("Login", "Login");
 
             int idUsuario = ObtenerIdUsuarioSesion();
             bool puedeComentar = _permisosService.TienePermisoPorRuta(idUsuario, "tickets", "Crear")
                 || _permisosService.TienePermisoPorRuta(idUsuario, "tickets", "Actualizar");
 
             if (!puedeComentar) {
-                TempData["ErrorMessage"] = "No tienes permiso para comentar tickets.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "No tienes permiso para comentar tickets." }) : RedirectToAction("Index");
             }
 
             if (idTicket <= 0) {
-                TempData["ErrorMessage"] = "No se recibio el ticket para comentar.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "No se recibio el ticket para comentar." }) : RedirectToAction("Index");
             }
 
             if (string.IsNullOrWhiteSpace(comentario)) {
-                TempData["ErrorMessage"] = "El comentario es obligatorio.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "El comentario es obligatorio." }) : RedirectToAction("Index");
             }
 
             ticketsModel data = new ticketsModel();
             idTipoSoporte = idTipoSoporte == 1 ? 1 : 2;
             if (!data.UsuarioPuedeVerTicket(_dbConector, idTicket, idUsuario, PuedeVerTodosTickets(idUsuario), idTipoSoporte)) {
-                TempData["ErrorMessage"] = "No tienes permiso para comentar este ticket.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "No tienes permiso para comentar este ticket." }) : RedirectToAction("Index");
             }
 
             if (data.TicketEstaCerrado(_dbConector, idTicket, idTipoSoporte)) {
-                TempData["ErrorMessage"] = "El ticket ya esta cerrado y no permite nuevos comentarios.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "El ticket ya esta cerrado y no permite nuevos comentarios." }) : RedirectToAction("Index");
             }
 
             bool insertado = data.AgregarComentario(_dbConector, idTicket, idUsuario, comentario.Trim(), idTipoSoporte);
-            TempData[insertado ? "SuccessMessage" : "ErrorMessage"] =
-                insertado ? "Comentario agregado correctamente." : "No fue posible agregar el comentario.";
+            string mensaje = insertado ? "Comentario agregado correctamente." : "No fue posible agregar el comentario.";
 
             if (insertado) {
                 NotificarComentarioTicket(idTicket, idUsuario, comentario.Trim());
@@ -208,6 +206,11 @@ namespace HELPDESK.Controllers.Tickets.Tickets {
                 }
             }
 
+            if (EsPeticionAjax()) {
+                return Json(new { success = insertado, message = mensaje });
+            }
+
+            TempData[insertado ? "SuccessMessage" : "ErrorMessage"] = mensaje;
             return RedirectToAction("Index");
         }
 
@@ -261,30 +264,26 @@ namespace HELPDESK.Controllers.Tickets.Tickets {
         public IActionResult CloseWithApproval(int idTicket) {
             string? usuario = HttpContext.Session.GetString("Usuario");
             if (string.IsNullOrEmpty(usuario))
-                return RedirectToAction("Login", "Login");
+                return EsPeticionAjax() ? Json(new { success = false, message = "Sesion expirada." }) : RedirectToAction("Login", "Login");
 
             int idUsuario = ObtenerIdUsuarioSesion();
 
             if (idTicket <= 0) {
-                TempData["ErrorMessage"] = "No se recibio el ticket a cerrar.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "No se recibio el ticket a cerrar." }) : RedirectToAction("Index");
             }
 
             ticketsModel data = new ticketsModel();
             if (!data.TicketPuedeCerrarUsuario(_dbConector, idTicket, idUsuario)) {
-                TempData["ErrorMessage"] = "Solo puedes cerrar tus tickets cuando esten en estatus Resuelto.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "Solo puedes cerrar tus tickets cuando esten en estatus Resuelto." }) : RedirectToAction("Index");
             }
 
             int idEstatusCerrado = data.ObtenerEstatusPorNombre(_dbConector, "Cerrado");
             if (idEstatusCerrado <= 0) {
-                TempData["ErrorMessage"] = "No se encontro el estatus Cerrado para tickets.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "No se encontro el estatus Cerrado para tickets." }) : RedirectToAction("Index");
             }
 
             bool cerrado = data.CerrarTicketConVistoBueno(_dbConector, idTicket, idUsuario, idEstatusCerrado);
-            TempData[cerrado ? "SuccessMessage" : "ErrorMessage"] =
-                cerrado ? "Ticket cerrado con visto bueno correctamente." : "No fue posible cerrar el ticket.";
+            string mensaje = cerrado ? "Ticket cerrado con visto bueno correctamente." : "No fue posible cerrar el ticket.";
 
             if (cerrado) {
                 NotificarTicketCerrado(idTicket);
@@ -295,6 +294,11 @@ namespace HELPDESK.Controllers.Tickets.Tickets {
                 }
             }
 
+            if (EsPeticionAjax()) {
+                return Json(new { success = cerrado, message = mensaje });
+            }
+
+            TempData[cerrado ? "SuccessMessage" : "ErrorMessage"] = mensaje;
             return RedirectToAction("Index");
         }
 
@@ -335,50 +339,42 @@ namespace HELPDESK.Controllers.Tickets.Tickets {
             int idUsuario = ObtenerIdUsuarioSesion();
 
             if (model.IdTicket <= 0) {
-                TempData["ErrorMessage"] = "No se recibio el ticket a actualizar.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "No se recibio el ticket a actualizar." }) : RedirectToAction("Index");
             }
 
             if (!model.CargarDatosClasificacionTicket(_dbConector)) {
-                TempData["ErrorMessage"] = "No se encontro la clasificacion del ticket.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "No se encontro la clasificacion del ticket." }) : RedirectToAction("Index");
             }
 
             if (!model.IdEstatus.HasValue || model.IdEstatus.Value <= 0) {
-                TempData["ErrorMessage"] = "Selecciona el estatus.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "Selecciona el estatus." }) : RedirectToAction("Index");
             }
 
             if (!model.TicketExiste(_dbConector)) {
-                TempData["ErrorMessage"] = "No se encontro el ticket a actualizar.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "No se encontro el ticket a actualizar." }) : RedirectToAction("Index");
             }
 
             if (model.TicketEstaCerrado(_dbConector, model.IdTicket)) {
-                TempData["ErrorMessage"] = "El ticket ya esta cerrado y no se puede volver a modificar.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "El ticket ya esta cerrado y no se puede volver a modificar." }) : RedirectToAction("Index");
             }
 
             bool puedeGestionarTodos = PuedeGestionarTodosTickets(idUsuario);
             bool esTecnicoAsignado = model.UsuarioPuedeGestionarTicket(_dbConector, model.IdTicket, idUsuario, false);
             if (!model.UsuarioPuedeGestionarTicket(_dbConector, model.IdTicket, idUsuario, puedeGestionarTodos)) {
-                TempData["ErrorMessage"] = "Solo el tecnico asignado o un usuario autorizado puede gestionar este ticket.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "Solo el tecnico asignado o un usuario autorizado puede gestionar este ticket." }) : RedirectToAction("Index");
             }
 
             int idEstatusActual = model.ObtenerIdEstatusActual(_dbConector, model.IdTicket);
             bool cambioEstatus = idEstatusActual > 0 && model.IdEstatus.HasValue && idEstatusActual != model.IdEstatus.Value;
             if (cambioEstatus && !esTecnicoAsignado) {
-                TempData["ErrorMessage"] = "Solo el tecnico asignado puede cambiar el estatus del ticket.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "Solo el tecnico asignado puede cambiar el estatus del ticket." }) : RedirectToAction("Index");
             }
 
             if (!model.IdTecnico.HasValue || model.IdTecnico.Value <= 0) {
                 int idTecnico = model.ObtenerTecnicoPorArea(_dbConector);
                 model.IdTecnico = idTecnico > 0 ? idTecnico : null;
             } else if (!model.TecnicoPerteneceArea(_dbConector)) {
-                TempData["ErrorMessage"] = "El tecnico seleccionado no pertenece al area del tipo de soporte.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "El tecnico seleccionado no pertenece al area del tipo de soporte." }) : RedirectToAction("Index");
             }
             model.Estatus = model.ObtenerNombreEstatus(_dbConector);
             model.Tecnico = model.ObtenerNombreTecnico(_dbConector);
@@ -386,29 +382,24 @@ namespace HELPDESK.Controllers.Tickets.Tickets {
             bool esEstatusResuelto = string.Equals(model.Estatus, "Resuelto", StringComparison.OrdinalIgnoreCase);
             bool esEstatusCerrado = string.Equals(model.Estatus, "Cerrado", StringComparison.OrdinalIgnoreCase);
             if (esEstatusResuelto && !esTecnicoAsignado) {
-                TempData["ErrorMessage"] = "Solo el tecnico asignado puede marcar el ticket como Resuelto.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "Solo el tecnico asignado puede marcar el ticket como Resuelto." }) : RedirectToAction("Index");
             }
 
             if (esEstatusCerrado) {
-                TempData["ErrorMessage"] = "El ticket no se puede cerrar desde gestion. El tecnico debe dejarlo en Resuelto y el usuario debe dar el visto bueno.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "El ticket no se puede cerrar desde gestion. El tecnico debe dejarlo en Resuelto y el usuario debe dar el visto bueno." }) : RedirectToAction("Index");
             }
 
             if (!model.IdAreaAtiende.HasValue || model.IdAreaAtiende.Value <= 0) {
-                TempData["ErrorMessage"] = "El tipo de soporte del ticket no tiene un area asignada.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "El tipo de soporte del ticket no tiene un area asignada." }) : RedirectToAction("Index");
             }
 
             if (!model.IdTecnico.HasValue || model.IdTecnico.Value <= 0) {
-                TempData["ErrorMessage"] = "No se encontro un tecnico activo para el area del tipo de soporte.";
-                return RedirectToAction("Index");
+                return EsPeticionAjax() ? Json(new { success = false, message = "No se encontro un tecnico activo para el area del tipo de soporte." }) : RedirectToAction("Index");
             }
 
             ticketsModel? ticketAnterior = ObtenerTicketCorreo(model.IdTicket);
             bool actualizado = model.ActualizarGestion(_dbConector, idUsuario);
-            TempData[actualizado ? "SuccessMessage" : "ErrorMessage"] =
-                actualizado ? "Gestion del ticket actualizada correctamente." : "No fue posible actualizar la gestion del ticket.";
+            string mensaje = actualizado ? "Gestion del ticket actualizada correctamente." : "No fue posible actualizar la gestion del ticket.";
 
             if (actualizado) {
                 NotificarGestionTicket(ticketAnterior, model.IdTicket);
@@ -426,6 +417,11 @@ namespace HELPDESK.Controllers.Tickets.Tickets {
                 }
             }
 
+            if (EsPeticionAjax()) {
+                return Json(new { success = actualizado, message = mensaje, estatus = model.Estatus, tecnico = model.Tecnico });
+            }
+
+            TempData[actualizado ? "SuccessMessage" : "ErrorMessage"] = mensaje;
             return RedirectToAction("Index");
         }
 

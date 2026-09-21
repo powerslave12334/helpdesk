@@ -39,102 +39,104 @@
                 <i class="fas fa-tachometer-alt"></i> Dashboard
             </a>
 
-            <div class="nav-section">Operaciones</div>
-            <a href="{{ route('tickets.index') }}" class="nav-link {{ request()->routeIs('tickets.*') ? 'active' : '' }}">
+            <div class="nav-section">Tickets</div>
+            <a href="{{ route('tickets.index') }}" class="nav-link {{ request()->routeIs('tickets.index') ? 'active' : '' }}">
                 <i class="fas fa-ticket"></i> Tickets
             </a>
-            <a href="{{ route('empleados.index') }}" class="nav-link {{ request()->routeIs('empleados.*') ? 'active' : '' }}">
-                <i class="fas fa-users"></i> Empleados
-            </a>
-            <div class="ms-4">
-                <a href="{{ route('empleados.index') }}" class="nav-link {{ request()->routeIs('empleados.index') ? 'active' : '' }}">
-                    <i class="fas fa-list"></i> Lista
-                </a>
-                <a href="{{ route('empleados.tipoEmpleado.index') }}" class="nav-link {{ request()->routeIs('empleados.tipoEmpleado.*') ? 'active' : '' }}">
-                    <i class="fas fa-tags"></i> Tipos Empleado
-                </a>
-            </div>
-            <a href="{{ route('inventario.equipo.index') }}" class="nav-link {{ request()->routeIs('inventario.*') ? 'active' : '' }}">
-                <i class="fas fa-boxes-stacked"></i> Inventario
-                <span class="ms-auto"><i class="fas fa-chevron-down fa-xs"></i></span>
-            </a>
-            <div class="ms-4">
-                <a href="{{ route('inventario.equipo.index') }}" class="nav-link {{ request()->routeIs('inventario.equipo.*') ? 'active' : '' }}">
-                    <i class="fas fa-laptop"></i> Equipos
-                </a>
-                <a href="{{ route('inventario.asignacion.index') }}" class="nav-link {{ request()->routeIs('inventario.asignacion.*') ? 'active' : '' }}">
-                    <i class="fas fa-user-tag"></i> Asignaciones
-                </a>
-                <a href="{{ route('inventario.historial.index') }}" class="nav-link {{ request()->routeIs('inventario.historial.*') ? 'active' : '' }}">
-                    <i class="fas fa-history"></i> Historial
-                </a>
-                <a href="{{ route('inventario.relacion.index') }}" class="nav-link {{ request()->routeIs('inventario.relacion.*') ? 'active' : '' }}">
-                    <i class="fas fa-link"></i> Relaciones
-                </a>
-                <a href="{{ route('inventario.tipoEquipo.index') }}" class="nav-link {{ request()->routeIs('inventario.tipoEquipo.*') ? 'active' : '' }}">
-                    <i class="fas fa-tags"></i> Tipos
-                </a>
-                <a href="{{ route('inventario.campo.index') }}" class="nav-link {{ request()->routeIs('inventario.campo.*') ? 'active' : '' }}">
-                    <i class="fas fa-sliders"></i> Campos
-                </a>
-            </div>
-
-            <div class="nav-section">Tickets Config</div>
             <a href="{{ route('ticketconfig.tipossoporte.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.tipossoporte.*') ? 'active' : '' }}">
-                <i class="fas fa-headset"></i> Tipos Soporte
+                <i class="fas fa-headset"></i> Tipo Soporte
             </a>
             <a href="{{ route('ticketconfig.tiposequipoticket.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.tiposequipoticket.*') ? 'active' : '' }}">
-                <i class="fas fa-laptop"></i> Tipos Equipo Ticket
+                <i class="fas fa-laptop"></i> Tipo Equipo Soporte
             </a>
             <a href="{{ route('ticketconfig.tiposdesarrollo.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.tiposdesarrollo.*') ? 'active' : '' }}">
-                <i class="fas fa-code"></i> Tipos Desarrollo
+                <i class="fas fa-code"></i> Tipo de Desarrollo
             </a>
             <a href="{{ route('ticketconfig.sistemas.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.sistemas.*') ? 'active' : '' }}">
-                <i class="fas fa-desktop"></i> Sistemas
-            </a>
-            <a href="{{ route('ticketconfig.modulossistemas.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.modulossistemas.*') ? 'active' : '' }}">
-                <i class="fas fa-puzzle-piece"></i> Módulos Sistemas
-            </a>
-            <a href="{{ route('ticketconfig.submodulossistemas.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.submodulossistemas.*') ? 'active' : '' }}">
-                <i class="fas fa-puzzle-piece"></i> SubMódulos Sistemas
+                <i class="fas fa-desktop"></i> Tipo de Sistema
             </a>
 
-            <div class="nav-section">Administración</div>
-            <a href="{{ route('configuracion.roles.index') }}" class="nav-link {{ request()->routeIs('configuracion.roles.*') ? 'active' : '' }}">
-                <i class="fas fa-user-shield"></i> Roles
+            <div class="nav-section">GPS</div>
+            <a href="#" class="nav-link">
+                <i class="fas fa-map-marker-alt"></i> GPS
             </a>
-            <a href="{{ route('configuracion.rolesUsuarios.index') }}" class="nav-link {{ request()->routeIs('configuracion.rolesUsuarios.*') ? 'active' : '' }}">
-                <i class="fas fa-user-tag"></i> Roles-Usuarios
+
+            <div class="nav-section">Inventario</div>
+            <a href="{{ route('inventario.tipoEquipo.index') }}" class="nav-link {{ request()->routeIs('inventario.tipoEquipo.*') ? 'active' : '' }}">
+                <i class="fas fa-tags"></i> Tipo Inventario
             </a>
-            <a href="{{ route('configuracion.rolPermiso.index') }}" class="nav-link {{ request()->routeIs('configuracion.rolPermiso.*') ? 'active' : '' }}">
-                <i class="fas fa-lock"></i> Permisos Rol
+            <a href="{{ route('inventario.equipo.index') }}" class="nav-link {{ request()->routeIs('inventario.equipo.*') ? 'active' : '' }}">
+                <i class="fas fa-laptop"></i> Equipo
             </a>
-            <a href="{{ route('configuracion.permisoUsuarios.index') }}" class="nav-link {{ request()->routeIs('configuracion.permisoUsuarios.*') ? 'active' : '' }}">
-                <i class="fas fa-user-lock"></i> Permisos Usuario
+            <a href="{{ route('inventario.asignacion.index') }}" class="nav-link {{ request()->routeIs('inventario.asignacion.*') ? 'active' : '' }}">
+                <i class="fas fa-user-tag"></i> Asignación de Equipo
             </a>
-            <a href="{{ route('configuracion.estatus.index') }}" class="nav-link {{ request()->routeIs('configuracion.estatus.*') ? 'active' : '' }}">
-                <i class="fas fa-list-check"></i> Estatus
+            <a href="{{ route('inventario.campo.index') }}" class="nav-link {{ request()->routeIs('inventario.campo.*') ? 'active' : '' }}">
+                <i class="fas fa-sliders"></i> Campos por Tipo
+            </a>
+            <a href="{{ route('inventario.tipoRelacion.index') }}" class="nav-link {{ request()->routeIs('inventario.tipoRelacion.*') ? 'active' : '' }}">
+                <i class="fas fa-link"></i> Tipo Relación Equipo
+            </a>
+            <a href="{{ route('inventario.relacion.index') }}" class="nav-link {{ request()->routeIs('inventario.relacion.*') ? 'active' : '' }}">
+                <i class="fas fa-project-diagram"></i> Relación Equipo
+            </a>
+            <a href="{{ route('inventario.historial.index') }}" class="nav-link {{ request()->routeIs('inventario.historial.*') ? 'active' : '' }}">
+                <i class="fas fa-history"></i> Historial de Asignación
+            </a>
+
+            <div class="nav-section">Empleados</div>
+            <a href="{{ route('empleados.index') }}" class="nav-link {{ request()->routeIs('empleados.index') ? 'active' : '' }}">
+                <i class="fas fa-users"></i> Empleados
+            </a>
+            <a href="{{ route('empleados.index') }}" class="nav-link {{ request()->routeIs('empleados.index') ? 'active' : '' }}">
+                <i class="fas fa-eye"></i> Ver Empleados
+            </a>
+            <a href="{{ route('configuracion.deptos.index') }}" class="nav-link {{ request()->routeIs('configuracion.deptos.*') ? 'active' : '' }}">
+                <i class="fas fa-sitemap"></i> Departamentos
+            </a>
+            <a href="{{ route('configuracion.areas.index') }}" class="nav-link {{ request()->routeIs('configuracion.areas.*') ? 'active' : '' }}">
+                <i class="fas fa-building"></i> Áreas
+            </a>
+            <a href="{{ route('configuracion.oficinas.index') }}" class="nav-link {{ request()->routeIs('configuracion.oficinas.*') ? 'active' : '' }}">
+                <i class="fas fa-map-marker-alt"></i> Oficinas
+            </a>
+            <a href="{{ route('empleados.tipoEmpleado.index') }}" class="nav-link {{ request()->routeIs('empleados.tipoEmpleado.*') ? 'active' : '' }}">
+                <i class="fas fa-id-card"></i> Tipo de Empleado
+            </a>
+
+            <div class="nav-section">Configuración</div>
+            <a href="{{ route('configuracion.configGeneral.index') }}" class="nav-link {{ request()->routeIs('configuracion.configGeneral.*') ? 'active' : '' }}">
+                <i class="fas fa-cog"></i> Configuración General
             </a>
             <a href="{{ route('configuracion.modulos.index') }}" class="nav-link {{ request()->routeIs('configuracion.modulos.*') ? 'active' : '' }}">
                 <i class="fas fa-puzzle-piece"></i> Módulos
             </a>
             <a href="{{ route('configuracion.submodulos.index') }}" class="nav-link {{ request()->routeIs('configuracion.submodulos.*') ? 'active' : '' }}">
-                <i class="fas fa-puzzle-piece"></i> SubMódulos
+                <i class="fas fa-puzzle-piece"></i> Submódulos
             </a>
             <a href="{{ route('configuracion.acciones.index') }}" class="nav-link {{ request()->routeIs('configuracion.acciones.*') ? 'active' : '' }}">
                 <i class="fas fa-bolt"></i> Acciones
             </a>
-            <a href="{{ route('configuracion.areas.index') }}" class="nav-link {{ request()->routeIs('configuracion.areas.*') ? 'active' : '' }}">
-                <i class="fas fa-building"></i> Áreas
+            <a href="{{ route('configuracion.roles.index') }}" class="nav-link {{ request()->routeIs('configuracion.roles.*') ? 'active' : '' }}">
+                <i class="fas fa-user-shield"></i> Roles
             </a>
-            <a href="{{ route('configuracion.deptos.index') }}" class="nav-link {{ request()->routeIs('configuracion.deptos.*') ? 'active' : '' }}">
-                <i class="fas fa-sitemap"></i> Departamentos
+            <a href="{{ route('configuracion.rolesUsuarios.index') }}" class="nav-link {{ request()->routeIs('configuracion.rolesUsuarios.*') ? 'active' : '' }}">
+                <i class="fas fa-user-tag"></i> Roles de Usuarios
             </a>
-            <a href="{{ route('configuracion.oficinas.index') }}" class="nav-link {{ request()->routeIs('configuracion.oficinas.*') ? 'active' : '' }}">
-                <i class="fas fa-map-marker-alt"></i> Oficinas
+            <a href="{{ route('configuracion.rolPermiso.index') }}" class="nav-link {{ request()->routeIs('configuracion.rolPermiso.*') ? 'active' : '' }}">
+                <i class="fas fa-lock"></i> Permisos por Rol
             </a>
-            <a href="{{ route('configuracion.configGeneral.index') }}" class="nav-link {{ request()->routeIs('configuracion.configGeneral.*') ? 'active' : '' }}">
-                <i class="fas fa-cog"></i> Config Sistema
+            <a href="{{ route('configuracion.permisoUsuarios.index') }}" class="nav-link {{ request()->routeIs('configuracion.permisoUsuarios.*') ? 'active' : '' }}">
+                <i class="fas fa-user-lock"></i> Permisos por Usuario
+            </a>
+            <a href="{{ route('configuracion.estatus.index') }}" class="nav-link {{ request()->routeIs('configuracion.estatus.*') ? 'active' : '' }}">
+                <i class="fas fa-list-check"></i> Estatus
+            </a>
+            <a href="{{ route('ticketconfig.modulossistemas.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.modulossistemas.*') ? 'active' : '' }}">
+                <i class="fas fa-cubes"></i> Módulos Sistemas
+            </a>
+            <a href="{{ route('ticketconfig.submodulossistemas.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.submodulossistemas.*') ? 'active' : '' }}">
+                <i class="fas fa-cube"></i> Submódulos Sistemas
             </a>
         </nav>
     </div>

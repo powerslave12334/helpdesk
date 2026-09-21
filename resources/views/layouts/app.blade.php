@@ -8,6 +8,28 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --bg: #f7fafc;
+            --surface: #ffffff;
+            --surface-strong: #edf2f7;
+            --text: #1a202c;
+            --muted: #4a5568;
+            --primary: #1a73e8;
+            --primary-soft: rgba(26,115,232,0.1);
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        body.dark-mode {
+            --bg: #101419;
+            --surface: #181d24;
+            --surface-strong: #222936;
+            --text: #eef3fb;
+            --muted: #a4afbf;
+            --primary: #9d4edd;
+            --primary-soft: rgba(157, 78, 221, 0.16);
+            --border: #2b3340;
+            --shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
+        }
         .sidebar { width: 250px; min-height: 100vh; background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%); position: fixed; top: 0; left: 0; z-index: 100; transition: all 0.3s; }
         .sidebar .nav-link { color: #a0aec0; padding: 12px 20px; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; border-left: 3px solid transparent; transition: all 0.2s; text-decoration: none; }
         .sidebar .nav-link:hover, .sidebar .nav-link.active { color: #fff; background: rgba(255,255,255,0.08); border-left-color: #e94560; }
@@ -19,15 +41,31 @@
         .sidebar .brand { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .sidebar .brand h5 { color: #fff; margin: 0; font-weight: 700; }
         .sidebar .brand small { color: #a0aec0; }
-        .main-content { margin-left: 250px; background: #f7fafc; min-height: 100vh; }
-        .top-bar { background: #fff; padding: 12px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+        .main-content { margin-left: 250px; background: var(--bg); min-height: 100vh; transition: background 0.3s; }
+        .top-bar { background: var(--surface); padding: 12px 24px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; transition: background 0.3s, border-color 0.3s; }
         .content-area { padding: 24px; }
-        .card { border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border-radius: 10px; }
-        .card-header { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 600; }
+        .card { border: none; box-shadow: var(--shadow); border-radius: 10px; background: var(--surface); transition: background 0.3s; }
+        .card-header { background: var(--surface); border-bottom: 1px solid var(--border); font-weight: 600; }
         .badge-status { padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 500; }
-        .table th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: #4a5568; border-bottom: 2px solid #e2e8f0; }
-        .table td { vertical-align: middle; font-size: 0.9rem; }
+        .table { color: var(--text); }
+        .table th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); border-bottom: 2px solid var(--border); }
+        .table td { vertical-align: middle; font-size: 0.9rem; border-color: var(--border); }
         .btn-action { padding: 4px 8px; font-size: 0.75rem; }
+        .form-control, .form-select { background: var(--surface); color: var(--text); border-color: var(--border); }
+        .form-control:focus, .form-select:focus { background: var(--surface); color: var(--text); border-color: var(--primary); box-shadow: 0 0 0 0.2rem var(--primary-soft); }
+        .form-label { color: var(--text); }
+        body.dark-mode .sidebar .nav-section { color: #4a5568; }
+        body.dark-mode .alert-success { background: rgba(37,180,107,0.15); color: #68d391; border-color: rgba(37,180,107,0.3); }
+        body.dark-mode .alert-danger { background: rgba(231,76,60,0.15); color: #fc8181; border-color: rgba(231,76,60,0.3); }
+        body.dark-mode .modal-content { background: var(--surface); color: var(--text); }
+        body.dark-mode .modal-header { border-color: var(--border); }
+        body.dark-mode .modal-footer { border-color: var(--border); }
+        body.dark-mode .dropdown-menu { background: var(--surface); border-color: var(--border); }
+        body.dark-mode .dropdown-item { color: var(--text); }
+        body.dark-mode .dropdown-item:hover { background: var(--surface-strong); color: var(--text); }
+        .btn-theme-toggle { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 6px 10px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; font-size: 0.85rem; }
+        .btn-theme-toggle:hover { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); }
+        .text-muted { color: var(--muted) !important; }
     </style>
     @yield('styles')
 </head>
@@ -179,6 +217,10 @@
                 <strong>{{ session('NombreUsuario', auth()->user()->nombreCompleto()) }}</strong>
             </div>
             <div class="d-flex align-items-center gap-3">
+                <button class="btn-theme-toggle" id="btnThemeToggle" title="Cambiar tema">
+                    <i class="fas fa-moon" id="themeIcon"></i>
+                    <span id="themeText">Modo oscuro</span>
+                </button>
                 <span class="position-relative" id="notif-bell">
                     <i class="fas fa-bell text-muted"></i>
                     <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" id="notif-count">0</span>
@@ -209,6 +251,40 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    (function() {
+        const body = document.body;
+        const btnTheme = document.getElementById('btnThemeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeText = document.getElementById('themeText');
+
+        const saved = localStorage.getItem('helpdesk-theme');
+        if (saved === 'dark') body.classList.add('dark-mode');
+        updateThemeBtn();
+
+        if (btnTheme) {
+            btnTheme.addEventListener('click', function() {
+                body.classList.toggle('dark-mode');
+                localStorage.setItem('helpdesk-theme', body.classList.contains('dark-mode') ? 'dark' : 'light');
+                updateThemeBtn();
+            });
+        }
+
+        function updateThemeBtn() {
+            const isDark = body.classList.contains('dark-mode');
+            if (themeIcon) themeIcon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+            if (themeText) themeText.textContent = isDark ? 'Modo claro' : 'Modo oscuro';
+        }
+
+        window.addEventListener('storage', function(e) {
+            if (e.key === 'helpdesk-theme') {
+                if (e.newValue === 'dark') body.classList.add('dark-mode');
+                else body.classList.remove('dark-mode');
+                updateThemeBtn();
+            }
+        });
+    })();
+    </script>
     <script>
     (function() {
         const bell = document.getElementById('notif-bell');

@@ -9,7 +9,9 @@ use App\Models\HistorialEquipoUsuario;
 use App\Models\Usuario;
 use App\Models\Area;
 use App\Models\Oficina;
+use App\Services\ActaEntregaService;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 
 class EquipoUsuarioController extends Controller
@@ -221,5 +223,20 @@ class EquipoUsuarioController extends Controller
             }
         }
         return redirect()->route('inventario.asignacion.index')->with('success', "$count equipos desvinculados correctamente");
+    }
+
+    public function generarActa($id)
+    {
+        $asignacion = EquipoUsuario::with(['equipo.tipoEquipo', 'usuario.departamento', 'area'])
+            ->findOrFail($id);
+
+        $entregadoPor = session('nombreUsuario', 'Administrador del Sistema');
+
+        $service = new ActaEntregaService();
+        $html = $service->generarActa($asignacion, $entregadoPor);
+
+        return response($html)
+            ->header('Content-Type', 'text/html; charset=UTF-8')
+            ->header('Content-Disposition', 'inline; filename="acta-entrega-' . $id . '.html"');
     }
 }

@@ -46,6 +46,14 @@
             <a href="{{ route('empleados.index') }}" class="nav-link {{ request()->routeIs('empleados.*') ? 'active' : '' }}">
                 <i class="fas fa-users"></i> Empleados
             </a>
+            <div class="ms-4">
+                <a href="{{ route('empleados.index') }}" class="nav-link {{ request()->routeIs('empleados.index') ? 'active' : '' }}">
+                    <i class="fas fa-list"></i> Lista
+                </a>
+                <a href="{{ route('empleados.tipoEmpleado.index') }}" class="nav-link {{ request()->routeIs('empleados.tipoEmpleado.*') ? 'active' : '' }}">
+                    <i class="fas fa-tags"></i> Tipos Empleado
+                </a>
+            </div>
             <a href="{{ route('inventario.equipo.index') }}" class="nav-link {{ request()->routeIs('inventario.*') ? 'active' : '' }}">
                 <i class="fas fa-boxes-stacked"></i> Inventario
                 <span class="ms-auto"><i class="fas fa-chevron-down fa-xs"></i></span>
@@ -70,6 +78,26 @@
                     <i class="fas fa-sliders"></i> Campos
                 </a>
             </div>
+
+            <div class="nav-section">Tickets Config</div>
+            <a href="{{ route('ticketconfig.tipossoporte.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.tipossoporte.*') ? 'active' : '' }}">
+                <i class="fas fa-headset"></i> Tipos Soporte
+            </a>
+            <a href="{{ route('ticketconfig.tiposequipoticket.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.tiposequipoticket.*') ? 'active' : '' }}">
+                <i class="fas fa-laptop"></i> Tipos Equipo Ticket
+            </a>
+            <a href="{{ route('ticketconfig.tiposdesarrollo.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.tiposdesarrollo.*') ? 'active' : '' }}">
+                <i class="fas fa-code"></i> Tipos Desarrollo
+            </a>
+            <a href="{{ route('ticketconfig.sistemas.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.sistemas.*') ? 'active' : '' }}">
+                <i class="fas fa-desktop"></i> Sistemas
+            </a>
+            <a href="{{ route('ticketconfig.modulossistemas.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.modulossistemas.*') ? 'active' : '' }}">
+                <i class="fas fa-puzzle-piece"></i> Módulos Sistemas
+            </a>
+            <a href="{{ route('ticketconfig.submodulossistemas.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.submodulossistemas.*') ? 'active' : '' }}">
+                <i class="fas fa-puzzle-piece"></i> SubMódulos Sistemas
+            </a>
 
             <div class="nav-section">Administración</div>
             <a href="{{ route('configuracion.roles.index') }}" class="nav-link {{ request()->routeIs('configuracion.roles.*') ? 'active' : '' }}">
@@ -148,6 +176,36 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    (function() {
+        const bell = document.getElementById('notif-bell');
+        const countBadge = document.getElementById('notif-count');
+        if (!bell) return;
+
+        function fetchNotificaciones() {
+            fetch('{{ route("api.notificaciones.obtener") }}', {
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.noLeidas > 0) {
+                    countBadge.textContent = data.noLeidas;
+                    countBadge.classList.remove('d-none');
+                } else {
+                    countBadge.classList.add('d-none');
+                }
+            })
+            .catch(() => {});
+        }
+
+        bell.addEventListener('click', function() {
+            fetchNotificaciones();
+        });
+
+        fetchNotificaciones();
+        setInterval(fetchNotificaciones, 30000);
+    })();
+    </script>
     @yield('scripts')
 </body>
 </html>

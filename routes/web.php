@@ -24,13 +24,22 @@ use App\Http\Controllers\Configuracion\EstatusController;
 use App\Http\Controllers\Configuracion\ModuloController;
 use App\Http\Controllers\Configuracion\AreaController;
 use App\Http\Controllers\Configuracion\DeptoController;
+use App\Http\Controllers\NotificacionesController;
+use App\Http\Controllers\TicketConfig\TipoSoporteController;
+use App\Http\Controllers\TicketConfig\TipoEquipoTicketController;
+use App\Http\Controllers\TicketConfig\TipoDesarrolloController;
+use App\Http\Controllers\TicketConfig\SistemasController;
+use App\Http\Controllers\TicketConfig\ModuloSistemaController;
+use App\Http\Controllers\TicketConfig\SubModuloSistemaController;
+use App\Http\Controllers\TipoEmpleadoController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('login'));
 
 Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
-Route::post('/login', [LoginController::class, 'login'])->name('login.post');
-Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+    Route::post('/login', [LoginController::class, 'login'])->name('login.post');
+    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+    Route::post('/recuperar-password', [LoginController::class, 'recuperarPassword'])->name('login.recuperarPassword');
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -46,6 +55,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/tickets/cerrar/{id}', [TicketController::class, 'closeWithApproval'])->name('tickets.close');
     Route::get('/tickets/modulos/{id}', [TicketController::class, 'obtenerModulos'])->name('tickets.modulos');
     Route::get('/tickets/submodulos/{id}', [TicketController::class, 'obtenerSubmodulos'])->name('tickets.submodulos');
+    Route::get('/tickets/evidencia/{id}', [TicketController::class, 'viewEvidence'])->name('tickets.viewEvidence');
 
     // Empleados
     Route::get('/empleados', [EmpleadoController::class, 'index'])->name('empleados.index');
@@ -101,6 +111,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/asignacion/toggle/{id}', [EquipoUsuarioController::class, 'toggleActivo'])->name('asignacion.toggle');
         Route::post('/asignacion/desvincular', [EquipoUsuarioController::class, 'desvincular'])->name('asignacion.desvincular');
         Route::post('/asignacion/desvincular-seleccionados', [EquipoUsuarioController::class, 'desvincularSeleccionados'])->name('asignacion.desvincularSeleccionados');
+        Route::get('/asignacion/acta/{id}', [EquipoUsuarioController::class, 'generarActa'])->name('asignacion.acta');
 
         // Historial
         Route::get('/historial', [EquipoHistorialController::class, 'index'])->name('historial.index');
@@ -173,5 +184,57 @@ Route::middleware('auth')->group(function () {
         Route::post('/oficinas', [OficinaController::class, 'store'])->name('oficinas.store');
         Route::put('/oficinas/{id}', [OficinaController::class, 'update'])->name('oficinas.update');
         Route::post('/oficinas/toggle/{id}', [OficinaController::class, 'toggleActivo'])->name('oficinas.toggle');
+    });
+
+    // Empleados - Tipo Empleado
+    Route::get('/empleados/tipo-empleado', [TipoEmpleadoController::class, 'index'])->name('empleados.tipoEmpleado.index');
+    Route::post('/empleados/tipo-empleado', [TipoEmpleadoController::class, 'store'])->name('empleados.tipoEmpleado.store');
+    Route::put('/empleados/tipo-empleado/{id}', [TipoEmpleadoController::class, 'update'])->name('empleados.tipoEmpleado.update');
+    Route::post('/empleados/tipo-empleado/toggle/{id}', [TipoEmpleadoController::class, 'toggleActivo'])->name('empleados.tipoEmpleado.toggle');
+
+    // Ticket Config
+    Route::prefix('ticketconfig')->name('ticketconfig.')->group(function () {
+        // Tipos de Soporte
+        Route::get('/tipos-soporte', [TipoSoporteController::class, 'index'])->name('tipossoporte.index');
+        Route::post('/tipos-soporte', [TipoSoporteController::class, 'store'])->name('tipossoporte.store');
+        Route::put('/tipos-soporte/{id}', [TipoSoporteController::class, 'update'])->name('tipossoporte.update');
+        Route::post('/tipos-soporte/toggle/{id}', [TipoSoporteController::class, 'toggleActivo'])->name('tipossoporte.toggle');
+
+        // Tipos Equipo Ticket
+        Route::get('/tipos-equipo-ticket', [TipoEquipoTicketController::class, 'index'])->name('tiposequipoticket.index');
+        Route::post('/tipos-equipo-ticket', [TipoEquipoTicketController::class, 'store'])->name('tiposequipoticket.store');
+        Route::put('/tipos-equipo-ticket/{id}', [TipoEquipoTicketController::class, 'update'])->name('tiposequipoticket.update');
+        Route::post('/tipos-equipo-ticket/toggle/{id}', [TipoEquipoTicketController::class, 'toggleActivo'])->name('tiposequipoticket.toggle');
+
+        // Tipos Desarrollo
+        Route::get('/tipos-desarrollo', [TipoDesarrolloController::class, 'index'])->name('tiposdesarrollo.index');
+        Route::post('/tipos-desarrollo', [TipoDesarrolloController::class, 'store'])->name('tiposdesarrollo.store');
+        Route::put('/tipos-desarrollo/{id}', [TipoDesarrolloController::class, 'update'])->name('tiposdesarrollo.update');
+        Route::post('/tipos-desarrollo/toggle/{id}', [TipoDesarrolloController::class, 'toggleActivo'])->name('tiposdesarrollo.toggle');
+
+        // Sistemas
+        Route::get('/sistemas', [SistemasController::class, 'index'])->name('sistemas.index');
+        Route::post('/sistemas', [SistemasController::class, 'store'])->name('sistemas.store');
+        Route::put('/sistemas/{id}', [SistemasController::class, 'update'])->name('sistemas.update');
+        Route::post('/sistemas/toggle/{id}', [SistemasController::class, 'toggleActivo'])->name('sistemas.toggle');
+
+        // Módulos Sistemas
+        Route::get('/modulos-sistemas', [ModuloSistemaController::class, 'index'])->name('modulossistemas.index');
+        Route::post('/modulos-sistemas', [ModuloSistemaController::class, 'store'])->name('modulossistemas.store');
+        Route::put('/modulos-sistemas/{id}', [ModuloSistemaController::class, 'update'])->name('modulossistemas.update');
+        Route::post('/modulos-sistemas/toggle/{id}', [ModuloSistemaController::class, 'toggleActivo'])->name('modulossistemas.toggle');
+
+        // SubMódulos Sistemas
+        Route::get('/submodulos-sistemas', [SubModuloSistemaController::class, 'index'])->name('submodulossistemas.index');
+        Route::post('/submodulos-sistemas', [SubModuloSistemaController::class, 'store'])->name('submodulossistemas.store');
+        Route::put('/submodulos-sistemas/{id}', [SubModuloSistemaController::class, 'update'])->name('submodulossistemas.update');
+        Route::post('/submodulos-sistemas/toggle/{id}', [SubModuloSistemaController::class, 'toggleActivo'])->name('submodulossistemas.toggle');
+    });
+
+    // Notificaciones API
+    Route::prefix('api/notificaciones')->name('api.notificaciones.')->group(function () {
+        Route::get('/', [NotificacionesController::class, 'obtener'])->name('obtener');
+        Route::post('/marcar-leido', [NotificacionesController::class, 'marcarLeido'])->name('marcarLeido');
+        Route::post('/marcar-todas-leido', [NotificacionesController::class, 'marcarTodasLeido'])->name('marcarTodasLeido');
     });
 });

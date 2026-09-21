@@ -58,6 +58,12 @@
                                 <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
                             </button>
                         </form>
+
+                        <div class="text-center mt-3">
+                            <a href="#" data-bs-toggle="modal" data-bs-target="#forgotModal" class="text-decoration-none" style="color: #e94560; font-size: 0.85rem;">
+                                <i class="fas fa-key me-1"></i>¿Olvidaste tu contraseña?
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <div class="text-center mt-3">
@@ -67,5 +73,30 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <div class="modal fade" id="forgotModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #e94560, #0f3460); color: white;">
+                    <h5 class="modal-title"><i class="fas fa-key me-2"></i>Recuperar Contraseña</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="{{ route('login.recuperarPassword') }}">
+                    @csrf
+                    <div class="modal-body">
+                        <p class="text-muted mb-3">Ingresa tu usuario o correo registrado. Se enviará una contraseña temporal.</p>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Usuario o correo</label>
+                            <input type="text" name="usuarioRecuperacion" class="form-control" required maxlength="100" placeholder="usuario o correo@ejemplo.com">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-1"></i>Enviar Contraseña Temporal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

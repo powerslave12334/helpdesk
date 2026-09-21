@@ -14,6 +14,8 @@ use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class TicketController extends Controller
 {
@@ -202,6 +204,28 @@ class TicketController extends Controller
         ]);
 
         return response()->json(['success' => true, 'message' => 'Evidencia agregada']);
+    }
+
+    public function viewEvidence($idEvidencia)
+    {
+        $evidencia = TicketEvidencia::find($idEvidencia);
+
+        if (!$evidencia) {
+            abort(404);
+        }
+
+        $filePath = public_path($evidencia->rutaArchivo);
+
+        if (!File::exists($filePath)) {
+            abort(404);
+        }
+
+        $mimeType = $evidencia->tipoContenido ?? File::mimeType($filePath);
+
+        return response()->file($filePath, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . $evidencia->nombreArchivo . '"',
+        ]);
     }
 
     public function updateManagement(Request $request)

@@ -1,102 +1,505 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HelpDesk - Iniciar Sesión</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Login | HELPDESK</title>
     <style>
-        body { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); min-height: 100vh; }
-        .login-card { background: rgba(255,255,255,0.95); border-radius: 15px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-        .login-header { background: linear-gradient(135deg, #e94560, #0f3460); border-radius: 15px 15px 0 0; padding: 30px; color: white; text-align: center; }
-        .login-header img { max-height: 60px; }
-        .form-control { border-radius: 10px; padding: 12px 15px; border: 2px solid #e0e0e0; }
-        .form-control:focus { border-color: #e94560; box-shadow: 0 0 0 0.2rem rgba(233,69,96,0.25); }
-        .btn-login { background: linear-gradient(135deg, #e94560, #c23152); border: none; border-radius: 10px; padding: 12px; font-weight: 600; letter-spacing: 1px; }
-        .btn-login:hover { background: linear-gradient(135deg, #c23152, #a02040); transform: translateY(-2px); box-shadow: 0 5px 20px rgba(233,69,96,0.4); }
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #eef3f9;
+            color: #1f2937;
+        }
+
+        .login-page {
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+        }
+
+        .login-hero {
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 48px 64px;
+            background: linear-gradient(135deg, rgba(10, 60, 130, 0.94), rgba(26, 115, 232, 0.86)), url('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat;
+            color: #ffffff;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(3, 25, 52, 0.12), rgba(3, 25, 52, 0.28));
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 620px;
+        }
+
+        .hero-tag {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+        }
+
+        .hero-content h1 {
+            margin: 0 0 18px;
+            font-size: 46px;
+            line-height: 1.1;
+        }
+
+        .hero-content p {
+            margin: 0;
+            max-width: 520px;
+            font-size: 17px;
+            line-height: 1.7;
+            color: rgba(255, 255, 255, 0.92);
+        }
+
+        .hero-points {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        .hero-point {
+            padding: 10px 14px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(4px);
+            font-size: 14px;
+        }
+
+        .login-panel {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+            background: #f8fbff;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 430px;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.10);
+            padding: 36px;
+        }
+
+        .login-header h2 {
+            margin: 0 0 10px;
+            font-size: 30px;
+            color: #0f172a;
+        }
+
+        .login-header p {
+            margin: 0 0 24px;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .alert-error {
+            margin-bottom: 18px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            background: #fdecec;
+            color: #b42318;
+            font-size: 14px;
+            border: 1px solid #f7c2c0;
+        }
+
+        .alert-success {
+            margin-bottom: 18px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            background: #ecfdf3;
+            color: #027a48;
+            font-size: 14px;
+            border: 1px solid #abefc6;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .form-control {
+            width: 100%;
+            height: 48px;
+            border: 1px solid #dbe3ee;
+            border-radius: 14px;
+            padding: 0 14px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color .2s ease, box-shadow .2s ease;
+            background: #ffffff;
+        }
+
+        .form-control:focus {
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 4px rgba(26, 115, 232, 0.12);
+        }
+
+        .password-wrap {
+            position: relative;
+        }
+
+        .password-wrap .form-control {
+            padding-right: 52px;
+        }
+
+        .password-wrap .form-control::-ms-reveal,
+        .password-wrap .form-control::-ms-clear {
+            display: none;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 34px;
+            height: 34px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 17px;
+            line-height: 1;
+        }
+
+        .toggle-password.is-visible::after {
+            content: "";
+            position: absolute;
+            left: 8px;
+            top: 16px;
+            width: 18px;
+            height: 2px;
+            border-radius: 999px;
+            background: #334155;
+            transform: rotate(-38deg);
+            transform-origin: center;
+            pointer-events: none;
+        }
+
+        .toggle-password:focus-visible {
+            outline: none;
+        }
+
+        .login-links {
+            margin: 4px 0 22px;
+            text-align: right;
+        }
+
+        .login-links a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .link-button {
+            border: 0;
+            padding: 0;
+            background: transparent;
+            color: #1a73e8;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .link-button:hover {
+            text-decoration: underline;
+        }
+
+        .link-button:focus-visible {
+            outline: none;
+        }
+
+        .btn-login {
+            width: 100%;
+            height: 50px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #0b57d0, #1a73e8);
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            cursor: pointer;
+            transition: transform .15s ease, box-shadow .15s ease;
+            box-shadow: 0 14px 30px rgba(26, 115, 232, 0.28);
+        }
+
+        .btn-login:hover {
+            transform: translateY(-1px);
+        }
+
+        .field-validation {
+            display: block;
+            margin-top: 6px;
+            color: #b42318;
+            font-size: 13px;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.48);
+        }
+
+        .modal-backdrop[hidden] {
+            display: none;
+        }
+
+        .modal-card {
+            width: min(430px, 100%);
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+            padding: 26px;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            margin: 0 0 8px;
+            font-size: 22px;
+            color: #0f172a;
+        }
+
+        .modal-header p {
+            margin: 0;
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .modal-close {
+            width: 34px;
+            height: 34px;
+            border: 0;
+            border-radius: 10px;
+            background: #eef3f9;
+            color: #334155;
+            cursor: pointer;
+            font-size: 24px;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            background: #dbe3ee;
+        }
+
+        .modal-close:focus-visible {
+            outline: none;
+        }
+
+        @media (max-width: 991px) {
+            .login-page {
+                grid-template-columns: 1fr;
+            }
+
+            .login-hero {
+                min-height: 320px;
+                padding: 36px 28px;
+            }
+
+            .hero-content h1 {
+                font-size: 34px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .login-hero {
+                display: none;
+            }
+
+            .login-panel {
+                min-height: 100vh;
+                padding: 20px;
+            }
+
+            .login-card {
+                max-width: 100%;
+                padding: 28px 22px;
+                border-radius: 20px;
+            }
+        }
     </style>
 </head>
-<body class="d-flex align-items-center justify-content-center">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-5">
-                <div class="login-card">
-                    <div class="login-header">
-                        <h3><i class="fas fa-headset me-2"></i>HelpDesk</h3>
-                        <p class="mb-0 mt-2" style="font-size: 0.9rem; opacity: 0.9;">Sistema de Soporte Técnico</p>
-                    </div>
-                    <div class="p-4">
-                        @if ($errors->any())
-                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                {{ $errors->first() }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        @endif
-
-                        <form method="POST" action="{{ route('login.post') }}">
-                            @csrf
-                            <div class="mb-3">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-user me-1"></i>Usuario
-                                </label>
-                                <input type="text" name="usuario" class="form-control"
-                                       value="{{ old('usuario') }}" required autofocus
-                                       placeholder="Ingrese su usuario">
-                            </div>
-
-                            <div class="mb-4">
-                                <label class="form-label fw-bold">
-                                    <i class="fas fa-lock me-1"></i>Contraseña
-                                </label>
-                                <input type="password" name="password" class="form-control"
-                                       required placeholder="Ingrese su contraseña">
-                            </div>
-
-                            <button type="submit" class="btn btn-login btn-primary w-100 text-white">
-                                <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
-                            </button>
-                        </form>
-
-                        <div class="text-center mt-3">
-                            <a href="#" data-bs-toggle="modal" data-bs-target="#forgotModal" class="text-decoration-none" style="color: #e94560; font-size: 0.85rem;">
-                                <i class="fas fa-key me-1"></i>¿Olvidaste tu contraseña?
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                <div class="text-center mt-3">
-                    <small class="text-white-50">HelpDesk &copy; {{ date('Y') }} - Alcomex</small>
+<body data-user-id="{{ session('IdUsuario', 0) }}">
+    <div class="login-page">
+        <section class="login-hero">
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <span class="hero-tag">HELPDESK</span>
+                <h1>Soporte TI centralizado para atender incidencias de forma rápida y ordenada.</h1>
+                <p>
+                    Administra solicitudes, da seguimiento a tickets y mejora la atención interna con una plataforma
+                    pensada para el equipo de tecnología.
+                </p>
+                <div class="hero-points">
+                    <div class="hero-point">Gestión de incidencias</div>
+                    <div class="hero-point">Seguimiento de usuarios</div>
+                    <div class="hero-point">Control de atención TI</div>
                 </div>
             </div>
-        </div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        </section>
 
-    <div class="modal fade" id="forgotModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header" style="background: linear-gradient(135deg, #e94560, #0f3460); color: white;">
-                    <h5 class="modal-title"><i class="fas fa-key me-2"></i>Recuperar Contraseña</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <section class="login-panel">
+            <div class="login-card">
+                <div class="login-header">
+                    <h2>Iniciar sesión</h2>
+                    <p>Ingresa tus credenciales para acceder al sistema.</p>
                 </div>
-                <form method="POST" action="{{ route('login.recuperarPassword') }}">
+
+                @if ($errors->any())
+                    <div class="alert-error">{{ $errors->first() }}</div>
+                @endif
+
+                @if (session('success'))
+                    <div class="alert-success">{{ session('success') }}</div>
+                @endif
+
+                <form action="{{ route('login.post') }}" method="post" class="login-form">
                     @csrf
-                    <div class="modal-body">
-                        <p class="text-muted mb-3">Ingresa tu usuario o correo registrado. Se enviará una contraseña temporal.</p>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Usuario o correo</label>
-                            <input type="text" name="usuarioRecuperacion" class="form-control" required maxlength="100" placeholder="usuario o correo@ejemplo.com">
+
+                    <div class="form-group">
+                        <label for="Usuario">Usuario</label>
+                        <input id="Usuario" name="usuario" value="{{ old('usuario') }}" class="form-control" autocomplete="username" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="txtPassword">Password</label>
+                        <div class="password-wrap">
+                            <input id="txtPassword" name="password" type="password" class="form-control" autocomplete="current-password" />
+                            <button type="button" class="toggle-password" id="btnTogglePassword" aria-label="Mostrar contraseña">👁</button>
                         </div>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-1"></i>Enviar Contraseña Temporal</button>
+
+                    <div class="login-links">
+                        <button type="button" class="link-button" id="btnOpenForgotPassword">¿Olvidó su contraseña?</button>
                     </div>
+
+                    <button type="submit" class="btn-login">INGRESAR</button>
                 </form>
             </div>
+        </section>
+    </div>
+
+    <div class="modal-backdrop" id="forgotPasswordModal" hidden>
+        <div class="modal-card forgot-card" role="dialog" aria-modal="true" aria-labelledby="forgotPasswordTitle">
+            <div class="modal-header">
+                <div>
+                    <h3 id="forgotPasswordTitle">Recuperar contraseña</h3>
+                    <p>Captura tu usuario o correo registrado.</p>
+                </div>
+                <button type="button" class="modal-close" id="btnCloseForgotPassword" aria-label="Cerrar">×</button>
+            </div>
+
+            <form action="{{ route('login.recuperarPassword') }}" method="post" class="forgot-form">
+                @csrf
+
+                <div class="form-group">
+                    <label for="usuarioRecuperacion">Usuario o correo</label>
+                    <input id="usuarioRecuperacion" name="usuarioRecuperacion" class="form-control" maxlength="100" autocomplete="username" required />
+                </div>
+
+                <button type="submit" class="btn-login">ENVIAR CONTRASEÑA TEMPORAL</button>
+            </form>
         </div>
     </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const passwordInput = document.getElementById('txtPassword');
+        const toggleButton = document.getElementById('btnTogglePassword');
+        const forgotPasswordModal = document.getElementById('forgotPasswordModal');
+        const btnOpenForgotPassword = document.getElementById('btnOpenForgotPassword');
+        const btnCloseForgotPassword = document.getElementById('btnCloseForgotPassword');
+        const recoveryInput = document.getElementById('usuarioRecuperacion');
+
+        if (passwordInput && toggleButton) {
+            passwordInput.setAttribute('type', 'password');
+            toggleButton.classList.remove('is-visible');
+            toggleButton.setAttribute('aria-label', 'Mostrar contraseña');
+
+            toggleButton.addEventListener('click', function () {
+                const isPassword = passwordInput.getAttribute('type') === 'password';
+                passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+                toggleButton.setAttribute('aria-label', isPassword ? 'Ocultar contraseña' : 'Mostrar contraseña');
+                toggleButton.classList.toggle('is-visible', isPassword);
+            });
+        }
+
+        if (btnOpenForgotPassword && forgotPasswordModal) {
+            btnOpenForgotPassword.addEventListener('click', function () {
+                forgotPasswordModal.hidden = false;
+
+                if (recoveryInput) {
+                    recoveryInput.value = '';
+                    recoveryInput.focus();
+                }
+            });
+        }
+
+        if (btnCloseForgotPassword) {
+            btnCloseForgotPassword.addEventListener('click', closeForgotPasswordModal);
+        }
+
+        if (forgotPasswordModal) {
+            forgotPasswordModal.addEventListener('click', function (event) {
+                if (event.target === forgotPasswordModal) {
+                    closeForgotPasswordModal();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeForgotPasswordModal();
+            }
+        });
+
+        function closeForgotPasswordModal() {
+            if (forgotPasswordModal) {
+                forgotPasswordModal.hidden = true;
+            }
+        }
+    });
+    </script>
 </body>
 </html>

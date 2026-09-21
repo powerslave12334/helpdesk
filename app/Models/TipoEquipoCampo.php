@@ -13,4 +13,5 @@ class TipoEquipoCampo extends Model
     protected $casts = ['requerido' => 'boolean', 'activo' => 'boolean', 'fechaAlta' => 'datetime'];
 
     public function tipoEquipo() { return $this->belongsTo(TipoEquipo::class, 'id_TipoEquipo'); }
+    public function campo() { return $this->belongsTo(EquipoCampoDefinicion::class, 'id_EquipoCampo'); }
 }

@@ -23,4 +23,5 @@ class Equipo extends Model
     public function asignaciones() { return $this->hasMany(EquipoUsuario::class, 'id_Equipo'); }
     public function campos() { return $this->hasMany(EquipoCampo::class, 'id_Equipo'); }
     public function historial() { return $this->hasMany(HistorialEquipoUsuario::class, 'id_Equipo'); }
+    public function equipoDetalle() { return $this->hasMany(EquipoCampo::class, 'id_Equipo'); }
 }

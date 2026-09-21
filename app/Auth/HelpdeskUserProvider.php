@@ -4,12 +4,17 @@ namespace App\Auth;
 
 use App\Models\User;
 use App\Models\Login;
+use Illuminate\Contracts\Hashing\Hasher;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\UserProvider;
-use Illuminate\Support\Facades\Hash;
 
 class HelpdeskUserProvider implements UserProvider
 {
+    public function __construct(
+        protected Hasher $hasher,
+        protected string $model = \App\Models\User::class,
+    ) {}
+
     public function retrieveByCredentials(array $credentials)
     {
         $login = Login::where('usuario', $credentials['usuario'] ?? '')
@@ -52,7 +57,7 @@ class HelpdeskUserProvider implements UserProvider
         }
 
         $dbHash = strtolower($login->pass);
-        $inputHash = strtoupper(hash('sha512', $credentials['password'] ?? ''));
+        $inputHash = strtolower(hash('sha512', $credentials['password'] ?? ''));
 
         return $dbHash === $inputHash;
     }

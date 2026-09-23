@@ -9,30 +9,49 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead><tr><th>ID</th><th>Descripción</th><th>Área</th><th>Fecha Alta</th><th>Estatus</th><th>Acciones</th></tr></thead>
-                <tbody>
-                    @forelse($tiposSoporte as $ts)
-                    <tr>
-                        <td>{{ $ts->id_TipoSoporte }}</td>
-                        <td>{{ $ts->descripcion }}</td>
-                        <td><span class="badge bg-secondary">{{ $ts->area->nombrearea ?? $ts->id_Area }}</span></td>
-                        <td>{{ $ts->fechaAlta ? $ts->fechaAlta->format('d/m/Y H:i') : 'N/A' }}</td>
-                        <td><span class="badge bg-{{ $ts->activo ? 'success' : 'danger' }}">{{ $ts->activo ? 'Activo' : 'Inactivo' }}</span></td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-edit" data-id="{{ $ts->id_TipoSoporte }}"
-                                    data-descripcion="{{ $ts->descripcion }}" data-area="{{ $ts->id_Area }}"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-outline-{{ $ts->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $ts->id_TipoSoporte }}"><i class="fas fa-{{ $ts->activo ? 'ban' : 'check' }}"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="6" class="text-center text-muted">No hay tipos de soporte</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div data-table>
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="table-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" data-table-search placeholder="Buscar por descripción...">
+                    </div>
+                    <select class="table-filter" data-table-filter="estatus">
+                        <option value="">Todos los estatus</option>
+                        <option value="activo">Activo</option>
+                        <option value="inactivo">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>ID</th><th>Descripción</th><th>Área</th><th>Fecha Alta</th><th>Estatus</th><th>Acciones</th></tr></thead>
+                    <tbody data-table-body>
+                        @forelse($tiposSoporte as $ts)
+                        <tr data-row>
+                            <td data-field="id">{{ $ts->id_TipoSoporte }}</td>
+                            <td data-field="descripcion">{{ $ts->descripcion }}</td>
+                            <td data-field="area"><span class="badge bg-secondary">{{ $ts->area->nombrearea ?? $ts->id_Area }}</span></td>
+                            <td data-field="fecha">{{ $ts->fechaAlta ? $ts->fechaAlta->format('d/m/Y H:i') : 'N/A' }}</td>
+                            <td data-field="estatus"><span class="badge bg-{{ $ts->activo ? 'success' : 'danger' }}">{{ $ts->activo ? 'Activo' : 'Inactivo' }}</span></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-edit" data-id="{{ $ts->id_TipoSoporte }}"
+                                        data-descripcion="{{ $ts->descripcion }}" data-area="{{ $ts->id_Area }}"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-outline-{{ $ts->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $ts->id_TipoSoporte }}"><i class="fas fa-{{ $ts->activo ? 'ban' : 'check' }}"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="6" class="text-center text-muted">No hay tipos de soporte</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span class="table-info" data-table-info></span>
+                <div class="pagination" data-table-pagination></div>
+            </div>
         </div>
     </div>
 </div>

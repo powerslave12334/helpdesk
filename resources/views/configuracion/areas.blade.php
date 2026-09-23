@@ -9,27 +9,46 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead><tr><th>ID</th><th>Nombre</th><th>Estatus</th><th>Acciones</th></tr></thead>
-                <tbody>
-                    @forelse($areas as $a)
-                    <tr>
-                        <td>{{ $a->id_Area }}</td>
-                        <td>{{ $a->nombre }}</td>
-                        <td><span class="badge bg-{{ $a->activo ? 'success' : 'danger' }}">{{ $a->activo ? 'Activo' : 'Inactivo' }}</span></td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-edit" data-id="{{ $a->id_Area }}" data-nombre="{{ $a->nombre }}"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-outline-{{ $a->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $a->id_Area }}"><i class="fas fa-{{ $a->activo ? 'ban' : 'check' }}"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="4" class="text-center text-muted">No hay áreas</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div data-table>
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="table-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" data-table-search placeholder="Buscar por nombre...">
+                    </div>
+                    <select class="table-filter" data-table-filter="estatus">
+                        <option value="">Todos los estatus</option>
+                        <option value="activo">Activo</option>
+                        <option value="inactivo">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>ID</th><th>Nombre</th><th>Estatus</th><th>Acciones</th></tr></thead>
+                    <tbody data-table-body>
+                        @forelse($areas as $a)
+                        <tr data-row>
+                            <td data-field="id">{{ $a->id_Area }}</td>
+                            <td data-field="nombre">{{ $a->nombre }}</td>
+                            <td data-field="estatus"><span class="badge bg-{{ $a->activo ? 'success' : 'danger' }}">{{ $a->activo ? 'Activo' : 'Inactivo' }}</span></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-edit" data-id="{{ $a->id_Area }}" data-nombre="{{ $a->nombre }}"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-outline-{{ $a->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $a->id_Area }}"><i class="fas fa-{{ $a->activo ? 'ban' : 'check' }}"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="4" class="text-center text-muted">No hay áreas</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span class="table-info" data-table-info></span>
+                <div class="pagination" data-table-pagination></div>
+            </div>
         </div>
     </div>
 </div>

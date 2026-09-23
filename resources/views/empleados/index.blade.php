@@ -13,61 +13,84 @@
 
 <div class="card">
     <div class="card-body">
-        <input type="text" class="form-control mb-3" id="searchInput" placeholder="Buscar empleado...">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Correo</th>
-                        <th>Departamento</th>
-                        <th>Área</th>
-                        <th>Tipo</th>
-                        <th>Técnico</th>
-                        <th>Usuario</th>
-                        <th>Estatus</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($usuarios as $u)
-                    <tr>
-                        <td>{{ $u->nombre }} {{ $u->app }} {{ $u->apm }}</td>
-                        <td>{{ $u->correo }}</td>
-                        <td>{{ $u->departamento->nombre ?? 'N/A' }}</td>
-                        <td>{{ $u->area->nombre ?? 'N/A' }}</td>
-                        <td>{{ $u->tipoEmpleado->nombre ?? 'N/A' }}</td>
-                        <td><span class="badge bg-{{ $u->esTecnico ? 'success' : 'secondary' }}">{{ $u->esTecnico ? 'Sí' : 'No' }}</span></td>
-                        <td>{{ $u->login->usuario ?? 'Sin acceso' }}</td>
-                        <td><span class="badge bg-{{ $u->activo ? 'success' : 'danger' }}">{{ $u->activo ? 'Activo' : 'Inactivo' }}</span></td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-edit" data-id="{{ $u->id_Usuario }}"
-                                    data-nombre="{{ $u->nombre }}" data-app="{{ $u->app }}" data-apm="{{ $u->apm }}"
-                                    data-correo="{{ $u->correo }}" data-telefono="{{ $u->telefono }}"
-                                    data-depto="{{ $u->id_Depto }}" data-area="{{ $u->id_Area }}"
-                                    data-oficina="{{ $u->id_Oficinas }}" data-tipo="{{ $u->id_TipoEmpleado }}"
-                                    data-tecnico="{{ $u->esTecnico }}" title="Editar">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-outline-warning btn-access" data-id="{{ $u->id_Usuario }}"
-                                    data-usuario="{{ $u->login->usuario ?? '' }}" title="Acceso">
-                                    <i class="fas fa-key"></i>
-                                </button>
-                                <button class="btn btn-outline-info btn-reset" data-id="{{ $u->id_Usuario }}" title="Restaurar contraseña">
-                                    <i class="fas fa-lock"></i>
-                                </button>
-                                <button class="btn btn-outline-{{ $u->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $u->id_Usuario }}" title="{{ $u->activo ? 'Desactivar' : 'Activar' }}">
-                                    <i class="fas fa-{{ $u->activo ? 'ban' : 'check' }}"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="9" class="text-center text-muted">No hay empleados</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div data-table>
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="table-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" data-table-search placeholder="Buscar por nombre, correo, departamento...">
+                    </div>
+                    <select class="table-filter" data-table-filter="tecnico">
+                        <option value="">Todos</option>
+                        <option value="sí">Técnicos</option>
+                        <option value="no">No técnicos</option>
+                    </select>
+                    <select class="table-filter" data-table-filter="estatus">
+                        <option value="">Todos los estatus</option>
+                        <option value="activo">Activo</option>
+                        <option value="inactivo">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Correo</th>
+                            <th>Departamento</th>
+                            <th>Área</th>
+                            <th>Tipo</th>
+                            <th>Técnico</th>
+                            <th>Usuario</th>
+                            <th>Estatus</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody data-table-body>
+                        @forelse($usuarios as $u)
+                        <tr data-row>
+                            <td data-field="nombre">{{ $u->nombre }} {{ $u->app }} {{ $u->apm }}</td>
+                            <td data-field="correo">{{ $u->correo }}</td>
+                            <td data-field="departamento">{{ $u->departamento->nombre ?? 'N/A' }}</td>
+                            <td data-field="area">{{ $u->area->nombre ?? 'N/A' }}</td>
+                            <td data-field="tipo">{{ $u->tipoEmpleado->nombre ?? 'N/A' }}</td>
+                            <td data-field="tecnico"><span class="badge bg-{{ $u->esTecnico ? 'success' : 'secondary' }}">{{ $u->esTecnico ? 'Sí' : 'No' }}</span></td>
+                            <td data-field="usuario">{{ $u->login->usuario ?? 'Sin acceso' }}</td>
+                            <td data-field="estatus"><span class="badge bg-{{ $u->activo ? 'success' : 'danger' }}">{{ $u->activo ? 'Activo' : 'Inactivo' }}</span></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-edit" data-id="{{ $u->id_Usuario }}"
+                                        data-nombre="{{ $u->nombre }}" data-app="{{ $u->app }}" data-apm="{{ $u->apm }}"
+                                        data-correo="{{ $u->correo }}" data-telefono="{{ $u->telefono }}"
+                                        data-depto="{{ $u->id_Depto }}" data-area="{{ $u->id_Area }}"
+                                        data-oficina="{{ $u->id_Oficinas }}" data-tipo="{{ $u->id_TipoEmpleado }}"
+                                        data-tecnico="{{ $u->esTecnico }}" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-warning btn-access" data-id="{{ $u->id_Usuario }}"
+                                        data-usuario="{{ $u->login->usuario ?? '' }}" title="Acceso">
+                                        <i class="fas fa-key"></i>
+                                    </button>
+                                    <button class="btn btn-outline-info btn-reset" data-id="{{ $u->id_Usuario }}" title="Restaurar contraseña">
+                                        <i class="fas fa-lock"></i>
+                                    </button>
+                                    <button class="btn btn-outline-{{ $u->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $u->id_Usuario }}" title="{{ $u->activo ? 'Desactivar' : 'Activar' }}">
+                                        <i class="fas fa-{{ $u->activo ? 'ban' : 'check' }}"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="9" class="text-center text-muted">No hay empleados</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span class="table-info" data-table-info></span>
+                <div class="pagination" data-table-pagination></div>
+            </div>
         </div>
     </div>
 </div>
@@ -197,14 +220,6 @@
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Search
-    document.getElementById('searchInput')?.addEventListener('input', function() {
-        const term = this.value.toLowerCase();
-        document.querySelectorAll('tbody tr').forEach(row => {
-            row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
-        });
-    });
-
     // Edit
     document.querySelectorAll('.btn-edit').forEach(btn => {
         btn.addEventListener('click', function() {

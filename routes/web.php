@@ -31,6 +31,7 @@ use App\Http\Controllers\TicketConfig\TipoDesarrolloController;
 use App\Http\Controllers\TicketConfig\SistemasController;
 use App\Http\Controllers\TicketConfig\ModuloSistemaController;
 use App\Http\Controllers\TicketConfig\SubModuloSistemaController;
+use App\Http\Controllers\Inventario\MantenimientoController;
 use App\Http\Controllers\TipoEmpleadoController;
 use Illuminate\Support\Facades\Route;
 
@@ -120,6 +121,20 @@ Route::middleware('auth')->group(function () {
 
         // Historial
         Route::get('/historial', [EquipoHistorialController::class, 'index'])->name('historial.index');
+
+        // Mantenimientos
+        Route::get('/mantenimientos', [MantenimientoController::class, 'index'])->name('mantenimientos.index');
+        Route::get('/mantenimientos/api', [MantenimientoController::class, 'api'])->name('mantenimientos.api');
+        Route::post('/mantenimientos', [MantenimientoController::class, 'store'])->name('mantenimientos.store');
+        Route::post('/mantenimientos/{id}/completar', [MantenimientoController::class, 'completar'])->name('mantenimientos.completar');
+        Route::post('/mantenimientos/{id}/cambiar-fecha', [MantenimientoController::class, 'cambiarFecha'])->name('mantenimientos.cambiarFecha');
+        Route::delete('/mantenimientos/{id}', [MantenimientoController::class, 'destroy'])->name('mantenimientos.destroy');
+        Route::post('/mantenimientos/generar', [MantenimientoController::class, 'generar'])->name('mantenimientos.generar');
+        Route::get('/mantenimientos/buscar', [MantenimientoController::class, 'buscar'])->name('mantenimientos.buscar');
+        Route::get('/mantenimientos/{id}/editar-reporte', [MantenimientoController::class, 'editarReporte'])->name('mantenimientos.editar-reporte');
+        Route::post('/mantenimientos/{id}/guardar-reporte', [MantenimientoController::class, 'guardarReporte'])->name('mantenimientos.guardar-reporte');
+        Route::post('/mantenimientos/{id}/cerrar-reporte', [MantenimientoController::class, 'cerrarReporte'])->name('mantenimientos.cerrar-reporte');
+        Route::get('/mantenimientos/{id}/reporte', [MantenimientoController::class, 'generarReporte'])->name('mantenimientos.reporte');
     });
 
     // Configuración

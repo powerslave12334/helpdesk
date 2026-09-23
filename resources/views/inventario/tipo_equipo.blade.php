@@ -9,27 +9,46 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead><tr><th>ID</th><th>Descripción</th><th>Estatus</th><th>Acciones</th></tr></thead>
-                <tbody>
-                    @forelse($tipos as $t)
-                    <tr>
-                        <td>{{ $t->id_TipoEquipo }}</td>
-                        <td>{{ $t->descripcion }}</td>
-                        <td><span class="badge bg-{{ $t->activo ? 'success' : 'danger' }}">{{ $t->activo ? 'Activo' : 'Inactivo' }}</span></td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-edit" data-id="{{ $t->id_TipoEquipo }}" data-desc="{{ $t->descripcion }}"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-outline-{{ $t->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $t->id_TipoEquipo }}"><i class="fas fa-{{ $t->activo ? 'ban' : 'check' }}"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="4" class="text-center text-muted">No hay tipos</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div data-table>
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="table-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" data-table-search placeholder="Buscar por descripción...">
+                    </div>
+                    <select class="table-filter" data-table-filter="estatus">
+                        <option value="">Todos los estatus</option>
+                        <option value="activo">Activo</option>
+                        <option value="inactivo">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>ID</th><th>Descripción</th><th>Estatus</th><th>Acciones</th></tr></thead>
+                    <tbody data-table-body>
+                        @forelse($tipos as $t)
+                        <tr data-row>
+                            <td data-field="id">{{ $t->id_TipoEquipo }}</td>
+                            <td data-field="descripcion">{{ $t->descripcion }}</td>
+                            <td data-field="estatus"><span class="badge bg-{{ $t->activo ? 'success' : 'danger' }}">{{ $t->activo ? 'Activo' : 'Inactivo' }}</span></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-edit" data-id="{{ $t->id_TipoEquipo }}" data-desc="{{ $t->descripcion }}"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-outline-{{ $t->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $t->id_TipoEquipo }}"><i class="fas fa-{{ $t->activo ? 'ban' : 'check' }}"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="4" class="text-center text-muted">No hay tipos</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span class="table-info" data-table-info></span>
+                <div class="pagination" data-table-pagination></div>
+            </div>
         </div>
     </div>
 </div>

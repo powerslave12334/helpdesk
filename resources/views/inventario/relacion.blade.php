@@ -9,33 +9,52 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead><tr><th>Equipo Padre</th><th>Equipo Hijo</th><th>Tipo Relación</th><th>Fecha Asignación</th><th>Fecha Baja</th><th>Estatus</th><th>Acciones</th></tr></thead>
-                <tbody>
-                    @forelse($relaciones as $r)
-                    <tr>
-                        <td>{{ $r->equipoPadre->nombreEquipo ?? $r->equipoPadre->marca ?? 'N/A' }}</td>
-                        <td>{{ $r->equipoHijo->nombreEquipo ?? $r->equipoHijo->marca ?? 'N/A' }}</td>
-                        <td><span class="badge bg-info">{{ $r->tipoRelacion->descripcion ?? 'N/A' }}</span></td>
-                        <td>{{ $r->fechaAsignacion?->format('d/m/Y') ?? 'N/A' }}</td>
-                        <td>{{ $r->fechaBaja?->format('d/m/Y') ?? 'N/A' }}</td>
-                        <td><span class="badge bg-{{ $r->activo ? 'success' : 'danger' }}">{{ $r->activo ? 'Activa' : 'Inactiva' }}</span></td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-edit" data-id="{{ $r->id_EquipoRelacion }}"
-                                    data-padre="{{ $r->id_EquipoPadre }}" data-hijo="{{ $r->id_EquipoHijo }}"
-                                    data-tipo="{{ $r->id_TipoRelacionEquipo }}" data-fecha="{{ $r->fechaAsignacion?->format('Y-m-d') }}"
-                                    data-obs="{{ $r->observaciones ?? '' }}"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-outline-{{ $r->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $r->id_EquipoRelacion }}"><i class="fas fa-{{ $r->activo ? 'ban' : 'check' }}"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="7" class="text-center text-muted">No hay relaciones</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div data-table>
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="table-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" data-table-search placeholder="Buscar por equipo o tipo de relación...">
+                    </div>
+                    <select class="table-filter" data-table-filter="estatus">
+                        <option value="">Todos los estatus</option>
+                        <option value="activa">Activa</option>
+                        <option value="inactiva">Inactiva</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>Equipo Padre</th><th>Equipo Hijo</th><th>Tipo Relación</th><th>Fecha Asignación</th><th>Fecha Baja</th><th>Estatus</th><th>Acciones</th></tr></thead>
+                    <tbody data-table-body>
+                        @forelse($relaciones as $r)
+                        <tr data-row>
+                            <td data-field="padre">{{ $r->equipoPadre->nombreEquipo ?? $r->equipoPadre->marca ?? 'N/A' }}</td>
+                            <td data-field="hijo">{{ $r->equipoHijo->nombreEquipo ?? $r->equipoHijo->marca ?? 'N/A' }}</td>
+                            <td data-field="tipo"><span class="badge bg-info">{{ $r->tipoRelacion->descripcion ?? 'N/A' }}</span></td>
+                            <td data-field="fecha">{{ $r->fechaAsignacion?->format('d/m/Y') ?? 'N/A' }}</td>
+                            <td data-field="baja">{{ $r->fechaBaja?->format('d/m/Y') ?? 'N/A' }}</td>
+                            <td data-field="estatus"><span class="badge bg-{{ $r->activo ? 'success' : 'danger' }}">{{ $r->activo ? 'Activa' : 'Inactiva' }}</span></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-edit" data-id="{{ $r->id_EquipoRelacion }}"
+                                        data-padre="{{ $r->id_EquipoPadre }}" data-hijo="{{ $r->id_EquipoHijo }}"
+                                        data-tipo="{{ $r->id_TipoRelacionEquipo }}" data-fecha="{{ $r->fechaAsignacion?->format('Y-m-d') }}"
+                                        data-obs="{{ $r->observaciones ?? '' }}"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-outline-{{ $r->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $r->id_EquipoRelacion }}"><i class="fas fa-{{ $r->activo ? 'ban' : 'check' }}"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="7" class="text-center text-muted">No hay relaciones</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span class="table-info" data-table-info></span>
+                <div class="pagination" data-table-pagination></div>
+            </div>
         </div>
     </div>
 </div>

@@ -61,15 +61,26 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-md-6 mb-3">
+                <div class="col-md-4 mb-3">
                     <label class="form-label">Observaciones</label>
                     <textarea name="observaciones" class="form-control" rows="2">{{ old('observaciones') }}</textarea>
                 </div>
-                <div class="col-md-3 mb-3">
+                <div class="col-md-4 mb-3">
                     <label class="form-label">Período Mantenimiento</label>
-                    <input type="number" name="id_PeriodoMantenimiento" class="form-control" value="{{ old('id_PeriodoMantenimiento', 0) }}" min="0">
+                    <select name="id_PeriodoMantenimiento" class="form-select">
+                        <option value="0">Sin período</option>
+                        @foreach(\App\Models\PeriodoMantenimiento::where('activo', true)->get() as $p)
+                        <option value="{{ $p->id_PeriodoMantenimiento }}" {{ old('id_PeriodoMantenimiento') == $p->id_PeriodoMantenimiento ? 'selected' : '' }}>{{ $p->descripcion }} ({{ $p->meses }} meses)</option>
+                        @endforeach
+                    </select>
                 </div>
-                <div class="col-md-3 mb-3 d-flex align-items-end">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Último Mantenimiento</label>
+                    <input type="date" name="fechaUltimoMantenimiento" class="form-control" value="{{ old('fechaUltimoMantenimiento') }}">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12 mb-3 d-flex align-items-end">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="esCompartido" id="chkCompartido" value="1">
                         <label class="form-check-label" for="chkCompartido">Equipo Compartido</label>

@@ -32,12 +32,6 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <input type="text" class="form-control" id="searchTickets" placeholder="Buscar por folio, usuario o asunto...">
-            </div>
-        </div>
-
         <ul class="nav nav-tabs" role="tablist">
             <li class="nav-item">
                 <a class="nav-link active" data-bs-toggle="tab" href="#tab-mis-tickets">
@@ -60,14 +54,65 @@
 
         <div class="tab-content mt-3">
             <div class="tab-pane fade show active" id="tab-mis-tickets">
-                @include('tickets._table', ['tickets' => $misTickets, 'tabId' => 'mis'])
+                <div data-table>
+                    <div class="table-toolbar">
+                        <div class="table-toolbar-left">
+                            <div class="table-search">
+                                <i class="fas fa-search"></i>
+                                <input type="text" data-table-search placeholder="Buscar por folio, asunto, técnico...">
+                            </div>
+                            <select class="table-filter" data-table-filter="estatus">
+                                <option value="">Todos los estatus</option>
+                                <option value="abierto">Abierto</option>
+                                <option value="en proceso">En Proceso</option>
+                                <option value="resuelto">Resuelto</option>
+                                <option value="cerrado">Cerrado</option>
+                            </select>
+                        </div>
+                    </div>
+                    @include('tickets._table', ['tickets' => $misTickets, 'tabId' => 'mis'])
+                </div>
             </div>
             @if($esAdmin)
             <div class="tab-pane fade" id="tab-asignados">
-                @include('tickets._table', ['tickets' => $asignados, 'tabId' => 'asignados'])
+                <div data-table>
+                    <div class="table-toolbar">
+                        <div class="table-toolbar-left">
+                            <div class="table-search">
+                                <i class="fas fa-search"></i>
+                                <input type="text" data-table-search placeholder="Buscar por folio, asunto, técnico...">
+                            </div>
+                            <select class="table-filter" data-table-filter="estatus">
+                                <option value="">Todos los estatus</option>
+                                <option value="abierto">Abierto</option>
+                                <option value="en proceso">En Proceso</option>
+                                <option value="resuelto">Resuelto</option>
+                                <option value="cerrado">Cerrado</option>
+                            </select>
+                        </div>
+                    </div>
+                    @include('tickets._table', ['tickets' => $asignados, 'tabId' => 'asignados'])
+                </div>
             </div>
             <div class="tab-pane fade" id="tab-todos">
-                @include('tickets._table', ['tickets' => $todos, 'tabId' => 'todos'])
+                <div data-table>
+                    <div class="table-toolbar">
+                        <div class="table-toolbar-left">
+                            <div class="table-search">
+                                <i class="fas fa-search"></i>
+                                <input type="text" data-table-search placeholder="Buscar por folio, asunto, técnico...">
+                            </div>
+                            <select class="table-filter" data-table-filter="estatus">
+                                <option value="">Todos los estatus</option>
+                                <option value="abierto">Abierto</option>
+                                <option value="en proceso">En Proceso</option>
+                                <option value="resuelto">Resuelto</option>
+                                <option value="cerrado">Cerrado</option>
+                            </select>
+                        </div>
+                    </div>
+                    @include('tickets._table', ['tickets' => $todos, 'tabId' => 'todos'])
+                </div>
             </div>
             @endif
         </div>
@@ -333,17 +378,6 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 selModulos.innerHTML = '<option value="">Seleccionar sistema primero...</option>';
             }
-        });
-    }
-
-    // Search
-    const searchInput = document.getElementById('searchTickets');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            const term = this.value.toLowerCase();
-            document.querySelectorAll('#tab-mis-tickets tbody tr, #tab-asignados tbody tr, #tab-todos tbody tr').forEach(row => {
-                row.style.display = row.textContent.toLowerCase().includes(term) ? '' : 'none';
-            });
         });
     }
 

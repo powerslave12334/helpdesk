@@ -9,29 +9,48 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead><tr><th>Clave</th><th>Valor</th><th>Descripción</th><th>Estatus</th><th>Acciones</th></tr></thead>
-                <tbody>
-                    @forelse($configuraciones as $c)
-                    <tr>
-                        <td><code>{{ $c->clave }}</code></td>
-                        <td><small>{{ Str::limit($c->valor, 50) }}</small></td>
-                        <td>{{ $c->descripcion ?? 'N/A' }}</td>
-                        <td><span class="badge bg-{{ $c->activo ? 'success' : 'danger' }}">{{ $c->activo ? 'Activo' : 'Inactivo' }}</span></td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-edit" data-id="{{ $c->id_ConfiguracionSistema }}"
-                                    data-clave="{{ $c->clave }}" data-valor="{{ $c->valor }}" data-desc="{{ $c->descripcion ?? '' }}"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-outline-{{ $c->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $c->id_ConfiguracionSistema }}"><i class="fas fa-{{ $c->activo ? 'ban' : 'check' }}"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="5" class="text-center text-muted">No hay configuraciones</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div data-table>
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="table-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" data-table-search placeholder="Buscar por clave o descripción...">
+                    </div>
+                    <select class="table-filter" data-table-filter="estatus">
+                        <option value="">Todos los estatus</option>
+                        <option value="activo">Activo</option>
+                        <option value="inactivo">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>Clave</th><th>Valor</th><th>Descripción</th><th>Estatus</th><th>Acciones</th></tr></thead>
+                    <tbody data-table-body>
+                        @forelse($configuraciones as $c)
+                        <tr data-row>
+                            <td data-field="clave"><code>{{ $c->clave }}</code></td>
+                            <td data-field="valor"><small>{{ Str::limit($c->valor, 50) }}</small></td>
+                            <td data-field="descripcion">{{ $c->descripcion ?? 'N/A' }}</td>
+                            <td data-field="estatus"><span class="badge bg-{{ $c->activo ? 'success' : 'danger' }}">{{ $c->activo ? 'Activo' : 'Inactivo' }}</span></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-edit" data-id="{{ $c->id_ConfiguracionSistema }}"
+                                        data-clave="{{ $c->clave }}" data-valor="{{ $c->valor }}" data-desc="{{ $c->descripcion ?? '' }}"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-outline-{{ $c->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $c->id_ConfiguracionSistema }}"><i class="fas fa-{{ $c->activo ? 'ban' : 'check' }}"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" class="text-center text-muted">No hay configuraciones</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span class="table-info" data-table-info></span>
+                <div class="pagination" data-table-pagination></div>
+            </div>
         </div>
     </div>
 </div>

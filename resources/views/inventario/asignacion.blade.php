@@ -9,52 +9,72 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th><input type="checkbox" id="selectAll"></th>
-                        <th>Equipo</th>
-                        <th>Marca/Modelo</th>
-                        <th>Usuario</th>
-                        <th>Área</th>
-                        <th>Fecha Asignación</th>
-                        <th>Fecha Baja</th>
-                        <th>Estatus</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($asignaciones as $a)
-                    <tr>
-                        <td><input type="checkbox" class="select-row" value="{{ $a->id_EquipoUsuario }}"></td>
-                        <td>{{ $a->equipo->nombreEquipo ?? 'N/A' }}</td>
-                        <td>{{ $a->equipo->marca }} {{ $a->equipo->modelo }}</td>
-                        <td>{{ $a->usuario->nombre }} {{ $a->usuario->app }}</td>
-                        <td>{{ $a->area->nombre ?? 'N/A' }}</td>
-                        <td>{{ $a->fechaAsignacion?->format('d/m/Y') ?? 'N/A' }}</td>
-                        <td>{{ $a->fechaBaja?->format('d/m/Y') ?? 'N/A' }}</td>
-                        <td><span class="badge bg-{{ $a->activo ? 'success' : 'danger' }}">{{ $a->activo ? 'Activa' : 'Inactiva' }}</span></td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-edit" data-id="{{ $a->id_EquipoUsuario }}"
-                                    data-equipo="{{ $a->id_Equipo }}" data-usuario="{{ $a->id_Usuario }}"
-                                    data-area="{{ $a->id_Area }}" data-fecha="{{ $a->fechaAsignacion?->format('Y-m-d') }}"
-                                    data-obs="{{ $a->observaciones ?? '' }}"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-outline-danger btn-desvincular" data-id="{{ $a->id_EquipoUsuario }}" title="Desvincular"><i class="fas fa-unlink"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="9" class="text-center text-muted">No hay asignaciones</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="mt-3">
-            <button class="btn btn-danger btn-sm" id="btnDesvincularSeleccionados" disabled>
-                <i class="fas fa-unlink me-1"></i>Desvincular Seleccionados
-            </button>
+        <div data-table>
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="table-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" data-table-search placeholder="Buscar por equipo, número de serie, usuario o área...">
+                    </div>
+                    <select class="table-filter" data-table-filter="estatus">
+                        <option value="">Todos los estatus</option>
+                        <option value="activa">Activa</option>
+                        <option value="inactiva">Inactiva</option>
+                    </select>
+                    <button class="btn btn-danger btn-sm" id="btnDesvincularSeleccionados" disabled>
+                        <i class="fas fa-unlink me-1"></i>Desvincular Seleccionados
+                    </button>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="selectAll"></th>
+                            <th>Equipo</th>
+                            <th>Usuario</th>
+                            <th>Área</th>
+                            <th>Fecha Asignación</th>
+                            <th>Fecha Baja</th>
+                            <th>Estatus</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody data-table-body>
+                        @forelse($asignaciones as $a)
+                        <tr data-row>
+                            <td><input type="checkbox" class="select-row" value="{{ $a->id_EquipoUsuario }}"></td>
+                            <td data-field="equipo">
+                                <div><strong>Nombre:</strong> {{ $a->equipo->nombreEquipo ?? 'N/A' }}</div>
+                                <div><strong>Marca:</strong> {{ $a->equipo->marca ?? 'N/A' }}</div>
+                                <div><strong>Modelo:</strong> {{ $a->equipo->modelo ?? 'N/A' }}</div>
+                                <div><strong>No.Serie:</strong> {{ $a->equipo->numeroSerie ?? 'N/A' }}</div>
+                            </td>
+                            <td data-field="usuario">{{ $a->usuario->nombre }} {{ $a->usuario->app }}</td>
+                            <td data-field="area">{{ $a->area->nombre ?? 'N/A' }}</td>
+                            <td data-field="fecha">{{ $a->fechaAsignacion?->format('d/m/Y') ?? 'N/A' }}</td>
+                            <td data-field="baja">{{ $a->fechaBaja?->format('d/m/Y') ?? 'N/A' }}</td>
+                            <td data-field="estatus"><span class="badge bg-{{ $a->activo ? 'success' : 'danger' }}">{{ $a->activo ? 'Activa' : 'Inactiva' }}</span></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-edit" data-id="{{ $a->id_EquipoUsuario }}"
+                                        data-equipo="{{ $a->id_Equipo }}" data-usuario="{{ $a->id_Usuario }}"
+                                        data-area="{{ $a->id_Area }}" data-fecha="{{ $a->fechaAsignacion?->format('Y-m-d') }}"
+                                        data-obs="{{ $a->observaciones ?? '' }}"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-outline-danger btn-desvincular" data-id="{{ $a->id_EquipoUsuario }}" title="Desvincular"><i class="fas fa-unlink"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="8" class="text-center text-muted">No hay asignaciones</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span class="table-info" data-table-info></span>
+                <div class="pagination" data-table-pagination></div>
+            </div>
         </div>
     </div>
 </div>
@@ -134,7 +154,7 @@
 <div class="modal fade" id="desvincularSeleccionadosModal" tabindex="-1">
     <div class="modal-dialog">
         <form method="POST" action="{{ route('inventario.asignacion.desvincularSeleccionados') }}">@csrf
-            <input type="hidden" name="ids[]" id="selectedIds">
+            <div id="selectedIdsContainer"></div>
             <div class="modal-content">
                 <div class="modal-header bg-danger text-white">
                     <h5 class="modal-title"><i class="fas fa-unlink me-2"></i>Desvincular Seleccionados</h5>
@@ -197,9 +217,15 @@ function updateDesvincularBtn() {
 
 // Desvincular seleccionados
 document.getElementById('btnDesvincularSeleccionados')?.addEventListener('click', function() {
-    const ids = [];
-    document.querySelectorAll('.select-row:checked').forEach(cb => ids.push(cb.value));
-    document.getElementById('selectedIds').value = ids.join(',');
+    const container = document.getElementById('selectedIdsContainer');
+    container.innerHTML = '';
+    document.querySelectorAll('.select-row:checked').forEach(cb => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'ids[]';
+        input.value = cb.value;
+        container.appendChild(input);
+    });
     new bootstrap.Modal(document.getElementById('desvincularSeleccionadosModal')).show();
 });
 </script>

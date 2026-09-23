@@ -9,29 +9,48 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead><tr><th>ID</th><th>Nombre</th><th>Sistema</th><th>Estatus</th><th>Acciones</th></tr></thead>
-                <tbody>
-                    @forelse($modulosSistemas as $m)
-                    <tr>
-                        <td>{{ $m->id_ModulosSistemas }}</td>
-                        <td>{{ $m->nombre }}</td>
-                        <td><span class="badge bg-secondary">{{ $m->sistema->nombre ?? 'N/A' }}</span></td>
-                        <td><span class="badge bg-{{ $m->enabled ? 'success' : 'danger' }}">{{ $m->enabled ? 'Activo' : 'Inactivo' }}</span></td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-edit" data-id="{{ $m->id_ModulosSistemas }}"
-                                    data-nombre="{{ $m->nombre }}" data-sistema="{{ $m->id_sistemas }}"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-outline-{{ $m->enabled ? 'danger' : 'success' }} btn-toggle" data-id="{{ $m->id_ModulosSistemas }}"><i class="fas fa-{{ $m->enabled ? 'ban' : 'check' }}"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="5" class="text-center text-muted">No hay módulos</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div data-table>
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="table-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" data-table-search placeholder="Buscar por nombre...">
+                    </div>
+                    <select class="table-filter" data-table-filter="estatus">
+                        <option value="">Todos los estatus</option>
+                        <option value="activo">Activo</option>
+                        <option value="inactivo">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>ID</th><th>Nombre</th><th>Sistema</th><th>Estatus</th><th>Acciones</th></tr></thead>
+                    <tbody data-table-body>
+                        @forelse($modulosSistemas as $m)
+                        <tr data-row>
+                            <td data-field="id">{{ $m->id_ModulosSistemas }}</td>
+                            <td data-field="nombre">{{ $m->nombre }}</td>
+                            <td data-field="sistema"><span class="badge bg-secondary">{{ $m->sistema->nombre ?? 'N/A' }}</span></td>
+                            <td data-field="estatus"><span class="badge bg-{{ $m->enabled ? 'success' : 'danger' }}">{{ $m->enabled ? 'Activo' : 'Inactivo' }}</span></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-edit" data-id="{{ $m->id_ModulosSistemas }}"
+                                        data-nombre="{{ $m->nombre }}" data-sistema="{{ $m->id_sistemas }}"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-outline-{{ $m->enabled ? 'danger' : 'success' }} btn-toggle" data-id="{{ $m->id_ModulosSistemas }}"><i class="fas fa-{{ $m->enabled ? 'ban' : 'check' }}"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" class="text-center text-muted">No hay módulos</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span class="table-info" data-table-info></span>
+                <div class="pagination" data-table-pagination></div>
+            </div>
         </div>
     </div>
 </div>

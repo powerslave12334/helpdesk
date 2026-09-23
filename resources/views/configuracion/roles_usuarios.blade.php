@@ -9,27 +9,46 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead><tr><th>Usuario</th><th>Rol</th><th>Fecha Alta</th><th>Estatus</th><th>Acciones</th></tr></thead>
-                <tbody>
-                    @forelse($asignaciones as $a)
-                    <tr>
-                        <td>{{ $a->usuario->nombre ?? 'N/A' }} {{ $a->usuario->app ?? '' }}</td>
-                        <td><span class="badge bg-primary">{{ $a->rol->nombre ?? 'N/A' }}</span></td>
-                        <td>{{ $a->fechaAlta?->format('d/m/Y') ?? 'N/A' }}</td>
-                        <td><span class="badge bg-{{ $a->activo ? 'success' : 'danger' }}">{{ $a->activo ? 'Activo' : 'Inactivo' }}</span></td>
-                        <td>
-                            <button class="btn btn-outline-{{ $a->activo ? 'danger' : 'success' }} btn-sm btn-toggle" data-id="{{ $a->id_RolesUsuario }}">
-                                <i class="fas fa-{{ $a->activo ? 'ban' : 'check' }}"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="5" class="text-center text-muted">No hay asignaciones</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div data-table>
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="table-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" data-table-search placeholder="Buscar por usuario o rol...">
+                    </div>
+                    <select class="table-filter" data-table-filter="estatus">
+                        <option value="">Todos los estatus</option>
+                        <option value="activo">Activo</option>
+                        <option value="inactivo">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>Usuario</th><th>Rol</th><th>Fecha Alta</th><th>Estatus</th><th>Acciones</th></tr></thead>
+                    <tbody data-table-body>
+                        @forelse($asignaciones as $a)
+                        <tr data-row>
+                            <td data-field="usuario">{{ $a->usuario->nombre ?? 'N/A' }} {{ $a->usuario->app ?? '' }}</td>
+                            <td data-field="rol"><span class="badge bg-primary">{{ $a->rol->nombre ?? 'N/A' }}</span></td>
+                            <td data-field="fecha">{{ $a->fechaAlta?->format('d/m/Y') ?? 'N/A' }}</td>
+                            <td data-field="estatus"><span class="badge bg-{{ $a->activo ? 'success' : 'danger' }}">{{ $a->activo ? 'Activo' : 'Inactivo' }}</span></td>
+                            <td>
+                                <button class="btn btn-outline-{{ $a->activo ? 'danger' : 'success' }} btn-sm btn-toggle" data-id="{{ $a->id_RolesUsuario }}">
+                                    <i class="fas fa-{{ $a->activo ? 'ban' : 'check' }}"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" class="text-center text-muted">No hay asignaciones</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span class="table-info" data-table-info></span>
+                <div class="pagination" data-table-pagination></div>
+            </div>
         </div>
     </div>
 </div>

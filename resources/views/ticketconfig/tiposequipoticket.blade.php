@@ -9,30 +9,49 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead><tr><th>ID</th><th>Clave</th><th>Descripción</th><th>Fecha Alta</th><th>Estatus</th><th>Acciones</th></tr></thead>
-                <tbody>
-                    @forelse($tiposEquipoTicket as $tet)
-                    <tr>
-                        <td>{{ $tet->id_TipoEquipoTicket }}</td>
-                        <td><code>{{ $tet->clave }}</code></td>
-                        <td>{{ $tet->descripcion }}</td>
-                        <td>{{ $tet->fechaAlta ? $tet->fechaAlta->format('d/m/Y H:i') : 'N/A' }}</td>
-                        <td><span class="badge bg-{{ $tet->activo ? 'success' : 'danger' }}">{{ $tet->activo ? 'Activo' : 'Inactivo' }}</span></td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-edit" data-id="{{ $tet->id_TipoEquipoTicket }}"
-                                    data-clave="{{ $tet->clave }}" data-descripcion="{{ $tet->descripcion }}"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-outline-{{ $tet->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $tet->id_TipoEquipoTicket }}"><i class="fas fa-{{ $tet->activo ? 'ban' : 'check' }}"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="6" class="text-center text-muted">No hay tipos de equipo ticket</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div data-table>
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="table-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" data-table-search placeholder="Buscar por clave o descripción...">
+                    </div>
+                    <select class="table-filter" data-table-filter="estatus">
+                        <option value="">Todos los estatus</option>
+                        <option value="activo">Activo</option>
+                        <option value="inactivo">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>ID</th><th>Clave</th><th>Descripción</th><th>Fecha Alta</th><th>Estatus</th><th>Acciones</th></tr></thead>
+                    <tbody data-table-body>
+                        @forelse($tiposEquipoTicket as $tet)
+                        <tr data-row>
+                            <td data-field="id">{{ $tet->id_TipoEquipoTicket }}</td>
+                            <td data-field="clave"><code>{{ $tet->clave }}</code></td>
+                            <td data-field="descripcion">{{ $tet->descripcion }}</td>
+                            <td data-field="fecha">{{ $tet->fechaAlta ? $tet->fechaAlta->format('d/m/Y H:i') : 'N/A' }}</td>
+                            <td data-field="estatus"><span class="badge bg-{{ $tet->activo ? 'success' : 'danger' }}">{{ $tet->activo ? 'Activo' : 'Inactivo' }}</span></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-edit" data-id="{{ $tet->id_TipoEquipoTicket }}"
+                                        data-clave="{{ $tet->clave }}" data-descripcion="{{ $tet->descripcion }}"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-outline-{{ $tet->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $tet->id_TipoEquipoTicket }}"><i class="fas fa-{{ $tet->activo ? 'ban' : 'check' }}"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="6" class="text-center text-muted">No hay tipos de equipo ticket</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span class="table-info" data-table-info></span>
+                <div class="pagination" data-table-pagination></div>
+            </div>
         </div>
     </div>
 </div>

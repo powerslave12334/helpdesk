@@ -26,9 +26,4 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
-HELPDESK.csproj.Backup.tmp
-HELPDESK.csproj.user
-Properties/PublishProfiles/
-obj/
-bin/
-*.csproj
+/bin/

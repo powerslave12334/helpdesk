@@ -83,6 +83,7 @@ class EquipoController extends Controller
                 'observaciones' => $request->observaciones,
                 'id_Oficinas' => $request->id_Oficinas,
                 'id_PeriodoMantenimiento' => $request->id_PeriodoMantenimiento ?? 0,
+                'fechaUltimoMantenimiento' => $request->fechaUltimoMantenimiento ?: null,
                 'esCompartido' => $request->has('esCompartido') ? 1 : 0,
                 'fechaAlta' => now(),
                 'activo' => true,
@@ -146,6 +147,7 @@ class EquipoController extends Controller
                 'observaciones' => $request->observaciones,
                 'id_Oficinas' => $request->id_Oficinas,
                 'id_PeriodoMantenimiento' => $request->id_PeriodoMantenimiento ?? $equipo->id_PeriodoMantenimiento,
+                'fechaUltimoMantenimiento' => $request->fechaUltimoMantenimiento ?: null,
                 'esCompartido' => $request->has('esCompartido') ? 1 : 0,
             ]);
 

@@ -11,28 +11,47 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Estatus</th><th>Acciones</th></tr></thead>
-                <tbody>
-                    @forelse($roles as $r)
-                    <tr>
-                        <td>{{ $r->id_Rol }}</td>
-                        <td>{{ $r->nombre }}</td>
-                        <td>{{ $r->descipcion ?? 'N/A' }}</td>
-                        <td><span class="badge bg-{{ $r->activo ? 'success' : 'danger' }}">{{ $r->activo ? 'Activo' : 'Inactivo' }}</span></td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-edit" data-id="{{ $r->id_Rol }}" data-nombre="{{ $r->nombre }}" data-desc="{{ $r->descipcion ?? '' }}"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-outline-{{ $r->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $r->id_Rol }}"><i class="fas fa-{{ $r->activo ? 'ban' : 'check' }}"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="5" class="text-center text-muted">No hay roles</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div data-table>
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="table-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" data-table-search placeholder="Buscar por nombre o descripción...">
+                    </div>
+                    <select class="table-filter" data-table-filter="estatus">
+                        <option value="">Todos los estatus</option>
+                        <option value="activo">Activo</option>
+                        <option value="inactivo">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Estatus</th><th>Acciones</th></tr></thead>
+                    <tbody data-table-body>
+                        @forelse($roles as $r)
+                        <tr data-row>
+                            <td data-field="id">{{ $r->id_Rol }}</td>
+                            <td data-field="nombre">{{ $r->nombre }}</td>
+                            <td data-field="descripcion">{{ $r->descipcion ?? 'N/A' }}</td>
+                            <td data-field="estatus"><span class="badge bg-{{ $r->activo ? 'success' : 'danger' }}">{{ $r->activo ? 'Activo' : 'Inactivo' }}</span></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-edit" data-id="{{ $r->id_Rol }}" data-nombre="{{ $r->nombre }}" data-desc="{{ $r->descipcion ?? '' }}"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-outline-{{ $r->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $r->id_Rol }}"><i class="fas fa-{{ $r->activo ? 'ban' : 'check' }}"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" class="text-center text-muted">No hay roles</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span class="table-info" data-table-info></span>
+                <div class="pagination" data-table-pagination></div>
+            </div>
         </div>
     </div>
 </div>

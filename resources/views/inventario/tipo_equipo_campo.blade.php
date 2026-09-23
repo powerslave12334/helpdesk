@@ -9,28 +9,47 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead><tr><th>Tipo Equipo</th><th>Campo</th><th>Requerido</th><th>Estatus</th><th>Acciones</th></tr></thead>
-                <tbody>
-                    @forelse($relaciones as $r)
-                    <tr>
-                        <td>{{ $r->tipoEquipo->descripcion ?? 'N/A' }}</td>
-                        <td>{{ $r->campo->nombre ?? 'N/A' }}</td>
-                        <td><span class="badge bg-{{ $r->requerido ? 'warning' : 'secondary' }}">{{ $r->requerido ? 'Sí' : 'No' }}</span></td>
-                        <td><span class="badge bg-{{ $r->activo ? 'success' : 'danger' }}">{{ $r->activo ? 'Activo' : 'Inactivo' }}</span></td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-edit" data-id="{{ $r->id_TipoEquipoCampo }}" data-tipo="{{ $r->id_TipoEquipo }}" data-campo="{{ $r->id_EquipoCampo }}" data-requerido="{{ $r->requerido ? 1 : 0 }}"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-outline-{{ $r->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $r->id_TipoEquipoCampo }}"><i class="fas fa-{{ $r->activo ? 'ban' : 'check' }}"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="5" class="text-center text-muted">No hay relaciones</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div data-table>
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="table-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" data-table-search placeholder="Buscar por tipo o campo...">
+                    </div>
+                    <select class="table-filter" data-table-filter="estatus">
+                        <option value="">Todos los estatus</option>
+                        <option value="activo">Activo</option>
+                        <option value="inactivo">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>Tipo Equipo</th><th>Campo</th><th>Requerido</th><th>Estatus</th><th>Acciones</th></tr></thead>
+                    <tbody data-table-body>
+                        @forelse($relaciones as $r)
+                        <tr data-row>
+                            <td data-field="tipo">{{ $r->tipoEquipo->descripcion ?? 'N/A' }}</td>
+                            <td data-field="campo">{{ $r->campo->nombre ?? 'N/A' }}</td>
+                            <td data-field="requerido"><span class="badge bg-{{ $r->requerido ? 'warning' : 'secondary' }}">{{ $r->requerido ? 'Sí' : 'No' }}</span></td>
+                            <td data-field="estatus"><span class="badge bg-{{ $r->activo ? 'success' : 'danger' }}">{{ $r->activo ? 'Activo' : 'Inactivo' }}</span></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-edit" data-id="{{ $r->id_TipoEquipoCampo }}" data-tipo="{{ $r->id_TipoEquipo }}" data-campo="{{ $r->id_EquipoCampo }}" data-requerido="{{ $r->requerido ? 1 : 0 }}"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-outline-{{ $r->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $r->id_TipoEquipoCampo }}"><i class="fas fa-{{ $r->activo ? 'ban' : 'check' }}"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" class="text-center text-muted">No hay relaciones</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span class="table-info" data-table-info></span>
+                <div class="pagination" data-table-pagination></div>
+            </div>
         </div>
     </div>
 </div>

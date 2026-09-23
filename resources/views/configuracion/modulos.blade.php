@@ -9,17 +9,31 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead><tr><th>ID Módulo</th></tr></thead>
-                <tbody>
-                    @forelse($modulos as $m)
-                    <tr><td>{{ $m->id_Modulos }}</td></tr>
-                    @empty
-                    <tr><td class="text-center text-muted">No hay módulos</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div data-table>
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="table-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" data-table-search placeholder="Buscar módulo...">
+                    </div>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>ID Módulo</th></tr></thead>
+                    <tbody data-table-body>
+                        @forelse($modulos as $m)
+                        <tr data-row><td data-field="id">{{ $m->id_Modulos }}</td></tr>
+                        @empty
+                        <tr><td class="text-center text-muted">No hay módulos</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span class="table-info" data-table-info></span>
+                <div class="pagination" data-table-pagination></div>
+            </div>
         </div>
     </div>
 </div>

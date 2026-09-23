@@ -9,34 +9,53 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead><tr><th>ID</th><th>Nombre</th><th>Módulo</th><th>Controller</th><th>Action</th><th>Orden</th><th>Estatus</th><th>Acciones</th></tr></thead>
-                <tbody>
-                    @forelse($submodulos as $s)
-                    <tr>
-                        <td>{{ $s->id_SubModulos }}</td>
-                        <td>{{ $s->nombre }}</td>
-                        <td><span class="badge bg-secondary">{{ $s->modulo->nombre ?? $s->id_Modulos }}</span></td>
-                        <td><code>{{ $s->controller }}</code></td>
-                        <td>{{ $s->action ?? 'N/A' }}</td>
-                        <td>{{ $s->orden ?? 0 }}</td>
-                        <td><span class="badge bg-{{ $s->activo ? 'success' : 'danger' }}">{{ $s->activo ? 'Activo' : 'Inactivo' }}</span></td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-edit" data-id="{{ $s->id_SubModulos }}"
-                                    data-modulo="{{ $s->id_Modulos }}" data-nombre="{{ $s->nombre }}"
-                                    data-controller="{{ $s->controller }}" data-action="{{ $s->action ?? '' }}"
-                                    data-orden="{{ $s->orden ?? 0 }}"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-outline-{{ $s->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $s->id_SubModulos }}"><i class="fas fa-{{ $s->activo ? 'ban' : 'check' }}"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="8" class="text-center text-muted">No hay submódulos</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div data-table>
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="table-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" data-table-search placeholder="Buscar por nombre o controller...">
+                    </div>
+                    <select class="table-filter" data-table-filter="estatus">
+                        <option value="">Todos los estatus</option>
+                        <option value="activo">Activo</option>
+                        <option value="inactivo">Inactivo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>ID</th><th>Nombre</th><th>Módulo</th><th>Controller</th><th>Action</th><th>Orden</th><th>Estatus</th><th>Acciones</th></tr></thead>
+                    <tbody data-table-body>
+                        @forelse($submodulos as $s)
+                        <tr data-row>
+                            <td data-field="id">{{ $s->id_SubModulos }}</td>
+                            <td data-field="nombre">{{ $s->nombre }}</td>
+                            <td data-field="modulo"><span class="badge bg-secondary">{{ $s->modulo->nombre ?? $s->id_Modulos }}</span></td>
+                            <td data-field="controller"><code>{{ $s->controller }}</code></td>
+                            <td data-field="action">{{ $s->action ?? 'N/A' }}</td>
+                            <td data-field="orden">{{ $s->orden ?? 0 }}</td>
+                            <td data-field="estatus"><span class="badge bg-{{ $s->activo ? 'success' : 'danger' }}">{{ $s->activo ? 'Activo' : 'Inactivo' }}</span></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-edit" data-id="{{ $s->id_SubModulos }}"
+                                        data-modulo="{{ $s->id_Modulos }}" data-nombre="{{ $s->nombre }}"
+                                        data-controller="{{ $s->controller }}" data-action="{{ $s->action ?? '' }}"
+                                        data-orden="{{ $s->orden ?? 0 }}"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-outline-{{ $s->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $s->id_SubModulos }}"><i class="fas fa-{{ $s->activo ? 'ban' : 'check' }}"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="8" class="text-center text-muted">No hay submódulos</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span class="table-info" data-table-info></span>
+                <div class="pagination" data-table-pagination></div>
+            </div>
         </div>
     </div>
 </div>

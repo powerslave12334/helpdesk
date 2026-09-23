@@ -9,28 +9,47 @@
 
 <div class="card">
     <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Estatus</th><th>Acciones</th></tr></thead>
-                <tbody>
-                    @forelse($oficinas as $o)
-                    <tr>
-                        <td>{{ $o->id_Oficinas }}</td>
-                        <td><span class="badge bg-secondary">{{ $o->nombre }}</span></td>
-                        <td>{{ $o->descripcion ?? 'N/A' }}</td>
-                        <td><span class="badge bg-{{ $o->activo ? 'success' : 'danger' }}">{{ $o->activo ? 'Activa' : 'Inactiva' }}</span></td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-primary btn-edit" data-id="{{ $o->id_Oficinas }}" data-nombre="{{ $o->nombre }}" data-desc="{{ $o->descripcion ?? '' }}"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-outline-{{ $o->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $o->id_Oficinas }}"><i class="fas fa-{{ $o->activo ? 'ban' : 'check' }}"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="5" class="text-center text-muted">No hay oficinas</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
+        <div data-table>
+            <div class="table-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="table-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" data-table-search placeholder="Buscar por nombre o descripción...">
+                    </div>
+                    <select class="table-filter" data-table-filter="estatus">
+                        <option value="">Todos los estatus</option>
+                        <option value="activa">Activa</option>
+                        <option value="inactiva">Inactiva</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Estatus</th><th>Acciones</th></tr></thead>
+                    <tbody data-table-body>
+                        @forelse($oficinas as $o)
+                        <tr data-row>
+                            <td data-field="id">{{ $o->id_Oficinas }}</td>
+                            <td data-field="nombre"><span class="badge bg-secondary">{{ $o->nombre }}</span></td>
+                            <td data-field="descripcion">{{ $o->descripcion ?? 'N/A' }}</td>
+                            <td data-field="estatus"><span class="badge bg-{{ $o->activo ? 'success' : 'danger' }}">{{ $o->activo ? 'Activa' : 'Inactiva' }}</span></td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-primary btn-edit" data-id="{{ $o->id_Oficinas }}" data-nombre="{{ $o->nombre }}" data-desc="{{ $o->descripcion ?? '' }}"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-outline-{{ $o->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $o->id_Oficinas }}"><i class="fas fa-{{ $o->activo ? 'ban' : 'check' }}"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="5" class="text-center text-muted">No hay oficinas</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="table-footer">
+                <span class="table-info" data-table-info></span>
+                <div class="pagination" data-table-pagination></div>
+            </div>
         </div>
     </div>
 </div>

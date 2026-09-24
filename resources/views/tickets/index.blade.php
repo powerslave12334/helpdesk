@@ -9,11 +9,111 @@
     .sin-actividad-0, .sin-actividad-1 { background: #c6f6d5; color: #22543d; }
     .sin-actividad-2 { background: #fefcbf; color: #744210; }
     .sin-actividad-3 { background: #fed7d7; color: #742a2a; }
-    .tab-content { min-height: 400px; }
-    .timeline { padding-left: 20px; border-left: 3px solid #e2e8f0; }
-    .timeline-item { margin-bottom: 15px; position: relative; }
-    .timeline-item::before { content: ''; width: 10px; height: 10px; background: #4299e1; border-radius: 50%; position: absolute; left: -27px; top: 5px; }
-    .evidence-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; margin: 3px; }
+
+    /* ── Modal Detalle Ticket ── */
+    .ticket-modal .modal-content { border: none; border-radius: var(--radius-lg); overflow: hidden; }
+    .ticket-modal .modal-body { padding: 0; }
+
+    /* Header */
+    .ticket-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 28px; border-bottom: 1px solid var(--border); background: var(--surface); }
+    .ticket-modal-header-left { display: flex; align-items: center; gap: 16px; }
+    .ticket-modal-folio { font-size: 28px; font-weight: 700; color: var(--text); letter-spacing: -0.02em; line-height: 1; }
+    .ticket-modal-asunto { font-size: 14px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+    .ticket-modal-close { background: none; border: 1px solid var(--border); color: var(--muted); width: 32px; height: 32px; border-radius: var(--radius-sm); display: grid; place-items: center; cursor: pointer; transition: all 0.15s; font-size: 14px; }
+    .ticket-modal-close:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+
+    /* Layout */
+    .ticket-modal-layout { display: grid; grid-template-columns: 1fr 260px; min-height: 520px; }
+    .ticket-modal-main { padding: 24px 28px; overflow-y: auto; }
+    .ticket-modal-sidebar { background: var(--surface-strong); border-left: 1px solid var(--border); padding: 24px 20px; overflow-y: auto; }
+
+    /* Sidebar metadata */
+    .ticket-meta-section { margin-bottom: 20px; }
+    .ticket-meta-section:last-child { margin-bottom: 0; }
+    .ticket-meta-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+    .ticket-meta-value { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; }
+
+    /* Estatus badge en sidebar */
+    .ticket-status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .ticket-status-badge.abierto { background: rgba(37, 99, 235, 0.1); color: #2563eb; }
+    .ticket-status-badge.en-proceso { background: rgba(217, 119, 6, 0.1); color: #d97706; }
+    .ticket-status-badge.resuelto { background: rgba(5, 150, 105, 0.1); color: #059669; }
+    .ticket-status-badge.cerrado { background: rgba(100, 116, 139, 0.1); color: #64748b; }
+    .ticket-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+    /* Problema */
+    .ticket-problema { border-left: 3px solid var(--primary); background: var(--surface-strong); padding: 16px 20px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 24px; }
+    .ticket-problema-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .ticket-problema-title i { color: var(--primary); font-size: 12px; }
+    .ticket-problema-text { font-size: 13px; color: var(--text); line-height: 1.6; white-space: pre-wrap; }
+
+    /* Pestañas */
+    .ticket-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+    .ticket-tab { padding: 10px 16px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; background: none; border-top: none; border-left: none; border-right: none; display: flex; align-items: center; gap: 6px; }
+    .ticket-tab:hover { color: var(--text); }
+    .ticket-tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+    .ticket-tab i { font-size: 13px; }
+    .ticket-tab-content { display: none; }
+    .ticket-tab-content.active { display: block; }
+
+    /* Evidencias grid */
+    .ticket-evidence-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; margin-bottom: 16px; }
+    .ticket-evidence-grid:empty { display: none; }
+    .ticket-evidence-item { position: relative; border-radius: var(--radius-sm); overflow: hidden; aspect-ratio: 1; border: 1px solid var(--border); background: var(--surface-strong); }
+    .ticket-evidence-item img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; transition: transform 0.2s; }
+    .ticket-evidence-item img:hover { transform: scale(1.05); }
+    .ticket-evidence-file { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px; text-decoration: none; color: var(--muted); gap: 4px; height: 100%; }
+    .ticket-evidence-file i { font-size: 20px; color: var(--primary); }
+    .ticket-evidence-file span { font-size: 10px; text-align: center; word-break: break-all; line-height: 1.2; }
+
+    /* Timeline */
+    .ticket-timeline { display: flex; flex-direction: column; gap: 12px; }
+    .ticket-timeline:empty::after { content: 'Sin actividad aún'; display: block; text-align: center; color: var(--muted); font-size: 13px; padding: 32px 0; }
+    .ticket-timeline-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; }
+    .ticket-timeline-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .ticket-timeline-user { display: flex; align-items: center; gap: 8px; }
+    .ticket-timeline-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: #fff; display: grid; place-items: center; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+    .ticket-timeline-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .ticket-timeline-date { font-size: 11px; color: var(--muted); }
+    .ticket-timeline-status { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 10px; background: var(--surface-strong); color: var(--muted); margin-bottom: 6px; }
+    .ticket-timeline-text { font-size: 13px; color: var(--text); line-height: 1.5; margin: 0; }
+
+    /* Formularios dentro del modal */
+    .ticket-form-group { margin-bottom: 14px; }
+    .ticket-form-group:last-child { margin-bottom: 0; }
+    .ticket-form-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 4px; display: block; }
+    .ticket-form-input, .ticket-form-textarea, .ticket-form-select { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; color: var(--text); background: var(--surface); transition: border-color 0.15s, box-shadow 0.15s; font-family: var(--font); }
+    .ticket-form-input:focus, .ticket-form-textarea:focus, .ticket-form-select:focus { outline: none; border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--primary-soft); }
+    .ticket-form-textarea { resize: vertical; min-height: 80px; }
+    .ticket-form-upload { display: flex; gap: 8px; align-items: center; }
+    .ticket-form-upload .ticket-form-input { flex: 1; }
+    .ticket-btn { padding: 8px 16px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; font-family: var(--font); }
+    .ticket-btn-primary { background: var(--primary); color: #fff; }
+    .ticket-btn-primary:hover { background: var(--primary-hover); }
+    .ticket-btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+    .ticket-btn-outline:hover { background: var(--primary-soft); }
+    .ticket-btn-success { background: #059669; color: #fff; }
+    .ticket-btn-success:hover { background: #047857; }
+    .ticket-btn-warning { background: #d97706; color: #fff; }
+    .ticket-btn-warning:hover { background: #b45309; }
+
+    /* Empty states */
+    .ticket-empty { text-align: center; padding: 32px 0; color: var(--muted); }
+    .ticket-empty i { font-size: 24px; margin-bottom: 8px; display: block; opacity: 0.5; }
+    .ticket-empty span { font-size: 13px; }
+
+    /* Dark mode */
+    body.dark-mode .ticket-modal-header { background: var(--surface); border-color: var(--border); }
+    body.dark-mode .ticket-modal-sidebar { background: var(--surface-strong); border-color: var(--border); }
+    body.dark-mode .ticket-problema { background: var(--surface-strong); }
+    body.dark-mode .ticket-timeline-item { background: var(--surface); border-color: var(--border); }
+    body.dark-mode .ticket-evidence-item { background: var(--surface-strong); border-color: var(--border); }
+
+    @media (max-width: 768px) {
+        .ticket-modal-layout { grid-template-columns: 1fr; }
+        .ticket-modal-sidebar { border-left: none; border-top: 1px solid var(--border); }
+        .ticket-modal-folio { font-size: 22px; }
+    }
 </style>
 @endsection
 
@@ -244,108 +344,128 @@
 </div>
 
 <!-- Modal Detalle Ticket -->
-<div class="modal fade" id="viewModal" tabindex="-1">
+<div class="modal fade ticket-modal" id="viewModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-ticket me-2"></i>Detalle del Ticket <span id="detailFolio"></span></h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="ticket-modal-header">
+                <div class="ticket-modal-header-left">
+                    <div>
+                        <div class="ticket-modal-folio" id="detailFolio"></div>
+                        <div class="ticket-modal-asunto" id="detailAsunto"></div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <span id="detailEstatus" class="ticket-status-badge"></span>
+                    <button type="button" class="ticket-modal-close" data-bs-dismiss="modal"><i class="fas fa-times"></i></button>
+                </div>
             </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-8">
-                        <h6 class="text-muted mb-1">Asunto</h6>
-                        <p id="detailAsunto" class="fw-bold"></p>
+            <div class="ticket-modal-layout">
+                <div class="ticket-modal-main">
+                    <div class="ticket-problema">
+                        <div class="ticket-problema-title"><i class="fas fa-exclamation-circle"></i>Problema reportado</div>
+                        <div class="ticket-problema-text" id="detailProblema"></div>
                     </div>
-                    <div class="col-md-4 text-end">
-                        <span id="detailEstatus" class="badge"></span>
-                    </div>
-                </div>
-                <hr>
-                <div class="row mb-3">
-                    <div class="col-md-3"><small class="text-muted">Tipo Soporte</small><br><span id="detailTipo"></span></div>
-                    <div class="col-md-3"><small class="text-muted">Área</small><br><span id="detailArea"></span></div>
-                    <div class="col-md-3"><small class="text-muted">Técnico</small><br><span id="detailTecnico"></span></div>
-                    <div class="col-md-3"><small class="text-muted">Equipo</small><br><span id="detailEquipo"></span></div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-4"><small class="text-muted">Fecha Alta</small><br><span id="detailFecha"></span></div>
-                    <div class="col-md-4"><small class="text-muted">Fecha Cierre</small><br><span id="detailFechaCierre"></span></div>
-                </div>
 
-                <div class="mb-4">
-                    <h6><i class="fas fa-exclamation-circle me-1"></i>Problema</h6>
-                    <div id="detailProblema" class="bg-light p-3 rounded"></div>
-                </div>
+                    <div class="ticket-tabs" role="tablist">
+                        <button class="ticket-tab active" data-tab="tab-evidences"><i class="fas fa-image"></i>Evidencias</button>
+                        <button class="ticket-tab" data-tab="tab-history"><i class="fas fa-history"></i>Historial</button>
+                        <button class="ticket-tab" data-tab="tab-comment"><i class="fas fa-comment"></i>Comentario</button>
+                        @if($esAdmin)
+                        <button class="ticket-tab" data-tab="tab-management"><i class="fas fa-cog"></i>Gestión</button>
+                        @endif
+                    </div>
 
-                <ul class="nav nav-tabs" role="tablist">
-                    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-evidences"><i class="fas fa-image me-1"></i>Evidencias</a></li>
-                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-history"><i class="fas fa-history me-1"></i>Historial</a></li>
-                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-comment"><i class="fas fa-comment me-1"></i>Comentario</a></li>
-                    @if($esAdmin)
-                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-management"><i class="fas fa-cog me-1"></i>Gestión</a></li>
-                    @endif
-                </ul>
-                <div class="tab-content mt-3">
-                    <div class="tab-pane fade show active" id="tab-evidences">
-                        <div id="evidenceGallery" class="d-flex flex-wrap"></div>
-                        <div class="mt-3">
-                            <form id="formEvidence" enctype="multipart/form-data">
-                                @csrf
-                                <input type="hidden" name="id_Ticket" id="evidenceTicketId">
-                                <div class="input-group">
-                                    <input type="file" name="evidencia" class="form-control" accept="image/*,.pdf,.doc,.docx" required>
-                                    <button type="submit" class="btn btn-outline-primary"><i class="fas fa-upload me-1"></i>Guardar Evidencia</button>
-                                </div>
-                            </form>
-                        </div>
+                    <div class="ticket-tab-content active" id="tab-evidences">
+                        <div id="evidenceGallery" class="ticket-evidence-grid"></div>
+                        <form id="formEvidence" enctype="multipart/form-data">
+                            @csrf
+                            <input type="hidden" name="id_Ticket" id="evidenceTicketId">
+                            <div class="ticket-form-upload">
+                                <input type="file" name="evidencia" class="ticket-form-input" accept="image/*,.pdf,.doc,.docx" required>
+                                <button type="submit" class="ticket-btn ticket-btn-outline"><i class="fas fa-upload"></i>Guardar</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="tab-pane fade" id="tab-history">
-                        <div id="historyTimeline" class="timeline"></div>
+
+                    <div class="ticket-tab-content" id="tab-history">
+                        <div id="historyTimeline" class="ticket-timeline"></div>
                     </div>
-                    <div class="tab-pane fade" id="tab-comment">
+
+                    <div class="ticket-tab-content" id="tab-comment">
                         <form id="formComment">
                             @csrf
                             <input type="hidden" name="id_Ticket" id="commentTicketId">
-                            <div class="mb-3">
-                                <textarea name="comentario" class="form-control" rows="3" placeholder="Escribir comentario..." required></textarea>
+                            <div class="ticket-form-group">
+                                <textarea name="comentario" class="ticket-form-textarea" placeholder="Escribir comentario..." required></textarea>
                             </div>
-                            <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-1"></i>Agregar Comentario</button>
+                            <button type="submit" class="ticket-btn ticket-btn-primary"><i class="fas fa-paper-plane"></i>Enviar comentario</button>
                         </form>
                     </div>
+
                     @if($esAdmin)
-                    <div class="tab-pane fade" id="tab-management">
+                    <div class="ticket-tab-content" id="tab-management">
                         <form id="formManagement">
                             @csrf
                             <input type="hidden" name="id_Ticket" id="mgmtTicketId">
                             <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Estatus</label>
-                                    <select name="id_Estatus" id="mgmtEstatus" class="form-select">
-                                        @foreach($estatus as $e)
-                                            @if($e->descripcion != 'Cerrado')
-                                            <option value="{{ $e->id_Estatus }}">{{ $e->descripcion }}</option>
-                                            @endif
-                                        @endforeach
-                                    </select>
+                                <div class="col-md-6">
+                                    <div class="ticket-form-group">
+                                        <label class="ticket-form-label">Estatus</label>
+                                        <select name="id_Estatus" id="mgmtEstatus" class="ticket-form-select">
+                                            @foreach($estatus as $e)
+                                                @if($e->descripcion != 'Cerrado')
+                                                <option value="{{ $e->id_Estatus }}">{{ $e->descripcion }}</option>
+                                                @endif
+                                            @endforeach
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Técnico</label>
-                                    <select name="id_Tecnico" id="mgmtTecnico" class="form-select">
-                                        @foreach($tecnicos as $t)
-                                        <option value="{{ $t->id_Usuario }}">{{ $t->nombre }} {{ $t->app }}</option>
-                                        @endforeach
-                                    </select>
+                                <div class="col-md-6">
+                                    <div class="ticket-form-group">
+                                        <label class="ticket-form-label">Técnico</label>
+                                        <select name="id_Tecnico" id="mgmtTecnico" class="ticket-form-select">
+                                            @foreach($tecnicos as $t)
+                                            <option value="{{ $t->id_Usuario }}">{{ $t->nombre }} {{ $t->app }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-warning"><i class="fas fa-save me-1"></i>Guardar Gestión</button>
+                            <div class="d-flex align-items-center gap-2 mt-3">
+                                <button type="submit" class="ticket-btn ticket-btn-warning"><i class="fas fa-save"></i>Guardar gestión</button>
+                                <div id="closeSection" class="d-none">
+                                    <button type="button" id="btnClose" class="ticket-btn ticket-btn-success"><i class="fas fa-check-double"></i>Dar visto bueno y cerrar</button>
+                                </div>
+                            </div>
                         </form>
-                        <hr>
-                        <div id="closeSection" class="d-none">
-                            <button type="button" id="btnClose" class="btn btn-success"><i class="fas fa-check-double me-1"></i>Dar visto bueno y cerrar</button>
-                        </div>
                     </div>
                     @endif
+                </div>
+                <div class="ticket-modal-sidebar">
+                    <div class="ticket-meta-section">
+                        <div class="ticket-meta-label">Tipo de soporte</div>
+                        <div class="ticket-meta-value" id="detailTipo"></div>
+                    </div>
+                    <div class="ticket-meta-section">
+                        <div class="ticket-meta-label">Área</div>
+                        <div class="ticket-meta-value" id="detailArea"></div>
+                    </div>
+                    <div class="ticket-meta-section">
+                        <div class="ticket-meta-label">Técnico asignado</div>
+                        <div class="ticket-meta-value" id="detailTecnico"></div>
+                    </div>
+                    <div class="ticket-meta-section">
+                        <div class="ticket-meta-label">Equipo</div>
+                        <div class="ticket-meta-value" id="detailEquipo"></div>
+                    </div>
+                    <div class="ticket-meta-section">
+                        <div class="ticket-meta-label">Fecha de alta</div>
+                        <div class="ticket-meta-value" id="detailFecha"></div>
+                    </div>
+                    <div class="ticket-meta-section">
+                        <div class="ticket-meta-label">Fecha de cierre</div>
+                        <div class="ticket-meta-value" id="detailFechaCierre"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -357,6 +477,17 @@
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Custom tabs
+    document.querySelectorAll('.ticket-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            const target = this.dataset.tab;
+            this.closest('.ticket-modal-main').querySelectorAll('.ticket-tab').forEach(t => t.classList.remove('active'));
+            this.closest('.ticket-modal-main').querySelectorAll('.ticket-tab-content').forEach(tc => tc.classList.remove('active'));
+            this.classList.add('active');
+            document.getElementById(target).classList.add('active');
+        });
+    });
+
     // Cascading: Sistemas -> Modulos
     const selSistemas = document.getElementById('selSistemas');
     const selModulos = document.getElementById('selModulos');
@@ -391,48 +522,66 @@ document.addEventListener('DOMContentLoaded', function() {
                     const t = data.ticket;
                     document.getElementById('detailFolio').textContent = '#' + t.id_Ticket;
                     document.getElementById('detailAsunto').textContent = t.asunto;
-                    document.getElementById('detailTipo').textContent = t.tipo_soporte?.descripcion || 'N/A';
-                    document.getElementById('detailArea').textContent = t.tipo_soporte?.area?.nombre || 'N/A';
+                    document.getElementById('detailTipo').textContent = t.tipoSoporte?.descripcion || 'N/A';
+                    document.getElementById('detailArea').textContent = t.tipoSoporte?.area?.nombre || 'N/A';
                     document.getElementById('detailTecnico').textContent = t.tecnico ? t.tecnico.nombre + ' ' + t.tecnico.app : 'Sin asignar';
                     document.getElementById('detailEquipo').textContent = t.equipo ? t.equipo.nombreEquipo : 'Sin equipo';
-                    document.getElementById('detailFecha').textContent = new Date(t.fecha_alta).toLocaleString('es-MX');
-                    document.getElementById('detailFechaCierre').textContent = t.fecha_cierre ? new Date(t.fecha_cierre).toLocaleString('es-MX') : 'N/A';
+                    document.getElementById('detailFecha').textContent = new Date(t.fechaAlta).toLocaleString('es-MX');
+                    document.getElementById('detailFechaCierre').textContent = t.fechaCierre ? new Date(t.fechaCierre).toLocaleString('es-MX') : 'N/A';
                     document.getElementById('detailProblema').textContent = t.problema;
 
                     const estBadge = document.getElementById('detailEstatus');
-                    estBadge.textContent = t.estatus?.descripcion || 'N/A';
-                    estBadge.className = 'badge bg-' + (t.estatus?.descripcion == 'Cerrado' ? 'secondary' : t.estatus?.descripcion == 'Resuelto' ? 'success' : 'primary');
+                    estBadge.innerHTML = '<span class="ticket-status-dot"></span>' + (t.estatus?.descripcion || 'N/A');
+                    const statusClass = (t.estatus?.descripcion || '').toLowerCase().replace(/\s+/g, '-');
+                    estBadge.className = 'ticket-status-badge ' + statusClass;
+
+                    // Reset tabs
+                    document.querySelectorAll('.ticket-tab').forEach(tab => tab.classList.remove('active'));
+                    document.querySelectorAll('.ticket-tab-content').forEach(tc => tc.classList.remove('active'));
+                    document.querySelector('.ticket-tab[data-tab="tab-evidences"]').classList.add('active');
+                    document.getElementById('tab-evidences').classList.add('active');
 
                     // Evidences
                     const gallery = document.getElementById('evidenceGallery');
                     gallery.innerHTML = '';
                     (t.evidencias || []).forEach(e => {
                         if (['jpg','jpeg','png','gif'].includes(e.extension?.toLowerCase())) {
-                            gallery.innerHTML += `<img src="/${e.ruta_archivo}" class="evidence-thumb" onclick="window.open('/${e.ruta_archivo}')">`;
+                            gallery.innerHTML += `<div class="ticket-evidence-item"><img src="/${e.rutaArchivo}" onclick="window.open('/${e.rutaArchivo}')"></div>`;
                         } else {
-                            gallery.innerHTML += `<a href="/${e.ruta_archivo}" target="_blank" class="btn btn-outline-secondary btn-sm me-1"><i class="fas fa-file me-1"></i>${e.nombre_archivo}</a>`;
+                            gallery.innerHTML += `<a href="/${e.rutaArchivo}" target="_blank" class="ticket-evidence-item ticket-evidence-file"><i class="fas fa-file"></i><span>${e.nombreArchivo}</span></a>`;
                         }
                     });
+                    if (!t.evidencias || t.evidencias.length === 0) {
+                        gallery.innerHTML = '<div class="ticket-empty" style="grid-column:1/-1"><i class="fas fa-image"></i><span>Sin evidencias</span></div>';
+                    }
 
                     // History
                     const timeline = document.getElementById('historyTimeline');
                     timeline.innerHTML = '';
                     (t.comentarios || []).forEach(c => {
+                        const initials = (c.usuario?.nombre || 'S').substring(0, 2).toUpperCase();
                         timeline.innerHTML += `
-                            <div class="timeline-item">
-                                <div class="d-flex justify-content-between">
-                                    <strong>${c.usuario?.nombre || 'Sistema'}</strong>
-                                    <small class="text-muted">${new Date(c.fecha_comentario).toLocaleString('es-MX')}</small>
+                            <div class="ticket-timeline-item">
+                                <div class="ticket-timeline-header">
+                                    <div class="ticket-timeline-user">
+                                        <div class="ticket-timeline-avatar">${initials}</div>
+                                        <span class="ticket-timeline-name">${c.usuario?.nombre || 'Sistema'}</span>
+                                    </div>
+                                    <span class="ticket-timeline-date">${new Date(c.fechaComentario).toLocaleString('es-MX')}</span>
                                 </div>
-                                <span class="badge bg-secondary mb-1">${c.estatus?.descripcion || ''}</span>
-                                <p class="mb-0">${c.comentario}</p>
+                                ${c.estatus?.descripcion ? '<span class="ticket-timeline-status">' + c.estatus.descripcion + '</span>' : ''}
+                                <p class="ticket-timeline-text">${c.comentario}</p>
                             </div>`;
                     });
+                    if (!t.comentarios || t.comentarios.length === 0) {
+                        timeline.innerHTML = '<div class="ticket-empty"><i class="fas fa-comments"></i><span>Sin actividad aún</span></div>';
+                    }
 
                     // IDs for forms
                     document.getElementById('commentTicketId').value = t.id_Ticket;
                     document.getElementById('evidenceTicketId').value = t.id_Ticket;
-                    document.getElementById('mgmtTicketId').value = t.id_Ticket;
+                    const mgmtId = document.getElementById('mgmtTicketId');
+                    if (mgmtId) mgmtId.value = t.id_Ticket;
 
                     // Management
                     if (data.esAdmin) {

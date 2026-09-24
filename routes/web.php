@@ -73,12 +73,13 @@ Route::middleware('auth')->group(function () {
     // Inventario - Equipos
     Route::prefix('inventario')->name('inventario.')->middleware('permiso:equipo,Consultar')->group(function () {
         Route::get('/equipo', [EquipoController::class, 'index'])->name('equipo.index');
-        Route::get('/equipo/crear', [EquipoController::class, 'create'])->name('equipo.create');
+        Route::get('/equipo/tipos', [EquipoController::class, 'seleccionarTipo'])->name('equipo.tipos');
+        Route::get('/equipo/crear/{tipo?}', [EquipoController::class, 'create'])->name('equipo.create');
         Route::post('/equipo', [EquipoController::class, 'store'])->name('equipo.store');
+        Route::get('/equipo/campos/{idTipo}', [EquipoController::class, 'campos'])->name('equipo.campos');
         Route::get('/equipo/{id}/editar', [EquipoController::class, 'edit'])->name('equipo.edit');
         Route::put('/equipo/{id}', [EquipoController::class, 'update'])->name('equipo.update');
         Route::post('/equipo/toggle/{id}', [EquipoController::class, 'toggleActivo'])->name('equipo.toggle');
-        Route::get('/equipo/campos/{idTipo}', [EquipoController::class, 'campos'])->name('equipo.campos');
 
         // Campos personalizados
         Route::get('/campo', [EquipoCampoController::class, 'index'])->name('campo.index');
@@ -129,8 +130,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/mantenimientos/{id}/completar', [MantenimientoController::class, 'completar'])->name('mantenimientos.completar');
         Route::post('/mantenimientos/{id}/cambiar-fecha', [MantenimientoController::class, 'cambiarFecha'])->name('mantenimientos.cambiarFecha');
         Route::delete('/mantenimientos/{id}', [MantenimientoController::class, 'destroy'])->name('mantenimientos.destroy');
-        Route::post('/mantenimientos/generar', [MantenimientoController::class, 'generar'])->name('mantenimientos.generar');
         Route::get('/mantenimientos/buscar', [MantenimientoController::class, 'buscar'])->name('mantenimientos.buscar');
+        Route::get('/mantenimientos/buscar-equipo', [MantenimientoController::class, 'buscarEquipo'])->name('mantenimientos.buscar-equipo');
         Route::get('/mantenimientos/{id}/editar-reporte', [MantenimientoController::class, 'editarReporte'])->name('mantenimientos.editar-reporte');
         Route::post('/mantenimientos/{id}/guardar-reporte', [MantenimientoController::class, 'guardarReporte'])->name('mantenimientos.guardar-reporte');
         Route::post('/mantenimientos/{id}/cerrar-reporte', [MantenimientoController::class, 'cerrarReporte'])->name('mantenimientos.cerrar-reporte');

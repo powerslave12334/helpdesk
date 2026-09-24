@@ -355,15 +355,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     document.getElementById('btnCerrarReporte').addEventListener('click', function() {
-        if (!confirm('¿Está seguro de cerrar el reporte? Una vez cerrado no se podrá editar.')) {
+        const estadoInicial = document.querySelector('input[name="estadoInicial"]:checked');
+        const conclusion = document.querySelector('input[name="conclusion"]:checked');
+
+        if (!estadoInicial) {
+            alert('Selecciona el estado inicial del equipo');
+            return;
+        }
+        if (!conclusion) {
+            alert('Selecciona la conclusión del servicio');
             return;
         }
 
+        if (!confirm('¿Está seguro de cerrar el reporte? Se guardarán los campos y una vez cerrado no se podrá editar.')) {
+            return;
+        }
+
+        const formData = new FormData(document.getElementById('reportForm'));
+
         fetch('{{ route("inventario.mantenimientos.cerrar-reporte", $mantenimiento->id_Mantenimiento) }}', {
             method: 'POST',
+            body: formData,
             headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json'
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
             }
         }).then(r => r.json()).then(data => {
             if (data.success) {

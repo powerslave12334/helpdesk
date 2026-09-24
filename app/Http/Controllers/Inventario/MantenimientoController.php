@@ -127,6 +127,41 @@ class MantenimientoController extends Controller
             'activo' => true,
         ]);
 
+        $equipo = Equipo::find($request->id_Equipo);
+        if ($equipo && $equipo->id_PeriodoMantenimiento) {
+            $periodo = \App\Models\PeriodoMantenimiento::find($equipo->id_PeriodoMantenimiento);
+            if ($periodo && $periodo->meses > 0) {
+                $fechaBase = Carbon::parse($request->fechaProgramada);
+                $limite = $fechaBase->copy()->addYears(2);
+                $fechaComparacion = $fechaBase->copy();
+
+                while (true) {
+                    $siguienteFecha = $fechaComparacion->copy()->addMonths($periodo->meses);
+                    if ($siguienteFecha->gt($limite)) break;
+
+                    $existe = Mantenimiento::where('id_Equipo', $equipo->id_Equipo)
+                        ->whereDate('fechaProgramada', $siguienteFecha->format('Y-m-d'))
+                        ->where('activo', true)
+                        ->exists();
+
+                    if (!$existe) {
+                        Mantenimiento::create([
+                            'id_Equipo' => $equipo->id_Equipo,
+                            'id_UsuarioTecnico' => $request->id_UsuarioTecnico,
+                            'fechaProgramada' => $siguienteFecha,
+                            'id_Estatus' => $estatusPendiente?->id_Estatus,
+                            'tipoMantenimiento' => 'Preventivo',
+                            'observaciones' => "Mantenimiento {$periodo->descripcion} automático",
+                            'fechaAlta' => now(),
+                            'activo' => true,
+                        ]);
+                    }
+
+                    $fechaComparacion = $siguienteFecha;
+                }
+            }
+        }
+
         return redirect()->route('inventario.mantenimientos.index')->with('success', 'Mantenimiento programado correctamente.');
     }
 
@@ -160,7 +195,7 @@ class MantenimientoController extends Controller
             'nueva_fecha' => 'required|date',
         ]);
 
-        $nuevaFecha = \Carbon\Carbon::parse($request->nueva_fecha);
+        $nuevaFecha = Carbon::parse($request->nueva_fecha);
         $fechaAnterior = $mantenimiento->fechaProgramada->copy();
         $diferenciaDias = $fechaAnterior->diffInDays($nuevaFecha);
 
@@ -190,58 +225,6 @@ class MantenimientoController extends Controller
         }
 
         return response()->json(['success' => true, 'message' => $mensaje]);
-    }
-
-    public function generar()
-    {
-        $equipos = Equipo::where('activo', true)
-            ->where('id_PeriodoMantenimiento', '>', 0)
-            ->get();
-
-        $creados = 0;
-
-        foreach ($equipos as $equipo) {
-            $periodo = \App\Models\PeriodoMantenimiento::find($equipo->id_PeriodoMantenimiento);
-            if (!$periodo) continue;
-
-            $fechaBase = $equipo->fechaUltimoMantenimiento ?? $equipo->fechaAlta;
-            if (!$fechaBase) continue;
-
-            $fechaComparacion = $fechaBase->copy();
-            $limite = now()->addYears(2);
-
-            while ($fechaComparacion->lte($limite)) {
-                $siguienteFecha = $fechaComparacion->copy()->addMonths($periodo->meses);
-
-                if ($siguienteFecha->gt($limite)) break;
-
-                $existe = Mantenimiento::where('id_Equipo', $equipo->id_Equipo)
-                    ->whereDate('fechaProgramada', $siguienteFecha->format('Y-m-d'))
-                    ->where('activo', true)
-                    ->exists();
-
-                if (!$existe) {
-                    $tecnico = Usuario::where('esTecnico', true)->where('activo', true)->first();
-
-                    Mantenimiento::create([
-                        'id_Equipo' => $equipo->id_Equipo,
-                        'id_UsuarioTecnico' => $tecnico?->id_Usuario ?? 1,
-                        'fechaProgramada' => $siguienteFecha,
-                        'id_Estatus' => 12,
-                        'tipoMantenimiento' => 'Preventivo',
-                        'observaciones' => "Mantenimiento {$periodo->descripcion} automático",
-                        'fechaAlta' => now(),
-                        'activo' => true,
-                    ]);
-                    $creados++;
-                }
-
-                $fechaComparacion = $siguienteFecha;
-            }
-        }
-
-        return redirect()->route('inventario.mantenimientos.index')
-            ->with('success', "Se generaron $creados mantenimientos preventivos.");
     }
 
     public function buscar(Request $request)
@@ -290,6 +273,52 @@ class MantenimientoController extends Controller
                 'fecha' => $m->fechaProgramada->format('d/m/Y'),
                 'fecha_iso' => $m->fechaProgramada->format('Y-m-d'),
                 'tipo' => $m->tipoMantenimiento,
+            ];
+        });
+
+        return response()->json($results);
+    }
+
+    public function buscarEquipo(Request $request)
+    {
+        $termino = $request->input('q', '');
+
+        if (strlen($termino) < 2) {
+            return response()->json([]);
+        }
+
+        $equipos = Equipo::where('activo', true)
+            ->where(function ($q) use ($termino) {
+                $q->where('nombreEquipo', 'LIKE', "%{$termino}%")
+                   ->orWhere('marca', 'LIKE', "%{$termino}%")
+                   ->orWhere('modelo', 'LIKE', "%{$termino}%")
+                   ->orWhereHas('asignaciones', function ($q2) use ($termino) {
+                       $q2->where('activo', true)
+                          ->whereHas('usuario', function ($q3) use ($termino) {
+                              $q3->where('nombre', 'LIKE', "%{$termino}%")
+                                 ->orWhere('app', 'LIKE', "%{$termino}%");
+                          })
+                          ->orWhereHas('area', function ($q3) use ($termino) {
+                              $q3->where('nombre', 'LIKE', "%{$termino}%");
+                          });
+                   });
+            })
+            ->with(['asignaciones.usuario', 'asignaciones.area', 'oficina'])
+            ->limit(15)
+            ->get();
+
+        $results = $equipos->map(function ($eq) {
+            $asignacion = $eq->asignaciones->where('activo', true)->first();
+            $usuario = $asignacion && $asignacion->usuario ? $asignacion->usuario->nombre . ' ' . $asignacion->usuario->app : 'Sin usuario';
+            $area = $asignacion && $asignacion->area ? $asignacion->area->nombre : 'Sin área';
+
+            return [
+                'id' => $eq->id_Equipo,
+                'nombre' => $eq->nombreEquipo ?? $eq->marca,
+                'marca_modelo' => $eq->marca . ' ' . $eq->modelo,
+                'usuario' => $usuario,
+                'area' => $area,
+                'oficina' => $eq->oficina ? $eq->oficina->nombre : '',
             ];
         });
 
@@ -350,12 +379,37 @@ class MantenimientoController extends Controller
         return redirect()->route('inventario.mantenimientos.reporte', ['id' => $id, 'preview' => $request->boolean('preview')]);
     }
 
-    public function cerrarReporte($id)
+    public function cerrarReporte(Request $request, $id)
     {
         $mantenimiento = Mantenimiento::findOrFail($id);
-        $mantenimiento->update(['reporteCerrado' => true]);
 
-        return response()->json(['success' => true, 'message' => 'Reporte cerrado correctamente.']);
+        $mantenimiento->update([
+            'id_UsuarioTecnico' => $request->id_UsuarioTecnico,
+            'tipoMantenimiento' => $request->tipoMantenimiento,
+            'estadoInicial' => $request->estadoInicial,
+            'hw_encendido' => $request->hw_encendido,
+            'hw_pantalla' => $request->hw_pantalla,
+            'hw_ventilacion' => $request->hw_ventilacion,
+            'hw_dispositivos' => $request->hw_dispositivos,
+            'sw_so' => $request->sw_so,
+            'sw_seguridad' => $request->sw_seguridad,
+            'sw_antivirus' => $request->sw_antivirus,
+            'sw_rendimiento' => $request->sw_rendimiento,
+            'act_limpieza' => $request->has('act_limpieza'),
+            'act_revision_hw' => $request->has('act_revision_hw'),
+            'act_actualizacion_so' => $request->has('act_actualizacion_so'),
+            'act_instalacion_sw' => $request->has('act_instalacion_sw'),
+            'act_parches' => $request->has('act_parches'),
+            'act_eliminacion' => $request->has('act_eliminacion'),
+            'act_diagnostico' => $request->has('act_diagnostico'),
+            'act_otro' => $request->has('act_otro'),
+            'act_otro_detalle' => $request->act_otro_detalle,
+            'conclusion' => $request->conclusion,
+            'observaciones' => $request->observaciones,
+            'reporteCerrado' => true,
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Reporte guardado y cerrado correctamente.']);
     }
 
     public function generarReporte(Request $request, $id)

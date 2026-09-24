@@ -17,7 +17,14 @@ class EquipoController extends Controller
 {
     public function index()
     {
-        $equipos = Equipo::with(['tipoEquipo', 'estatus', 'oficina', 'equipoDetalle.campo'])->get();
+        $equipos = Equipo::with(['tipoEquipo', 'estatus', 'oficina', 'equipoDetalle.campo', 'asignaciones.usuario'])
+            ->get()
+            ->map(function ($equipo) {
+                $asignacionActiva = $equipo->asignaciones->where('activo', true)->whereNull('fechaBaja')->first();
+                $equipo->asignado_a = $asignacionActiva ? $asignacionActiva->usuario->nombre . ' ' . $asignacionActiva->usuario->app : null;
+                $equipo->estado_asignacion = $asignacionActiva ? 'asignado' : 'disponible';
+                return $equipo;
+            });
         $tiposEquipo = TipoEquipo::where('activo', true)->get();
         $estatus = Estatus::where('activo', true)->where('id_Modulos', 2)->get();
         $oficinas = Oficina::where('activo', true)->get();
@@ -26,12 +33,19 @@ class EquipoController extends Controller
         return view('inventario.equipo', compact('equipos', 'tiposEquipo', 'estatus', 'oficinas', 'campos'));
     }
 
-    public function create()
+    public function seleccionarTipo()
+    {
+        $tiposEquipo = TipoEquipo::where('activo', true)->get();
+        return view('inventario.equipo_seleccionar_tipo', compact('tiposEquipo'));
+    }
+
+    public function create($tipo = null)
     {
         $tiposEquipo = TipoEquipo::where('activo', true)->get();
         $estatus = Estatus::where('activo', true)->where('id_Modulos', 2)->get();
         $oficinas = Oficina::where('activo', true)->get();
-        return view('inventario.equipo_create', compact('tiposEquipo', 'estatus', 'oficinas'));
+        $tipoSeleccionado = $tipo ? TipoEquipo::find($tipo) : null;
+        return view('inventario.equipo_create', compact('tiposEquipo', 'estatus', 'oficinas', 'tipoSeleccionado'));
     }
 
     public function store(Request $request)

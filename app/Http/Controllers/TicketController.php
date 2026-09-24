@@ -137,7 +137,7 @@ class TicketController extends Controller
     public function show($id)
     {
         $ticket = Ticket::with(['usuario', 'tecnico', 'tipoSoporte', 'estatus', 'equipo',
-            'comentarios.usuario', 'comentarios.estatus', 'evidencias.usuarioAlta'])
+            'comentarios.usuario', 'comentarios.estatus', 'evidencias.usuario'])
             ->findOrFail($id);
 
         $estatus = Estatus::where('activo', true)->where('id_Modulos', 1)->get();

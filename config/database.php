@@ -112,6 +112,17 @@ return [
             'prefix_indexes' => true,
         ],
 
+        'sqlsrv_productivo' => [
+            'driver' => 'sqlsrv',
+            'host' => env('DB_PRODUCTIVO_HOST', '192.168.11.20'),
+            'port' => env('DB_PRODUCTIVO_PORT', '1433'),
+            'database' => env('DB_PRODUCTIVO_DATABASE', 'HELPDESK'),
+            'username' => env('DB_PRODUCTIVO_USERNAME', 'sa'),
+            'password' => env('DB_PRODUCTIVO_PASSWORD'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+        ],
+
     ],
 
     /*

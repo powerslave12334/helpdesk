@@ -51,6 +51,20 @@
     .detail-field-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; }
     .detail-field-value { font-size: 14px; font-weight: 500; color: var(--text); }
 
+    .equipo-search-wrap { position: relative; }
+    .equipo-search-results { position: absolute; top: 100%; left: 0; right: 0; z-index: 1050; background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 var(--radius-sm) var(--radius-sm); max-height: 240px; overflow-y: auto; display: none; box-shadow: var(--shadow-md); }
+    .equipo-search-results.show { display: block; }
+    .equipo-search-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    .equipo-search-item:last-child { border-bottom: none; }
+    .equipo-search-item:hover { background: var(--primary-soft); }
+    .equipo-search-item-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .equipo-search-item-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .equipo-search-selected { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--primary-soft); border: 1px solid var(--primary); border-radius: var(--radius-sm); margin-top: 6px; }
+    .equipo-search-selected-name { font-size: 13px; font-weight: 600; color: var(--primary); }
+    .equipo-search-selected-detail { font-size: 11px; color: var(--muted); }
+    .equipo-search-selected .btn-remove-equipo { margin-left: auto; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 4px; }
+    .equipo-search-selected .btn-remove-equipo:hover { color: #dc2626; background: rgba(220,38,38,0.1); }
+
     .create-form-section { margin-bottom: 20px; }
     .create-form-section-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
     .form-floating-label { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 6px; display: block; }
@@ -88,12 +102,6 @@
 <div class="d-flex justify-content-between align-items-center mb-3 page-header">
     <h4 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Calendario de Mantenimientos</h4>
     <div class="d-flex gap-2">
-        <form method="POST" action="{{ route('inventario.mantenimientos.generar') }}" class="d-inline">
-            @csrf
-            <button type="submit" class="btn btn-warning btn-sm">
-                <i class="fas fa-sync me-1"></i><span class="d-none d-sm-inline">Generar Automáticos</span><span class="d-sm-none">Generar</span>
-            </button>
-        </form>
         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createModal">
             <i class="fas fa-plus me-1"></i><span class="d-none d-sm-inline">Nuevo Mantenimiento</span><span class="d-sm-none">Nuevo</span>
         </button>
@@ -325,12 +333,12 @@
                         <div class="row g-3">
                             <div class="col-12">
                                 <label class="form-floating-label">Equipo *</label>
-                                <select name="id_Equipo" class="form-select form-select-sm" required style="border-radius:var(--radius-sm)">
-                                    <option value="">Seleccionar equipo...</option>
-                                    @foreach(\App\Models\Equipo::where('activo', true)->get() as $eq)
-                                    <option value="{{ $eq->id_Equipo }}">{{ $eq->nombreEquipo ?? $eq->marca }} - {{ $eq->modelo }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="hidden" name="id_Equipo" id="equipoId" required>
+                                <div class="equipo-search-wrap">
+                                    <input type="text" id="equipoSearchInput" class="form-control form-control-sm" placeholder="Buscar por nombre, usuario o área..." autocomplete="off" style="border-radius:var(--radius-sm)">
+                                    <div class="equipo-search-results" id="equipoSearchResults"></div>
+                                </div>
+                                <div id="equipoSeleccionado" style="display:none"></div>
                             </div>
                             <div class="col-12">
                                 <label class="form-floating-label">Técnico asignado *</label>
@@ -384,6 +392,81 @@
 document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
     let selectedEvent = null;
+
+    const equipoSearchInput = document.getElementById('equipoSearchInput');
+    const equipoSearchResults = document.getElementById('equipoSearchResults');
+    const equipoIdInput = document.getElementById('equipoId');
+    const equipoSeleccionado = document.getElementById('equipoSeleccionado');
+    let equipoSearchTimeout = null;
+
+    equipoSearchInput.addEventListener('input', function() {
+        clearTimeout(equipoSearchTimeout);
+        const termino = this.value.trim();
+
+        if (termino.length < 2) {
+            equipoSearchResults.classList.remove('show');
+            return;
+        }
+
+        equipoSearchTimeout = setTimeout(function() {
+            fetch('{{ route("inventario.mantenimientos.buscar-equipo") }}?q=' + encodeURIComponent(termino))
+                .then(r => r.json())
+                .then(data => {
+                    if (data.length === 0) {
+                        equipoSearchResults.innerHTML = '<div class="equipo-search-item"><div class="equipo-search-item-name" style="color:var(--muted)">No se encontraron equipos</div></div>';
+                        equipoSearchResults.classList.add('show');
+                        return;
+                    }
+
+                    let html = '';
+                    data.forEach(function(eq) {
+                        html += '<div class="equipo-search-item" data-id="' + eq.id + '" data-nombre="' + eq.nombre + '" data-marca="' + eq.marca_modelo + '" data-usuario="' + eq.usuario + '" data-area="' + eq.area + '">';
+                        html += '<div class="equipo-search-item-name">' + eq.nombre + '</div>';
+                        html += '<div class="equipo-search-item-detail">' + eq.marca_modelo + ' · ' + eq.usuario + ' · ' + eq.area + '</div>';
+                        html += '</div>';
+                    });
+                    equipoSearchResults.innerHTML = html;
+                    equipoSearchResults.classList.add('show');
+
+                    equipoSearchResults.querySelectorAll('.equipo-search-item[data-id]').forEach(function(el) {
+                        el.addEventListener('click', function() {
+                            const id = this.getAttribute('data-id');
+                            const nombre = this.getAttribute('data-nombre');
+                            const marca = this.getAttribute('data-marca');
+                            const usuario = this.getAttribute('data-usuario');
+                            const area = this.getAttribute('data-area');
+
+                            equipoIdInput.value = id;
+                            equipoSearchInput.value = '';
+                            equipoSearchResults.classList.remove('show');
+
+                            equipoSeleccionado.style.display = 'block';
+                            equipoSeleccionado.innerHTML = '<div class="equipo-search-selected"><div><div class="equipo-search-selected-name">' + nombre + '</div><div class="equipo-search-selected-detail">' + marca + ' · ' + usuario + ' · ' + area + '</div></div><button type="button" class="btn-remove-equipo" id="btnRemoveEquipo"><i class="fas fa-times"></i></button></div>';
+
+                            document.getElementById('btnRemoveEquipo').addEventListener('click', function() {
+                                equipoIdInput.value = '';
+                                equipoSeleccionado.style.display = 'none';
+                                equipoSeleccionado.innerHTML = '';
+                            });
+                        });
+                    });
+                });
+        }, 300);
+    });
+
+    equipoSearchInput.addEventListener('blur', function() {
+        setTimeout(function() {
+            equipoSearchResults.classList.remove('show');
+        }, 200);
+    });
+
+    document.getElementById('createModal').addEventListener('hidden.bs.modal', function() {
+        equipoIdInput.value = '';
+        equipoSearchInput.value = '';
+        equipoSeleccionado.style.display = 'none';
+        equipoSeleccionado.innerHTML = '';
+        equipoSearchResults.classList.remove('show');
+    });
 
     function getInitialView() {
         return window.innerWidth <= 768 ? 'dayGridWeek' : 'dayGridMonth';

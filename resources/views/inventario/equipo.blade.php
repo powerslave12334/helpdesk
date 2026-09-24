@@ -4,7 +4,7 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="mb-0"><i class="fas fa-laptop me-2"></i>Equipos</h4>
-    <a href="{{ route('inventario.equipo.create') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nuevo Equipo</a>
+    <a href="{{ route('inventario.equipo.tipos') }}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nuevo Equipo</a>
 </div>
 
 <div class="card">
@@ -27,6 +27,11 @@
                         <option value="activo">Activo</option>
                         <option value="inactivo">Inactivo</option>
                     </select>
+                    <select class="table-filter" data-table-filter="asignacion">
+                        <option value="">Todos</option>
+                        <option value="asignado">Asignados</option>
+                        <option value="disponible">Disponibles</option>
+                    </select>
                 </div>
             </div>
             <div class="table-responsive">
@@ -38,6 +43,7 @@
                             <th>Serie</th>
                             <th>Estatus</th>
                             <th>Ubicación</th>
+                            <th>Asignación</th>
                             <th>Activo</th>
                             <th>Acciones</th>
                         </tr>
@@ -54,6 +60,14 @@
                             <td data-field="serie"><small>{{ $eq->numeroSerie ?? 'N/A' }}</small></td>
                             <td data-field="estatus"><span class="badge bg-{{ optional($eq->estatus)->id_Estatus == 1 ? 'success' : 'secondary' }}">{{ optional($eq->estatus)->descripcion ?? 'N/A' }}</span></td>
                             <td data-field="ubicacion">{{ $eq->ubicacion ?? 'N/A' }}</td>
+                            <td data-field="asignacion">
+                                @if($eq->asignado_a)
+                                    <span class="badge bg-primary" title="Asignado a {{ $eq->asignado_a }}">Asignado</span>
+                                    <small class="text-muted d-block">{{ $eq->asignado_a }}</small>
+                                @else
+                                    <span class="badge bg-success">Disponible</span>
+                                @endif
+                            </td>
                             <td data-field="activo"><span class="badge bg-{{ $eq->activo ? 'success' : 'danger' }}">{{ $eq->activo ? 'Activo' : 'Inactivo' }}</span></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
@@ -63,7 +77,7 @@
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="7" class="text-center text-muted">No hay equipos</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted">No hay equipos</td></tr>
                         @endforelse
                     </tbody>
                 </table>

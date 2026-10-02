@@ -161,11 +161,26 @@
         /* Focus visible */
         :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
         .form-control:focus-visible, .form-select:focus-visible { outline: none; }
+
+        /* Responsive sidebar */
+        .btn-sidebar-toggle { display: none; background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: var(--radius-sm); padding: 6px 10px; cursor: pointer; }
+        .btn-sidebar-toggle:hover { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); }
+        .sidebar-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.5); z-index: 99; opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0.2s ease; }
+        .sidebar-backdrop.show { opacity: 1; visibility: visible; }
+        @media (max-width: 991.98px) {
+            .sidebar { transform: translateX(-100%); transition: transform 0.25s ease; }
+            .sidebar.open { transform: translateX(0); box-shadow: var(--shadow-lg); }
+            .main-content { margin-left: 0; }
+            .btn-sidebar-toggle { display: inline-flex; align-items: center; }
+        }
+        @media (min-width: 992px) { .sidebar-backdrop { display: none; } }
+        @media (max-width: 576px) { .content-area { padding: 16px; } .top-bar { padding: 10px 16px; } }
+        @media (prefers-reduced-motion: reduce) { .sidebar, .sidebar-backdrop { transition: none; } }
     </style>
     @yield('styles')
 </head>
 <body>
-    <div class="sidebar">
+    <div class="sidebar" id="appSidebar">
         <div class="brand">
             <div class="brand-icon"><i class="fas fa-headset"></i></div>
             <div>
@@ -174,148 +189,56 @@
             </div>
         </div>
         <nav class="mt-3">
-            <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                <i class="fas fa-tachometer-alt"></i> Dashboard
-            </a>
-
             @php
-                $isTickets = request()->routeIs('tickets.*') || request()->routeIs('ticketconfig.tipossoporte.*') || request()->routeIs('ticketconfig.tiposequipoticket.*') || request()->routeIs('ticketconfig.tiposdesarrollo.*') || request()->routeIs('ticketconfig.sistemas.*');
-                $isInventario = request()->routeIs('inventario.*');
-                $isEmpleados = request()->routeIs('empleados.*') || request()->routeIs('configuracion.deptos.*') || request()->routeIs('configuracion.areas.*') || request()->routeIs('configuracion.oficinas.*');
-                $isConfig = request()->routeIs('configuracion.*') || request()->routeIs('ticketconfig.modulossistemas.*') || request()->routeIs('ticketconfig.submodulossistemas.*');
+                $modulosCatalogo = \App\Support\Modulos::modulos();
+                $submodulosCatalogo = \App\Support\Modulos::submodulos();
+                $permisosService = app(\App\Services\PermisosService::class);
+                $idUsuarioSesion = (int) session('IdUsuario', 0);
+                $modulosActivosIds = $permisosService->modulosActivosUsuarioIds($idUsuarioSesion);
+                $submodulosActivos = $permisosService->submodulosActivosUsuarioClaves($idUsuarioSesion);
+                $tieneRolActivo = $idUsuarioSesion > 0 && $permisosService->tieneRolActivo($idUsuarioSesion);
             @endphp
 
-            <div class="nav-section">Tickets</div>
-            <a href="#menuTickets" class="nav-link {{ $isTickets ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="{{ $isTickets ? 'true' : 'false' }}">
-                <i class="fas fa-ticket"></i> Tickets
-                <span class="ms-auto"><i class="fas fa-chevron-down fa-xs"></i></span>
-            </a>
-            <div class="collapse {{ $isTickets ? 'show' : '' }}" id="menuTickets">
-                <a href="{{ route('tickets.index') }}" class="nav-link {{ request()->routeIs('tickets.index') ? 'active' : '' }}">
-                    <i class="fas fa-ticket"></i> Tickets
+            @foreach($modulosCatalogo as $m)
+                @if(isset($m['enlace']))
+                <a href="{{ route($m['enlace']) }}" class="nav-link {{ request()->routeIs($m['enlace']) ? 'active' : '' }}">
+                    <i class="{{ $m['icono'] }}"></i> {{ $m['nombre'] }}
                 </a>
-                <a href="{{ route('ticketconfig.tipossoporte.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.tipossoporte.*') ? 'active' : '' }}">
-                    <i class="fas fa-headset"></i> Tipo Soporte
+                @elseif(in_array((int) $m['id'], $modulosActivosIds, true))
+                @php
+                    $seccionAbierta = collect($m['patrones'] ?? [])->contains(fn ($patron) => request()->routeIs($patron));
+                @endphp
+                <div class="nav-section">{{ $m['nombre'] }}</div>
+                <a href="#menuMod{{ $m['id'] }}" class="nav-link {{ $seccionAbierta ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="{{ $seccionAbierta ? 'true' : 'false' }}">
+                    <i class="{{ $m['icono'] }}"></i> {{ $m['nombre'] }}
+                    <span class="ms-auto"><i class="fas fa-chevron-down fa-xs"></i></span>
                 </a>
-                <a href="{{ route('ticketconfig.tiposequipoticket.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.tiposequipoticket.*') ? 'active' : '' }}">
-                    <i class="fas fa-laptop"></i> Tipo Equipo Soporte
-                </a>
-                <a href="{{ route('ticketconfig.tiposdesarrollo.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.tiposdesarrollo.*') ? 'active' : '' }}">
-                    <i class="fas fa-code"></i> Tipo de Desarrollo
-                </a>
-                <a href="{{ route('ticketconfig.sistemas.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.sistemas.*') ? 'active' : '' }}">
-                    <i class="fas fa-desktop"></i> Tipo de Sistema
-                </a>
-            </div>
-
-            <div class="nav-section">GPS</div>
-            <a href="#" class="nav-link">
-                <i class="fas fa-map-marker-alt"></i> GPS
-            </a>
-
-            <div class="nav-section">Inventario</div>
-            <a href="#menuInventario" class="nav-link {{ $isInventario ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="{{ $isInventario ? 'true' : 'false' }}">
-                <i class="fas fa-boxes-stacked"></i> Inventario
-                <span class="ms-auto"><i class="fas fa-chevron-down fa-xs"></i></span>
-            </a>
-            <div class="collapse {{ $isInventario ? 'show' : '' }}" id="menuInventario">
-                <a href="{{ route('inventario.tipoEquipo.index') }}" class="nav-link {{ request()->routeIs('inventario.tipoEquipo.*') ? 'active' : '' }}">
-                    <i class="fas fa-tags"></i> Tipo Inventario
-                </a>
-                <a href="{{ route('inventario.equipo.index') }}" class="nav-link {{ request()->routeIs('inventario.equipo.*') ? 'active' : '' }}">
-                    <i class="fas fa-laptop"></i> Equipo
-                </a>
-                <a href="{{ route('inventario.asignacion.index') }}" class="nav-link {{ request()->routeIs('inventario.asignacion.*') ? 'active' : '' }}">
-                    <i class="fas fa-user-tag"></i> Asignación de Equipo
-                </a>
-                <a href="{{ route('inventario.campo.index') }}" class="nav-link {{ request()->routeIs('inventario.campo.*') ? 'active' : '' }}">
-                    <i class="fas fa-sliders"></i> Campos por Tipo
-                </a>
-                <a href="{{ route('inventario.tipoRelacion.index') }}" class="nav-link {{ request()->routeIs('inventario.tipoRelacion.*') ? 'active' : '' }}">
-                    <i class="fas fa-link"></i> Tipo Relación Equipo
-                </a>
-                <a href="{{ route('inventario.relacion.index') }}" class="nav-link {{ request()->routeIs('inventario.relacion.*') ? 'active' : '' }}">
-                    <i class="fas fa-project-diagram"></i> Relación Equipo
-                </a>
-                <a href="{{ route('inventario.historial.index') }}" class="nav-link {{ request()->routeIs('inventario.historial.*') ? 'active' : '' }}">
-                    <i class="fas fa-history"></i> Historial de Asignación
-                </a>
-                <a href="{{ route('inventario.mantenimientos.index') }}" class="nav-link {{ request()->routeIs('inventario.mantenimientos.*') ? 'active' : '' }}">
-                    <i class="fas fa-calendar-alt"></i> Mantenimientos
-                </a>
-            </div>
-
-            <div class="nav-section">Empleados</div>
-            <a href="#menuEmpleados" class="nav-link {{ $isEmpleados ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="{{ $isEmpleados ? 'true' : 'false' }}">
-                <i class="fas fa-users"></i> Empleados
-                <span class="ms-auto"><i class="fas fa-chevron-down fa-xs"></i></span>
-            </a>
-            <div class="collapse {{ $isEmpleados ? 'show' : '' }}" id="menuEmpleados">
-                <a href="{{ route('empleados.index') }}" class="nav-link {{ request()->routeIs('empleados.index') ? 'active' : '' }}">
-                    <i class="fas fa-eye"></i> Ver Empleados
-                </a>
-                <a href="{{ route('configuracion.deptos.index') }}" class="nav-link {{ request()->routeIs('configuracion.deptos.*') ? 'active' : '' }}">
-                    <i class="fas fa-sitemap"></i> Departamentos
-                </a>
-                <a href="{{ route('configuracion.areas.index') }}" class="nav-link {{ request()->routeIs('configuracion.areas.*') ? 'active' : '' }}">
-                    <i class="fas fa-building"></i> Áreas
-                </a>
-                <a href="{{ route('configuracion.oficinas.index') }}" class="nav-link {{ request()->routeIs('configuracion.oficinas.*') ? 'active' : '' }}">
-                    <i class="fas fa-map-marker-alt"></i> Oficinas
-                </a>
-                <a href="{{ route('empleados.tipoEmpleado.index') }}" class="nav-link {{ request()->routeIs('empleados.tipoEmpleado.*') ? 'active' : '' }}">
-                    <i class="fas fa-id-card"></i> Tipo de Empleado
-                </a>
-            </div>
-
-            <div class="nav-section">Configuración</div>
-            <a href="#menuConfig" class="nav-link {{ $isConfig ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="{{ $isConfig ? 'true' : 'false' }}">
-                <i class="fas fa-cog"></i> Configuración
-                <span class="ms-auto"><i class="fas fa-chevron-down fa-xs"></i></span>
-            </a>
-            <div class="collapse {{ $isConfig ? 'show' : '' }}" id="menuConfig">
-                <a href="{{ route('configuracion.configGeneral.index') }}" class="nav-link {{ request()->routeIs('configuracion.configGeneral.*') ? 'active' : '' }}">
-                    <i class="fas fa-cog"></i> Configuración General
-                </a>
-                <a href="{{ route('configuracion.modulos.index') }}" class="nav-link {{ request()->routeIs('configuracion.modulos.*') ? 'active' : '' }}">
-                    <i class="fas fa-puzzle-piece"></i> Módulos
-                </a>
-                <a href="{{ route('configuracion.submodulos.index') }}" class="nav-link {{ request()->routeIs('configuracion.submodulos.*') ? 'active' : '' }}">
-                    <i class="fas fa-puzzle-piece"></i> Submódulos
-                </a>
-                <a href="{{ route('configuracion.acciones.index') }}" class="nav-link {{ request()->routeIs('configuracion.acciones.*') ? 'active' : '' }}">
-                    <i class="fas fa-bolt"></i> Acciones
-                </a>
-                <a href="{{ route('configuracion.roles.index') }}" class="nav-link {{ request()->routeIs('configuracion.roles.*') ? 'active' : '' }}">
-                    <i class="fas fa-user-shield"></i> Roles
-                </a>
-                <a href="{{ route('configuracion.rolesUsuarios.index') }}" class="nav-link {{ request()->routeIs('configuracion.rolesUsuarios.*') ? 'active' : '' }}">
-                    <i class="fas fa-user-tag"></i> Roles de Usuarios
-                </a>
-                <a href="{{ route('configuracion.rolPermiso.index') }}" class="nav-link {{ request()->routeIs('configuracion.rolPermiso.*') ? 'active' : '' }}">
-                    <i class="fas fa-lock"></i> Permisos por Rol
-                </a>
-                <a href="{{ route('configuracion.permisoUsuarios.index') }}" class="nav-link {{ request()->routeIs('configuracion.permisoUsuarios.*') ? 'active' : '' }}">
-                    <i class="fas fa-user-lock"></i> Permisos por Usuario
-                </a>
-                <a href="{{ route('configuracion.estatus.index') }}" class="nav-link {{ request()->routeIs('configuracion.estatus.*') ? 'active' : '' }}">
-                    <i class="fas fa-list-check"></i> Estatus
-                </a>
-                <a href="{{ route('ticketconfig.modulossistemas.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.modulossistemas.*') ? 'active' : '' }}">
-                    <i class="fas fa-cubes"></i> Módulos Sistemas
-                </a>
-                <a href="{{ route('ticketconfig.submodulossistemas.index') }}" class="nav-link {{ request()->routeIs('ticketconfig.submodulossistemas.*') ? 'active' : '' }}">
-                    <i class="fas fa-cube"></i> Submódulos Sistemas
-                </a>
-            </div>
+                <div class="collapse {{ $seccionAbierta ? 'show' : '' }}" id="menuMod{{ $m['id'] }}">
+                    @foreach($submodulosCatalogo as $s)
+                        @if((int) $s['id_Modulos'] === (int) $m['id'] && in_array($s['clave'], $submodulosActivos, true))
+                        <a href="{{ route($s['ruta']) }}" class="nav-link {{ request()->routeIs($s['activa'] ?? $s['ruta']) ? 'active' : '' }}">
+                            <i class="{{ $s['icono'] }}"></i> {{ $s['nombre'] }}
+                        </a>
+                        @endif
+                    @endforeach
+                </div>
+                @endif
+            @endforeach
         </nav>
     </div>
 
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
     <div class="main-content">
         <div class="top-bar">
-            <div>
-                <span class="text-muted" style="font-size:13px">Bienvenido,</span>
-                <strong style="font-size:14px">{{ session('NombreUsuario', auth()->user()->nombreCompleto()) }}</strong>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn-sidebar-toggle" id="btnSidebarToggle" title="Menú" aria-label="Abrir menú" aria-controls="appSidebar" aria-expanded="false">
+                    <i class="fas fa-bars" aria-hidden="true"></i>
+                </button>
+                <div>
+                    <span class="text-muted" style="font-size:13px">Bienvenido,</span>
+                    <strong style="font-size:14px">{{ session('NombreUsuario', auth()->user()->nombreCompleto()) }}</strong>
+                </div>
             </div>
             <div class="d-flex align-items-center gap-2">
                 <button class="btn-theme-toggle" id="btnThemeToggle" title="Cambiar tema">
@@ -350,6 +273,11 @@
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+            @if(!$tieneRolActivo)
+                <div class="alert alert-warning" role="alert">
+                    <i class="fas fa-user-slash me-2"></i>Su usuario no tiene un rol asignado. Contacte al administrador para habilitar sus módulos.
                 </div>
             @endif
             @yield('content')
@@ -420,6 +348,32 @@
     })();
     </script>
     <script src="{{ asset('js/table-controls.js') }}"></script>
+    <script>
+    (function() {
+        const sidebar = document.getElementById('appSidebar');
+        const btn = document.getElementById('btnSidebarToggle');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        if (!sidebar || !btn) return;
+
+        function close() {
+            sidebar.classList.remove('open');
+            if (backdrop) backdrop.classList.remove('show');
+            btn.setAttribute('aria-expanded', 'false');
+        }
+
+        btn.addEventListener('click', function() {
+            const open = sidebar.classList.toggle('open');
+            if (backdrop) backdrop.classList.toggle('show', open);
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+
+        if (backdrop) backdrop.addEventListener('click', close);
+
+        sidebar.querySelectorAll('a.nav-link').forEach(function(a) {
+            if (!a.hasAttribute('data-bs-toggle')) a.addEventListener('click', close);
+        });
+    })();
+    </script>
     @yield('scripts')
 </body>
 </html>

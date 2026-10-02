@@ -262,6 +262,12 @@ CREATE TABLE tblModulos (
 | activo | boolean | No | — | — |
 | orden | int | Si | — | — |
 
+> **Fuente de verdad:** `config/modulos.php`. Esta tabla es un espejo que se
+> actualiza con `php artisan modulos:sync` (la migración `2026_10_02_000002` lo
+> ejecuta en deploy). No existe formulario para crear/editar módulos: se
+> agregan en el archivo de configuración, en sus rutas (`permiso:<clave>`) y en
+> el sidebar, que se genera desde ese mismo archivo.
+
 ---
 
 ### tblSubModulos — Submódulos
@@ -272,6 +278,7 @@ CREATE TABLE tblSubModulos (
     id_Modulos BIGINT UNSIGNED NOT NULL,
     nombre VARCHAR(50) NOT NULL,
     controller VARCHAR(100) NULL,
+    clave VARCHAR(100) NULL UNIQUE,
     action VARCHAR(50) NULL,
     fechaAlta DATETIME NOT NULL,
     activo TINYINT(1) NOT NULL,
@@ -287,97 +294,79 @@ CREATE TABLE tblSubModulos (
 | id_Modulos | bigint FK | No | — | → tblModulos.id_Modulos |
 | nombre | varchar(50) | No | — | — |
 | controller | varchar(100) | Si | — | — |
+| clave | varchar(100) | Si | — | única; usada en rutas y sidebar (ej. `tickets`, `tipo-soporte`, `mantenimientos`) |
 | action | varchar(50) | Si | — | — |
 | fechaAlta | datetime | No | — | — |
 | activo | boolean | No | — | — |
 | orden | int | Si | — | — |
 
----
-
-### tblAcciones — Acciones (Consultar, Crear, etc.)
-
-```sql
-CREATE TABLE tblAcciones (
-    id_Accion BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    nombre VARCHAR(50) NOT NULL,
-    fechaAlta DATETIME NOT NULL,
-    activo TINYINT(1) NOT NULL,
-    PRIMARY KEY (id_Accion)
-);
-```
-
-| Columna | Tipo | Nullable | Default | FK |
-|---------|------|----------|---------|-----|
-| id_Accion | bigint PK | No | auto_increment | — |
-| nombre | varchar(50) | No | — | — |
-| fechaAlta | datetime | No | — | — |
-| activo | boolean | No | — | — |
+> **Fuente de verdad:** `config/modulos.php` (sincronizado con
+> `php artisan modulos:sync`; ver nota en `tblModulos`). `clave` identifica al
+> submódulo en el menú y en el middleware `permiso:<clave>`; la pantalla que
+> permitía crear/editar submódulos fue eliminada. Las columnas `controller` y
+> `action` son legacy: ya no las lee ninguna parte del sistema.
 
 ---
 
-### tblRolPermiso — Permisos por Rol
+### tblAcciones — ELIMINADA
+
+> Eliminada por la migración `2026_09_28_000004_limpieza_modulos_y_tablas_legacy.php`. Ya no participa en permisos (la matriz fue reemplazada por `tblRolModulo`/`tblRolSubModulo`).
+
+---
+
+### tblRolModulo — Módulos activos por Rol
 
 ```sql
-CREATE TABLE tblRolPermiso (
-    id_RolPermiso BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+CREATE TABLE tblRolModulo (
+    id_RolModulo BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     id_Rol BIGINT UNSIGNED NOT NULL,
     id_Modulos BIGINT UNSIGNED NOT NULL,
-    id_SubModulos BIGINT UNSIGNED NOT NULL,
-    id_Accion BIGINT UNSIGNED NOT NULL,
-    permitido TINYINT(1) NOT NULL,
     fechaAlta DATETIME NOT NULL,
     activo TINYINT(1) NOT NULL,
-    PRIMARY KEY (id_RolPermiso),
+    PRIMARY KEY (id_RolModulo),
     FOREIGN KEY (id_Rol) REFERENCES tblRoles(id_Rol),
     FOREIGN KEY (id_Modulos) REFERENCES tblModulos(id_Modulos),
-    FOREIGN KEY (id_SubModulos) REFERENCES tblSubModulos(id_SubModulos),
-    FOREIGN KEY (id_Accion) REFERENCES tblAcciones(id_Accion)
+    UNIQUE (id_Rol, id_Modulos)
 );
 ```
 
 | Columna | Tipo | Nullable | Default | FK |
 |---------|------|----------|---------|-----|
-| id_RolPermiso | bigint PK | No | auto_increment | — |
+| id_RolModulo | bigint PK | No | auto_increment | — |
 | id_Rol | bigint FK | No | — | → tblRoles.id_Rol |
 | id_Modulos | bigint FK | No | — | → tblModulos.id_Modulos |
-| id_SubModulos | bigint FK | No | — | → tblSubModulos.id_SubModulos |
-| id_Accion | bigint FK | No | — | → tblAcciones.id_Accion |
-| permitido | boolean | No | — | — |
 | fechaAlta | datetime | No | — | — |
 | activo | boolean | No | — | — |
+
+> Nota: cada fila indica que un rol tiene activo el módulo completo (su sección en el menú). Los roles con nombre que contiene "admin" o igual a "root" tienen todos los módulos sin necesidad de filas aquí. Reemplaza a las tablas `tblRolPermiso` y `tblPermisoUsuarios` (conservadas sin uso por compatibilidad).
 
 ---
 
-### tblPermisoUsuarios — Permisos por Usuario
+### tblRolSubModulo — Submódulos activos por Rol
 
 ```sql
-CREATE TABLE tblPermisoUsuarios (
-    id_PermisoUsuarios BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    id_Usuario BIGINT UNSIGNED NOT NULL,
-    id_Modulos BIGINT UNSIGNED NOT NULL,
+CREATE TABLE tblRolSubModulo (
+    id_RolSubModulo BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    id_Rol BIGINT UNSIGNED NOT NULL,
     id_SubModulos BIGINT UNSIGNED NOT NULL,
-    id_Accion BIGINT UNSIGNED NOT NULL,
-    permitido TINYINT(1) NOT NULL,
     fechaAlta DATETIME NOT NULL,
     activo TINYINT(1) NOT NULL,
-    PRIMARY KEY (id_PermisoUsuarios),
-    FOREIGN KEY (id_Usuario) REFERENCES tblUsuario(id_Usuario),
-    FOREIGN KEY (id_Modulos) REFERENCES tblModulos(id_Modulos),
+    PRIMARY KEY (id_RolSubModulo),
+    FOREIGN KEY (id_Rol) REFERENCES tblRoles(id_Rol),
     FOREIGN KEY (id_SubModulos) REFERENCES tblSubModulos(id_SubModulos),
-    FOREIGN KEY (id_Accion) REFERENCES tblAcciones(id_Accion)
+    UNIQUE (id_Rol, id_SubModulos)
 );
 ```
 
 | Columna | Tipo | Nullable | Default | FK |
 |---------|------|----------|---------|-----|
-| id_PermisoUsuarios | bigint PK | No | auto_increment | — |
-| id_Usuario | bigint FK | No | — | → tblUsuario.id_Usuario |
-| id_Modulos | bigint FK | No | — | → tblModulos.id_Modulos |
+| id_RolSubModulo | bigint PK | No | auto_increment | — |
+| id_Rol | bigint FK | No | — | → tblRoles.id_Rol |
 | id_SubModulos | bigint FK | No | — | → tblSubModulos.id_SubModulos |
-| id_Accion | bigint FK | No | — | → tblAcciones.id_Accion |
-| permitido | boolean | No | — | — |
 | fechaAlta | datetime | No | — | — |
 | activo | boolean | No | — | — |
+
+> Nota: define qué submódulos (enlaces del menú y rutas) puede usar un rol. La fila en `tblRolModulo` se mantiene sincronizada (un módulo queda activo si tiene al menos un submódulo activo, o si no tiene submódulos). El middleware `permiso:{clave}` valida por clave de submódulo, con respaldo al nombre del módulo. Los roles admin/root siempre tienen todo.
 
 ---
 
@@ -720,58 +709,9 @@ CREATE TABLE tblTipoEquipo (
 
 ---
 
-### tblEquipoCampo — Definición de Campos (Catálogo)
+### tblEquipoCampo / tblTipoEquipoCampo — ELIMINADAS
 
-> **SIN MIGRACIÓN** — Tabla creada fuera de Laravel. Se pobla con seeders (60+ campos).
-
-```sql
-CREATE TABLE tblEquipoCampo (
-    id_EquipoCampo BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    nombre VARCHAR(100) NOT NULL,
-    descripcion VARCHAR(250) NULL,
-    fechaAlta DATETIME NOT NULL,
-    activo TINYINT(1) NOT NULL,
-    PRIMARY KEY (id_EquipoCampo)
-);
-```
-
-| Columna | Tipo | Nullable | Default | FK |
-|---------|------|----------|---------|-----|
-| id_EquipoCampo | bigint PK | No | auto_increment | — |
-| nombre | varchar(100) | No | — | — |
-| descripcion | varchar(250) | Si | — | — |
-| fechaAlta | datetime | No | — | — |
-| activo | boolean | No | — | — |
-
-**Seeders:** `EquipoCampoSeeder.php` — Procesador, Memoria RAM, Disco Duro, SO, etc.
-
----
-
-### tblTipoEquipoCampo — Relación Tipo Equipo ↔ Campo
-
-```sql
-CREATE TABLE tblTipoEquipoCampo (
-    id_TipoEquipoCampo BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    id_TipoEquipo BIGINT UNSIGNED NOT NULL,
-    id_EquipoCampo INT NOT NULL,
-    requerido TINYINT(1) NOT NULL,
-    fechaAlta DATETIME NOT NULL,
-    activo TINYINT(1) NOT NULL,
-    PRIMARY KEY (id_TipoEquipoCampo),
-    FOREIGN KEY (id_TipoEquipo) REFERENCES tblTipoEquipo(id_TipoEquipo)
-);
-```
-
-| Columna | Tipo | Nullable | Default | FK |
-|---------|------|----------|---------|-----|
-| id_TipoEquipoCampo | bigint PK | No | auto_increment | — |
-| id_TipoEquipo | bigint FK | No | — | → tblTipoEquipo.id_TipoEquipo |
-| id_EquipoCampo | int | No | — | → tblEquipoCampo.id_EquipoCampo (lógica) |
-| requerido | boolean | No | — | — |
-| fechaAlta | datetime | No | — | — |
-| activo | boolean | No | — | — |
-
-**Nota:** `id_EquipoCampo` es FK lógica sin constraint a nivel BD.
+> Módulo de "Campos Personalizados" eliminado por la migración `2026_09_28_000005_reemplazar_campos_personalizados.php`. Fue reemplazado por columnas fijas en `tblEquipo` (`serieMotherboard`, `procesador`, `memoriaRam`, `almacenamiento`, `sistemaOperativo`, `ip`, `mac`, `estadoGarantia`, `fechaFinGarantia`) y el campo de texto libre `especificaciones`.
 
 ---
 
@@ -786,6 +726,16 @@ CREATE TABLE tblEquipo (
     id_Estatus BIGINT UNSIGNED NOT NULL,
     fechaAdquisicion DATETIME NULL,
     numeroSerie VARCHAR(150) NULL,
+    serieMotherboard VARCHAR(150) NULL,
+    procesador VARCHAR(150) NULL,
+    memoriaRam VARCHAR(100) NULL,
+    almacenamiento VARCHAR(150) NULL,
+    sistemaOperativo VARCHAR(100) NULL,
+    ip VARCHAR(45) NULL,
+    mac VARCHAR(50) NULL,
+    estadoGarantia VARCHAR(50) NULL,
+    fechaFinGarantia DATE NULL,
+    especificaciones TEXT NULL,
     nombreEquipo VARCHAR(150) NULL,
     ubicacion VARCHAR(150) NULL,
     observaciones TEXT NULL,
@@ -811,6 +761,16 @@ CREATE TABLE tblEquipo (
 | id_Estatus | bigint FK | No | — | → tblEstatus.id_Estatus |
 | fechaAdquisicion | datetime | Si | — | — |
 | numeroSerie | varchar(150) | Si | — | — |
+| serieMotherboard | varchar(150) | Si | — | — |
+| procesador | varchar(150) | Si | — | — |
+| memoriaRam | varchar(100) | Si | — | — |
+| almacenamiento | varchar(150) | Si | — | — |
+| sistemaOperativo | varchar(100) | Si | — | — |
+| ip | varchar(45) | Si | — | — |
+| mac | varchar(50) | Si | — | — |
+| estadoGarantia | varchar(50) | Si | — | — |
+| fechaFinGarantia | date | Si | — | — |
+| especificaciones | text | Si | — | — |
 | nombreEquipo | varchar(150) | Si | — | — |
 | ubicacion | varchar(150) | Si | — | — |
 | observaciones | text | Si | — | — |
@@ -825,29 +785,9 @@ CREATE TABLE tblEquipo (
 
 ---
 
-### tblEquipoDetalle — Detalle / Valores de Campos del Equipo
+### tblEquipoDetalle — ELIMINADA
 
-```sql
-CREATE TABLE tblEquipoDetalle (
-    id_EquipoDetalle BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    id_Equipo BIGINT UNSIGNED NOT NULL,
-    id_EquipoCampo INT NOT NULL,
-    valor VARCHAR(250) NULL,
-    fechaAlta DATETIME NOT NULL,
-    activo TINYINT(1) NOT NULL,
-    PRIMARY KEY (id_EquipoDetalle),
-    FOREIGN KEY (id_Equipo) REFERENCES tblEquipo(id_Equipo)
-);
-```
-
-| Columna | Tipo | Nullable | Default | FK |
-|---------|------|----------|---------|-----|
-| id_EquipoDetalle | bigint PK | No | auto_increment | — |
-| id_Equipo | bigint FK | No | — | → tblEquipo.id_Equipo |
-| id_EquipoCampo | int | No | — | → tblEquipoCampo.id_EquipoCampo (lógica) |
-| valor | varchar(250) | Si | — | — |
-| fechaAlta | datetime | No | — | — |
-| activo | boolean | No | — | — |
+> Eliminada por la migración `2026_09_28_000005_reemplazar_campos_personalizados.php`. Los valores de "Serie Motherboard" fueron migrados a `tblEquipo.serieMotherboard`.
 
 ---
 
@@ -1227,11 +1167,16 @@ CREATE TABLE tblTipoEquipoTicket (
        │               │ tblRoles │  │   tblEquipo  │
        │               └────┬─────┘  └──────┬───────┘
        │                    │               │
-       │               1:N  │               │ 1:N
-       │                    ▼               ▼
-       │            ┌──────────────┐  ┌──────────────────┐
-       │            │tblRolPermiso │  │tblEquipoDetalle  │──► tblEquipoCampo
-       │            └──────────────┘  └──────────────────┘
+        │               1:N  │               │ 1:N
+        │                    ▼               ▼
+         │            ┌──────────────┐  ┌──────────────────┐
+         │            │ tblRolModulo │  │  tblEquipoUsuario│
+         │            └──────┬───────┘  └──────────────────┘
+         │                   │ 1:N
+        │                   ▼
+        │            ┌─────────────────┐
+        │            │ tblRolSubModulo │──► tblSubModulos
+        │            └─────────────────┘
        │
        │  1:N
        ▼
@@ -1266,20 +1211,19 @@ CREATE TABLE tblTipoEquipoTicket (
 
 ---
 
-## Tablas sin Migración Laravel (5)
+## Tablas sin Migración Laravel
 
 Estas tablas existen en la BD pero NO tienen archivo de migración en `database/migrations/`:
 
 | # | Tabla | Modelo | Uso |
 |---|-------|--------|-----|
-| 1 | `tblEquipoCampo` | `EquipoCampoDefinicion` | Catálogo de campos de equipo (seeded) |
-| 2 | `tblEquipoRelacion` | `EquipoRelacion` | Relación padre-hijo entre equipos |
-| 3 | `tblTipoRelacionEquipo` | `TipoRelacionEquipo` | Catálogo de tipos de relación |
-| 4 | `tblModulosSistemas` | `ModuloSistema` | Módulos por sistema (para tickets desarrollo) |
-| 5 | `tblSubmodulosSistemas` | `SubModuloSistema` | Submódulos por sistema |
-| 6 | `tblTipoEquipoTicket` | `TipoEquipoTicket` | Tipo de equipo para tickets |
+| 1 | `tblEquipoRelacion` | `EquipoRelacion` | Relación padre-hijo entre equipos |
+| 2 | `tblTipoRelacionEquipo` | `TipoRelacionEquipo` | Catálogo de tipos de relación |
+| 3 | `tblModulosSistemas` | `ModuloSistema` | Módulos por sistema (para tickets desarrollo) |
+| 4 | `tblSubmodulosSistemas` | `SubModuloSistema` | Submódulos por sistema |
+| 5 | `tblTipoEquipoTicket` | `TipoEquipoTicket` | Tipo de equipo para tickets |
 
-**Recomendación:** Crear una migración que incluya estas 5 tablas para mantener consistencia.
+**Recomendación:** Crear una migración que incluya estas tablas para mantener consistencia.
 
 ---
 
@@ -1288,7 +1232,6 @@ Estas tablas existen en la BD pero NO tienen archivo de migración en `database/
 | Tabla | Seeder | Datos |
 |-------|--------|-------|
 | `tblPeriodoMantenimiento` | `PeriodoMantenimientoSeeder` | Mensual(1), Bimestral(2), Trimestral(3), Semestral(6), Anual(12) |
-| `tblEquipoCampo` | `EquipoCampoSeeder` | 60+ campos: Procesador, Memoria RAM, Disco Duro, SO, etc. |
 
 ---
 
@@ -1299,9 +1242,8 @@ Estas tablas existen en la BD pero NO tienen archivo de migración en `database/
    - `tblUsuario` (depende de las 4 anteriores)
    - `tblLogin` (depende de tblUsuario)
    - `tblRoles` → `tblRolesUsuarios`
-   - `tblModulos` → `tblSubModulos`
-   - `tblAcciones`
-   - `tblEstatus` → `tblTipoSoporte`
+    - `tblModulos` → `tblSubModulos`
+    - `tblEstatus` → `tblTipoSoporte`
    - `tblTipoEquipo` → `tblEquipo`
    - `tblTicket` (depende de tblUsuario, tblTipoSoporte, tblEstatus, tblEquipo)
    - Tablas de ticket (Comentarios, Evidencia, etc.)
@@ -1333,3 +1275,9 @@ Estas tablas existen en la BD pero NO tienen archivo de migración en `database/
 | `2026_09_23_000001_add_report_fields_to_tblMantenimiento_table.php` | Agrega columnas a tblMantenimiento |
 | `2026_09_23_000002_add_reporteCerrado_to_tblMantenimiento_table.php` | Agrega columna a tblMantenimiento |
 | `2026_09_23_204145_alter_tbl_historial_equipo_usuario_...` | Modifica tblHistorialEquipoUsuario |
+| `2026_09_28_000001_create_tblRolModulo_table.php` | tblRolModulo (convierte datos de la entonces legacy tblRolPermiso) |
+| `2026_09_28_000002_add_clave_to_tblSubModulos_and_create_tblRolSubModulo.php` | columna `clave` en tblSubModulos (+ submódulos mantenimientos/roles-modulos/gps/dashboard) y tblRolSubModulo (convierte datos de tblRolModulo) |
+| `2026_09_28_000004_limpieza_modulos_y_tablas_legacy.php` | elimina tablas `tblRolPermiso`, `tblPermisoUsuarios`, `tblAcciones` y los módulos/submódulos no usados (GPS, Nuevo, categoría soporte, etc.) |
+| `2026_09_28_000005_reemplazar_campos_personalizados.php` | agrega 10 columnas a tblEquipo y elimina tblEquipoCampo, tblTipoEquipoCampo y tblEquipoDetalle (migra "Serie Motherboard") |
+| `2026_10_02_000001_eliminar_submodulos_modulos_y_roles_usuarios.php` | elimina los submódulos `modulos` y `roles-usuarios` de tblSubModulos + sus filas en tblRolSubModulo (pantallas retiradas del menú) |
+| `2026_10_02_000002_sincronizar_catalogo_modulos_desde_config.php` | refleja `config/modulos.php` en tblModulos/tblSubModulos (elimina claves fuera del registro, p. ej. `submodulos` y `nuevo`) |

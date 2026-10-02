@@ -8,11 +8,13 @@ use Illuminate\Support\Facades\DB;
 class ImportarFaltantes extends Command
 {
     protected $signature = 'db:importar-faltantes';
-    protected $description = 'Importar registros faltantes de productivo a local';
+    protected $description = 'Sincroniza registros de productivo a local (importa faltantes y actualiza tickets existentes)';
+
+    private array $camposTicket = ['id_Estatus', 'id_Tecnico', 'fechaCierre', 'activo', 'id_Equipo', 'id_TipoSoporte'];
 
     public function handle()
     {
-        $this->line('=== IMPORTACIÓN DE REGISTROS FALTANTES ===');
+        $this->line('=== SINCRONIZACIÓN PRODUCTIVO → LOCAL ===');
         $this->newLine();
 
         try {
@@ -23,27 +25,31 @@ class ImportarFaltantes extends Command
             return 1;
         }
 
-        // 1. tblequipousuario (faltan 3 en local)
         $this->importarEquiposUsuarios();
-
-        // 2. tblticket (faltan 2 en local)
+        $this->sincronizarTicketsExistentes();
         $this->importarTickets();
-
-        // 3. tblticketcomentarios (faltan 6 en local)
+        $this->limpiarComentariosAutomaticos();
         $this->importarComentarios();
-
-        // 4. tblticketevidencia (faltan 2 en local)
         $this->importarEvidencias();
-
-        // 5. tblestatus (sobra 1 en local)
         $this->verificarEstatus();
-
-        // 6. tblhistorialequipousuario (sobran 5 en local)
         $this->verificarHistorial();
 
         $this->newLine();
-        $this->info('=== IMPORTACIÓN COMPLETADA ===');
+        $this->info('=== SINCRONIZACIÓN COMPLETADA ===');
         return 0;
+    }
+
+    private function normalizar($valor)
+    {
+        if ($valor === null || $valor === '') {
+            return null;
+        }
+
+        if (is_string($valor) && preg_match('/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}/', $valor)) {
+            return date('Y-m-d H:i:s', strtotime($valor));
+        }
+
+        return (string) $valor;
     }
 
     private function importarEquiposUsuarios()
@@ -89,9 +95,45 @@ class ImportarFaltantes extends Command
         }
     }
 
+    private function sincronizarTicketsExistentes()
+    {
+        $this->line('--- tblticket (actualizar existentes) ---');
+
+        $productivos = DB::connection('sqlsrv_productivo')->table('tblTicket')->get();
+        $actualizados = 0;
+
+        foreach ($productivos as $p) {
+            $local = DB::connection('mysql')->table('tblticket')->where('id_Ticket', $p->id_Ticket)->first();
+
+            if (!$local) {
+                continue;
+            }
+
+            $cambios = [];
+            foreach ($this->camposTicket as $campo) {
+                $valorProd = $this->normalizar($p->$campo ?? null);
+                $valorLocal = $this->normalizar($local->$campo ?? null);
+
+                if ($valorProd !== $valorLocal) {
+                    $cambios[$campo] = $valorProd;
+                }
+            }
+
+            if (!empty($cambios)) {
+                DB::connection('mysql')->table('tblticket')
+                    ->where('id_Ticket', $p->id_Ticket)
+                    ->update($cambios);
+                $actualizados++;
+                $this->line("   ↻ Ticket #{$p->id_Ticket}: " . implode(', ', array_keys($cambios)));
+            }
+        }
+
+        $this->info("Tickets actualizados: {$actualizados}");
+    }
+
     private function importarTickets()
     {
-        $this->line('--- tblticket ---');
+        $this->line('--- tblticket (importar faltantes) ---');
 
         $idsProductivo = DB::connection('sqlsrv_productivo')
             ->select('SELECT id_Ticket FROM tblTicket ORDER BY id_Ticket');
@@ -128,11 +170,29 @@ class ImportarFaltantes extends Command
                 'activo' => $registro->activo,
                 'id_Estatus' => $registro->id_Estatus,
                 'id_Equipo' => $registro->id_Equipo,
-                'fechaCierre' => $registro->fechaCierre,
+                'fechaCierre' => $this->normalizar($registro->fechaCierre),
             ]);
 
             $this->line("   ✅ Importado ID $id");
         }
+    }
+
+    private function limpiarComentariosAutomaticos()
+    {
+        $this->line('--- tblticketcomentarios (limpiar automáticos) ---');
+
+        $ids = DB::connection('mysql')->table('tblticketcomentarios')
+            ->where('comentario', 'like', '%cerrado automáticamente por inactividad%')
+            ->pluck('id_TicketComentario')
+            ->all();
+
+        if (!empty($ids)) {
+            DB::connection('mysql')->table('tblticketcomentarios')
+                ->whereIn('id_TicketComentario', $ids)
+                ->delete();
+        }
+
+        $this->info('Comentarios automáticos eliminados: ' . count($ids));
     }
 
     private function importarComentarios()
@@ -245,7 +305,7 @@ class ImportarFaltantes extends Command
         foreach ($sobrantes as $id) {
             $registro = DB::connection('mysql')
                 ->selectOne('SELECT * FROM tblestatus WHERE id_Estatus = ?', [$id]);
-            $this->line("   ID $id: " . ($registro->nombre ?? 'N/A'));
+            $this->line("   ID $id: " . ($registro->descripcion ?? 'N/A'));
         }
     }
 
@@ -269,11 +329,5 @@ class ImportarFaltantes extends Command
         }
 
         $this->warn("Registros en local que no están en productivo: " . implode(', ', $sobrantes));
-
-        foreach ($sobrantes as $id) {
-            $registro = DB::connection('mysql')
-                ->selectOne('SELECT * FROM tblhistorialequipousuario WHERE id_HistorialEquipoUsuario = ?', [$id]);
-            $this->line("   ID $id: " . ($registro->accion ?? 'N/A') . " - " . ($registro->fechaAccion ?? 'N/A'));
-        }
     }
 }

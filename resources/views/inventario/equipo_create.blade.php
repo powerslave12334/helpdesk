@@ -96,8 +96,27 @@
                 </div>
             </div>
 
-            <h6 class="mt-3"><i class="fas fa-sliders me-1"></i>Campos Personalizados</h6>
-            <div id="camposDinamicos" class="row"></div>
+            <h6 class="mt-3"><i class="fas fa-microchip me-1"></i>Especificaciones</h6>
+            <div class="row">
+                <div class="col-md-3 mb-3"><label class="form-label">Serie Motherboard</label><input type="text" name="serieMotherboard" class="form-control" value="{{ old('serieMotherboard') }}"></div>
+                <div class="col-md-3 mb-3"><label class="form-label">Procesador</label><input type="text" name="procesador" class="form-control" value="{{ old('procesador') }}"></div>
+                <div class="col-md-3 mb-3"><label class="form-label">Memoria RAM</label><input type="text" name="memoriaRam" class="form-control" value="{{ old('memoriaRam') }}"></div>
+                <div class="col-md-3 mb-3"><label class="form-label">Almacenamiento</label><input type="text" name="almacenamiento" class="form-control" value="{{ old('almacenamiento') }}"></div>
+                <div class="col-md-3 mb-3"><label class="form-label">Sistema Operativo</label><input type="text" name="sistemaOperativo" class="form-control" value="{{ old('sistemaOperativo') }}"></div>
+                <div class="col-md-3 mb-3"><label class="form-label">IP</label><input type="text" name="ip" class="form-control" value="{{ old('ip') }}"></div>
+                <div class="col-md-3 mb-3"><label class="form-label">MAC</label><input type="text" name="mac" class="form-control" value="{{ old('mac') }}"></div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Estado Garantía</label>
+                    <select name="estadoGarantia" class="form-select">
+                        <option value="">Seleccionar...</option>
+                        @foreach(['Vigente', 'Vencida', 'Sin garantía'] as $op)
+                        <option value="{{ $op }}" {{ old('estadoGarantia') == $op ? 'selected' : '' }}>{{ $op }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3"><label class="form-label">Fecha Fin Garantía</label><input type="date" name="fechaFinGarantia" class="form-control" value="{{ old('fechaFinGarantia') }}"></div>
+                <div class="col-md-12 mb-3"><label class="form-label">Especificaciones adicionales</label><textarea name="especificaciones" class="form-control" rows="2">{{ old('especificaciones') }}</textarea></div>
+            </div>
 
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Guardar Equipo</button>
@@ -108,135 +127,3 @@
 </div>
 @endsection
 
-@section('scripts')
-<script>
-document.getElementById('selTipoEquipo')?.addEventListener('change', function() {
-    const container = document.getElementById('camposDinamicos');
-    container.innerHTML = '<p class="text-muted">Cargando campos...</p>';
-    fetch(`/inventario/equipo/campos/${this.value}`)
-        .then(r => r.json())
-        .then(data => {
-            container.innerHTML = '';
-            data.forEach(c => {
-                const nombre = c.campo?.nombre;
-                if (!nombre) return;
-                const req = c.requerido ? 'required' : '';
-                const reqStar = c.requerido ? '*' : '';
-                let html = '';
-
-                if (nombre === 'Estado Garantía') {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <select name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-select" ${req}>
-                                <option value="">Seleccionar...</option>
-                                <option value="Vigente">Vigente</option>
-                                <option value="Vencida">Vencida</option>
-                            </select>
-                        </div>`;
-                } else if (nombre === 'Fecha Fin Garantía') {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <div class="input-group">
-                                <input type="date" name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-control" id="fechaGarantia_${c.id_EquipoCampo}">
-                                <button type="button" class="btn btn-outline-secondary btn-na" data-target="fechaGarantia_${c.id_EquipoCampo}" title="No aplica">N/A</button>
-                            </div>
-                        </div>`;
-                } else if (nombre === 'Sistema Operativo') {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <select name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-select" ${req}>
-                                <option value="">Seleccionar...</option>
-                                <option value="Windows 11 Pro">Windows 11 Pro</option>
-                                <option value="Windows 11 Home">Windows 11 Home</option>
-                                <option value="Windows 10 Pro">Windows 10 Pro</option>
-                                <option value="Windows 10 Home">Windows 10 Home</option>
-                                <option value="Windows Server 2022">Windows Server 2022</option>
-                                <option value="Windows Server 2019">Windows Server 2019</option>
-                                <option value="Ubuntu">Ubuntu</option>
-                                <option value="Linux Mint">Linux Mint</option>
-                                <option value="macOS">macOS</option>
-                                <option value="ChromeOS">ChromeOS</option>
-                                <option value="Sin SO">Sin SO</option>
-                            </select>
-                        </div>`;
-                } else if (nombre === 'Tipo Almacenamiento') {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <select name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-select" ${req}>
-                                <option value="">Seleccionar...</option>
-                                <option value="Mecánico (HDD)">Mecánico (HDD)</option>
-                                <option value="SSD">SSD</option>
-                                <option value="NVMe">NVMe</option>
-                                <option value="Híbrido (HDD + SSD)">Híbrido (HDD + SSD)</option>
-                            </select>
-                        </div>`;
-                } else if (nombre === 'Tipo Conexión') {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <select name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-select" ${req}>
-                                <option value="">Seleccionar...</option>
-                                <option value="USB">USB</option>
-                                <option value="Inalámbrico">Inalámbrico</option>
-                                <option value="PS/2">PS/2</option>
-                                <option value="Bluetooth">Bluetooth</option>
-                                <option value="USB + Inalámbrico">USB + Inalámbrico</option>
-                            </select>
-                        </div>`;
-                } else if (nombre === 'Tipo Teclado') {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <select name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-select" ${req}>
-                                <option value="">Seleccionar...</option>
-                                <option value="Mecánico">Mecánico</option>
-                                <option value="Membrana">Membrana</option>
-                            </select>
-                        </div>`;
-                } else if (nombre === 'Retroiluminado') {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <select name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-select" ${req}>
-                                <option value="">Seleccionar...</option>
-                                <option value="Sí">Sí</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>`;
-                } else {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <input type="text" name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-control" ${req}>
-                        </div>`;
-                }
-
-                container.innerHTML += html;
-            });
-
-            // Eventos para botones N/A
-            container.querySelectorAll('.btn-na').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const input = document.getElementById(this.dataset.target);
-                    if (input.value === 'N/A') {
-                        input.value = '';
-                        input.type = 'date';
-                        this.textContent = 'N/A';
-                        this.classList.remove('active');
-                    } else {
-                        input.value = 'N/A';
-                        input.type = 'text';
-                        this.textContent = 'Fecha';
-                        this.classList.add('active');
-                    }
-                });
-            });
-        });
-});
-document.getElementById('selTipoEquipo')?.dispatchEvent(new Event('change'));
-</script>
-@endsection

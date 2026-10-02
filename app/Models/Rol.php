@@ -13,5 +13,6 @@ class Rol extends Model
     protected $casts = ['activo' => 'boolean', 'fechaAlta' => 'datetime'];
 
     public function usuarios() { return $this->belongsToMany(Usuario::class, 'tblRolesUsuarios', 'id_Rol', 'id_Usuario'); }
-    public function permisos() { return $this->hasMany(RolPermiso::class, 'id_Rol'); }
+    public function modulos() { return $this->hasMany(RolModulo::class, 'id_Rol'); }
+    public function subModulos() { return $this->hasMany(RolSubModulo::class, 'id_Rol'); }
 }

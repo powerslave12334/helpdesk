@@ -4,10 +4,7 @@ namespace App\Http\Controllers\Inventario;
 
 use App\Http\Controllers\Controller;
 use App\Models\Equipo;
-use App\Models\EquipoCampo;
 use App\Models\TipoEquipo;
-use App\Models\TipoEquipoCampo;
-use App\Models\EquipoCampoDefinicion;
 use App\Models\Estatus;
 use App\Models\Oficina;
 use Illuminate\Http\Request;
@@ -17,7 +14,7 @@ class EquipoController extends Controller
 {
     public function index()
     {
-        $equipos = Equipo::with(['tipoEquipo', 'estatus', 'oficina', 'equipoDetalle.campo', 'asignaciones.usuario'])
+        $equipos = Equipo::with(['tipoEquipo', 'estatus', 'oficina', 'asignaciones.usuario'])
             ->get()
             ->map(function ($equipo) {
                 $asignacionActiva = $equipo->asignaciones->where('activo', true)->whereNull('fechaBaja')->first();
@@ -28,9 +25,8 @@ class EquipoController extends Controller
         $tiposEquipo = TipoEquipo::where('activo', true)->get();
         $estatus = Estatus::where('activo', true)->where('id_Modulos', 2)->get();
         $oficinas = Oficina::where('activo', true)->get();
-        $campos = EquipoCampoDefinicion::where('activo', true)->get();
 
-        return view('inventario.equipo', compact('equipos', 'tiposEquipo', 'estatus', 'oficinas', 'campos'));
+        return view('inventario.equipo', compact('equipos', 'tiposEquipo', 'estatus', 'oficinas'));
     }
 
     public function seleccionarTipo()
@@ -50,18 +46,7 @@ class EquipoController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'marca' => 'required|string|max:100',
-            'modelo' => 'required|string|max:100',
-            'id_TipoEquipo' => 'required|integer',
-            'id_Estatus' => 'required|integer',
-            'numeroSerie' => 'nullable|string|max:100',
-            'nombreEquipo' => 'nullable|string|max:200',
-            'ubicacion' => 'nullable|string|max:200',
-            'observaciones' => 'nullable|string',
-            'id_Oficinas' => 'nullable|integer',
-            'esCompartido' => 'sometimes|boolean',
-        ]);
+        $request->validate($this->reglasValidacion());
 
         if ($request->numeroSerie) {
             $existe = Equipo::where('activo', true)
@@ -69,18 +54,6 @@ class EquipoController extends Controller
                 ->first();
             if ($existe) {
                 return back()->with('error', 'El número de serie ya existe');
-            }
-        }
-
-        $requiredFields = TipoEquipoCampo::where('id_TipoEquipo', $request->id_TipoEquipo)
-            ->where('requerido', true)->where('activo', true)->pluck('id_EquipoCampo')->toArray();
-
-        if ($request->campos_dinamicos) {
-            foreach ($requiredFields as $rf) {
-                if (empty($request->campos_dinamicos[$rf])) {
-                    $campo = EquipoCampoDefinicion::find($rf);
-                    return back()->with('error', "El campo '{$campo->nombre}' es requerido");
-                }
             }
         }
 
@@ -99,11 +72,19 @@ class EquipoController extends Controller
                 'id_PeriodoMantenimiento' => $request->id_PeriodoMantenimiento ?? 0,
                 'fechaUltimoMantenimiento' => $request->fechaUltimoMantenimiento ?: null,
                 'esCompartido' => $request->has('esCompartido') ? 1 : 0,
+                'serieMotherboard' => $request->serieMotherboard,
+                'procesador' => $request->procesador,
+                'memoriaRam' => $request->memoriaRam,
+                'almacenamiento' => $request->almacenamiento,
+                'sistemaOperativo' => $request->sistemaOperativo,
+                'ip' => $request->ip,
+                'mac' => $request->mac,
+                'estadoGarantia' => $request->estadoGarantia,
+                'fechaFinGarantia' => $request->fechaFinGarantia ?: null,
+                'especificaciones' => $request->especificaciones,
                 'fechaAlta' => now(),
                 'activo' => true,
             ]);
-
-            $this->guardarDetalles($equipo->id_Equipo, $request->campos_dinamicos ?? []);
 
             DB::commit();
             return redirect()->route('inventario.equipo.index')->with('success', 'Equipo creado correctamente');
@@ -115,27 +96,17 @@ class EquipoController extends Controller
 
     public function edit($id)
     {
-        $equipo = Equipo::with(['equipoDetalle.campo', 'tipoEquipo', 'estatus', 'oficina'])->findOrFail($id);
+        $equipo = Equipo::with(['tipoEquipo', 'estatus', 'oficina'])->findOrFail($id);
         $tiposEquipo = TipoEquipo::where('activo', true)->get();
         $estatus = Estatus::where('activo', true)->where('id_Modulos', 2)->get();
         $oficinas = Oficina::where('activo', true)->get();
 
-        $tipoCampos = TipoEquipoCampo::with('campo')
-            ->where('id_TipoEquipo', $equipo->id_TipoEquipo)
-            ->where('activo', true)->get();
-
-        return view('inventario.equipo_edit', compact('equipo', 'tiposEquipo', 'estatus', 'oficinas', 'tipoCampos'));
+        return view('inventario.equipo_edit', compact('equipo', 'tiposEquipo', 'estatus', 'oficinas'));
     }
 
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'marca' => 'required|string|max:100',
-            'modelo' => 'required|string|max:100',
-            'id_TipoEquipo' => 'required|integer',
-            'id_Estatus' => 'required|integer',
-            'numeroSerie' => 'nullable|string|max:100',
-        ]);
+        $request->validate($this->reglasValidacion());
 
         if ($request->numeroSerie) {
             $existe = Equipo::where('activo', true)
@@ -163,10 +134,17 @@ class EquipoController extends Controller
                 'id_PeriodoMantenimiento' => $request->id_PeriodoMantenimiento ?? $equipo->id_PeriodoMantenimiento,
                 'fechaUltimoMantenimiento' => $request->fechaUltimoMantenimiento ?: null,
                 'esCompartido' => $request->has('esCompartido') ? 1 : 0,
+                'serieMotherboard' => $request->serieMotherboard,
+                'procesador' => $request->procesador,
+                'memoriaRam' => $request->memoriaRam,
+                'almacenamiento' => $request->almacenamiento,
+                'sistemaOperativo' => $request->sistemaOperativo,
+                'ip' => $request->ip,
+                'mac' => $request->mac,
+                'estadoGarantia' => $request->estadoGarantia,
+                'fechaFinGarantia' => $request->fechaFinGarantia ?: null,
+                'especificaciones' => $request->especificaciones,
             ]);
-
-            EquipoCampo::where('id_Equipo', $id)->update(['activo' => false]);
-            $this->guardarDetalles($id, $request->campos_dinamicos ?? []);
 
             DB::commit();
             return redirect()->route('inventario.equipo.index')->with('success', 'Equipo actualizado correctamente');
@@ -184,23 +162,29 @@ class EquipoController extends Controller
         return back()->with('success', $equipo->activo ? 'Equipo activado' : 'Equipo desactivado');
     }
 
-    public function campos($idTipo)
+    private function reglasValidacion(): array
     {
-        $campos = TipoEquipoCampo::with('campo')
-            ->where('id_TipoEquipo', $idTipo)
-            ->where('activo', true)->get();
-        return response()->json($campos);
-    }
-
-    private function guardarDetalles($idEquipo, array $campos)
-    {
-        foreach ($campos as $idCampo => $valor) {
-            if (!empty($valor)) {
-                EquipoCampo::updateOrCreate(
-                    ['id_Equipo' => $idEquipo, 'id_EquipoCampo' => $idCampo],
-                    ['valor' => $valor, 'activo' => true, 'fechaAlta' => now()]
-                );
-            }
-        }
+        return [
+            'marca' => 'required|string|max:100',
+            'modelo' => 'required|string|max:100',
+            'id_TipoEquipo' => 'required|integer',
+            'id_Estatus' => 'required|integer',
+            'numeroSerie' => 'nullable|string|max:100',
+            'nombreEquipo' => 'nullable|string|max:200',
+            'ubicacion' => 'nullable|string|max:200',
+            'observaciones' => 'nullable|string',
+            'id_Oficinas' => 'nullable|integer',
+            'esCompartido' => 'sometimes|boolean',
+            'serieMotherboard' => 'nullable|string|max:150',
+            'procesador' => 'nullable|string|max:150',
+            'memoriaRam' => 'nullable|string|max:100',
+            'almacenamiento' => 'nullable|string|max:150',
+            'sistemaOperativo' => 'nullable|string|max:100',
+            'ip' => 'nullable|string|max:45',
+            'mac' => 'nullable|string|max:50',
+            'estadoGarantia' => 'nullable|string|max:50',
+            'fechaFinGarantia' => 'nullable|date',
+            'especificaciones' => 'nullable|string',
+        ];
     }
 }

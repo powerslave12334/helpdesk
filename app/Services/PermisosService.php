@@ -2,10 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Usuario;
-use App\Models\Modulo;
-use App\Models\SubModulo;
-use App\Models\Accion;
+use App\Support\Modulos;
 use Illuminate\Support\Facades\DB;
 
 class PermisosService
@@ -24,116 +21,63 @@ class PermisosService
             ->exists();
     }
 
-    public function tienePermiso(int $idUsuario, int $idModulo, int $idSubModulo, int $idAccion): bool
+    public function tieneRolActivo(int $idUsuario): bool
     {
-        if ($this->esAdministrador($idUsuario)) {
-            return true;
-        }
-
-        $permisoUsuario = DB::table('tblPermisoUsuarios')
+        return DB::table('tblRolesUsuarios')
             ->where('id_Usuario', $idUsuario)
-            ->where('id_Modulos', $idModulo)
-            ->where('id_SubModulos', $idSubModulo)
-            ->where('id_Accion', $idAccion)
             ->where('activo', true)
-            ->orderByDesc('id_PermisoUsuarios')
-            ->first();
-
-        if ($permisoUsuario) {
-            return (bool) $permisoUsuario->permitido;
-        }
-
-        $permisoRol = DB::table('tblRolesUsuarios as ru')
-            ->join('tblRolPermiso as rp', 'rp.id_Rol', '=', 'ru.id_Rol')
-            ->where('ru.id_Usuario', $idUsuario)
-            ->where('ru.activo', true)
-            ->where('rp.id_Modulos', $idModulo)
-            ->where('rp.id_SubModulos', $idSubModulo)
-            ->where('rp.id_Accion', $idAccion)
-            ->where('rp.activo', true)
-            ->select(DB::raw('SUM(CASE WHEN rp.permitido = 1 THEN 1 ELSE 0 END) as total_permisos'))
-            ->havingRaw('COUNT(1) > 0')
-            ->first();
-
-        if ($permisoRol && $permisoRol->total_permisos > 0) {
-            return true;
-        }
-
-        return false;
+            ->exists();
     }
 
-    public function tienePermisoPorRuta(int $idUsuario, string $controller, string $accion): bool
+    /**
+     * Ids de módulos que el usuario puede ver. El catálogo real es
+     * config/modulos.php; la BD solo aporta los permisos del rol.
+     */
+    public function modulosActivosUsuarioIds(int $idUsuario): array
     {
         if ($this->esAdministrador($idUsuario)) {
-            return true;
+            return Modulos::ids();
         }
 
-        $subModulo = DB::table('tblSubModulos')
-            ->whereRaw('LOWER(controller) = ?', [strtolower($controller)])
-            ->where('activo', true)
-            ->first();
-
-        if (!$subModulo) {
-            return false;
-        }
-
-        $idsAcciones = $this->obtenerIdsAccion($accion);
-
-        foreach ($idsAcciones as $idAccion) {
-            if ($this->tienePermiso($idUsuario, $subModulo->id_Modulos, $subModulo->id_SubModulos, $idAccion)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function obtenerIdsAccion(string $accion): array
-    {
-        $aliasMap = [
-            'consultar' => ['Consultar', 'Consulta', 'Leer', 'Lectura', 'Read'],
-            'leer'      => ['Consultar', 'Consulta', 'Leer', 'Lectura', 'Read'],
-            'lectura'   => ['Consultar', 'Consulta', 'Leer', 'Lectura', 'Read'],
-            'crear'     => ['Crear', 'Alta', 'Agregar', 'Escritura', 'Create'],
-            'actualizar' => ['Actualizar', 'Editar', 'Cambios', 'Modificar', 'Update'],
-            'editar'    => ['Actualizar', 'Editar', 'Cambios', 'Modificar', 'Update'],
-            'eliminar'  => ['Eliminar', 'Baja', 'Delete'],
-        ];
-
-        $nombres = $aliasMap[strtolower($accion)] ?? [$accion];
-
-        return DB::table('tblAcciones')
-            ->where('activo', true)
-            ->whereIn('nombre', $nombres)
-            ->pluck('id_Accion')
-            ->toArray();
-    }
-
-    public function obtenerPermisosUsuario(int $idUsuario): array
-    {
-        if ($this->esAdministrador($idUsuario)) {
-            return ['admin' => true];
-        }
-
-        $permisosUsuario = DB::table('tblPermisoUsuarios as pu')
-            ->join('tblSubModulos as sm', 'sm.id_SubModulos', '=', 'pu.id_SubModulos')
-            ->where('pu.id_Usuario', $idUsuario)
-            ->where('pu.activo', true)
-            ->select('sm.controller', 'pu.id_Accion', 'pu.permitido')
-            ->get();
-
-        $permisosRol = DB::table('tblRolesUsuarios as ru')
-            ->join('tblRolPermiso as rp', 'rp.id_Rol', '=', 'ru.id_Rol')
-            ->join('tblSubModulos as sm', 'sm.id_SubModulos', '=', 'rp.id_SubModulos')
+        $idsRol = DB::table('tblRolModulo as rm')
+            ->join('tblRolesUsuarios as ru', 'ru.id_Rol', '=', 'rm.id_Rol')
             ->where('ru.id_Usuario', $idUsuario)
             ->where('ru.activo', true)
-            ->where('rp.activo', true)
-            ->select('sm.controller', 'rp.id_Accion', 'rp.permitido')
-            ->get();
+            ->where('rm.activo', true)
+            ->pluck('rm.id_Modulos')
+            ->map(fn($v) => (int) $v)
+            ->all();
 
-        return [
-            'usuario' => $permisosUsuario->toArray(),
-            'rol' => $permisosRol->toArray(),
-        ];
+        return array_values(array_intersect($idsRol, Modulos::ids()));
+    }
+
+    /**
+     * Claves de submódulos (enlaces del menú y middleware permiso:<clave>)
+     * que el usuario puede usar.
+     */
+    public function submodulosActivosUsuarioClaves(int $idUsuario): array
+    {
+        if ($this->esAdministrador($idUsuario)) {
+            return Modulos::claves();
+        }
+
+        $clavesRol = DB::table('tblRolSubModulo as rsm')
+            ->join('tblRolesUsuarios as ru', 'ru.id_Rol', '=', 'rsm.id_Rol')
+            ->join('tblSubModulos as sm', 'sm.id_SubModulos', '=', 'rsm.id_SubModulos')
+            ->where('ru.id_Usuario', $idUsuario)
+            ->where('ru.activo', true)
+            ->where('rsm.activo', true)
+            ->where('sm.activo', true)
+            ->whereNotNull('sm.clave')
+            ->distinct()
+            ->pluck('sm.clave')
+            ->all();
+
+        return array_values(array_intersect($clavesRol, Modulos::claves()));
+    }
+
+    public function submoduloActivo(int $idUsuario, string $clave): bool
+    {
+        return in_array($clave, $this->submodulosActivosUsuarioClaves($idUsuario), true);
     }
 }

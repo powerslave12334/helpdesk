@@ -10,12 +10,17 @@ use App\Models\Oficina;
 use App\Models\TipoEmpleado;
 use App\Models\Rol;
 use App\Models\RolesUsuario;
+use App\Services\RolUsuarioService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class EmpleadoController extends Controller
 {
+    public function __construct(private RolUsuarioService $rolUsuarioService)
+    {
+    }
+
     public function index()
     {
         $idUsuario = session('IdUsuario');
@@ -30,8 +35,9 @@ class EmpleadoController extends Controller
         $oficinas = Oficina::where('activo', true)->get();
         $tiposEmpleado = TipoEmpleado::where('activo', true)->get();
         $roles = Rol::where('activo', true)->get();
+        $rolesActivos = RolesUsuario::where('activo', true)->pluck('id_Rol', 'id_Usuario');
 
-        return view('empleados.index', compact('usuarios', 'deptos', 'areas', 'oficinas', 'tiposEmpleado', 'roles', 'esAdmin'));
+        return view('empleados.index', compact('usuarios', 'deptos', 'areas', 'oficinas', 'tiposEmpleado', 'roles', 'rolesActivos', 'esAdmin'));
     }
 
     public function store(Request $request)
@@ -47,6 +53,7 @@ class EmpleadoController extends Controller
             'id_Oficinas' => 'nullable|integer',
             'id_TipoEmpleado' => 'required|integer',
             'esTecnico' => 'sometimes|boolean',
+            'id_Rol' => 'required|integer|exists:tblRoles,id_Rol',
         ]);
 
         $usuario = new Usuario();
@@ -64,6 +71,8 @@ class EmpleadoController extends Controller
         $usuario->activo = true;
         $usuario->save();
 
+        $this->rolUsuarioService->asignarRol($usuario->id_Usuario, (int) $request->id_Rol);
+
         return redirect()->route('empleados.index')->with('success', 'Empleado creado correctamente');
     }
 
@@ -80,6 +89,7 @@ class EmpleadoController extends Controller
             'id_Oficinas' => 'nullable|integer',
             'id_TipoEmpleado' => 'required|integer',
             'esTecnico' => 'sometimes|boolean',
+            'id_Rol' => 'required|integer|exists:tblRoles,id_Rol',
         ]);
 
         $usuario = Usuario::findOrFail($id);
@@ -95,6 +105,8 @@ class EmpleadoController extends Controller
             'id_TipoEmpleado' => $request->id_TipoEmpleado,
             'esTecnico' => $request->has('esTecnico') ? 1 : 0,
         ]);
+
+        $this->rolUsuarioService->asignarRol($usuario->id_Usuario, (int) $request->id_Rol);
 
         return redirect()->route('empleados.index')->with('success', 'Empleado actualizado correctamente');
     }
@@ -127,6 +139,8 @@ class EmpleadoController extends Controller
                 'activo' => true,
             ]);
         }
+
+        $this->rolUsuarioService->asignarRolSiNoTiene($request->id_Usuario);
 
         return redirect()->route('empleados.index')->with('success', 'Acceso guardado correctamente');
     }

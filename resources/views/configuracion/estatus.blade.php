@@ -31,7 +31,7 @@
                         <tr data-row>
                             <td data-field="id">{{ $e->id_Estatus }}</td>
                             <td data-field="descripcion">{{ $e->descripcion }}</td>
-                            <td data-field="modulo">{{ $e->id_Modulos }}</td>
+                            <td data-field="modulo">{{ $nombresModulos[$e->id_Modulos] ?? $e->id_Modulos }}</td>
                             <td data-field="estatus"><span class="badge bg-{{ $e->activo ? 'success' : 'danger' }}">{{ $e->activo ? 'Activo' : 'Inactivo' }}</span></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
@@ -65,7 +65,14 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3"><label class="form-label">Descripción *</label><input type="text" name="descripcion" class="form-control" required></div>
-                    <div class="mb-3"><label class="form-label">Módulo (1=Tickets, 2=Inventario) *</label><input type="number" name="id_Modulos" class="form-control" required min="1"></div>
+                    <div class="mb-3">
+                        <label class="form-label">Módulo *</label>
+                        <select name="id_Modulos" class="form-select" required>
+                            @foreach($modulos as $m)
+                            <option value="{{ $m['id'] }}">{{ $m['nombre'] }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>

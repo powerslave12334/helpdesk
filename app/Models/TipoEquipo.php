@@ -12,6 +12,5 @@ class TipoEquipo extends Model
     protected $fillable = ['descripcion', 'fechaAlta', 'activo'];
     protected $casts = ['activo' => 'boolean', 'fechaAlta' => 'datetime'];
 
-    public function campos() { return $this->hasMany(TipoEquipoCampo::class, 'id_TipoEquipo'); }
     public function equipos() { return $this->hasMany(Equipo::class, 'id_TipoEquipo'); }
 }

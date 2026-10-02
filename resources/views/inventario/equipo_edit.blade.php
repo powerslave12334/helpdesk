@@ -89,89 +89,26 @@
                 </div>
             </div>
 
-            <h6 class="mt-3"><i class="fas fa-sliders me-1"></i>Campos Personalizados</h6>
-            <div id="camposDinamicos" class="row">
-                @foreach($tipoCampos as $tc)
-                    @if(!$tc->campo) @continue @endif
-                    @php
-                        $valor = $equipo->equipoDetalle->where('id_EquipoCampo', $tc->id_EquipoCampo)->first()->valor ?? '';
-                        $nombre = $tc->campo->nombre;
-                    @endphp
-                    @if($nombre === 'Estado Garantía')
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">{{ $nombre }} {{ $tc->requerido ? '*' : '' }}</label>
-                            <select name="campos_dinamicos[{{ $tc->id_EquipoCampo }}]" class="form-select" {{ $tc->requerido ? 'required' : '' }}>
-                                <option value="">Seleccionar...</option>
-                                <option value="Vigente" {{ $valor === 'Vigente' ? 'selected' : '' }}>Vigente</option>
-                                <option value="Vencida" {{ $valor === 'Vencida' ? 'selected' : '' }}>Vencida</option>
-                            </select>
-                        </div>
-                    @elseif($nombre === 'Fecha Fin Garantía')
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">{{ $nombre }} {{ $tc->requerido ? '*' : '' }}</label>
-                            <div class="input-group">
-                                <input type="{{ $valor === 'N/A' ? 'text' : 'date' }}" name="campos_dinamicos[{{ $tc->id_EquipoCampo }}]" class="form-control" id="fechaGarantia_{{ $tc->id_EquipoCampo }}" value="{{ $valor }}">
-                                <button type="button" class="btn btn-outline-secondary btn-na {{ $valor === 'N/A' ? 'active' : '' }}" data-target="fechaGarantia_{{ $tc->id_EquipoCampo }}" title="No aplica">{{ $valor === 'N/A' ? 'Fecha' : 'N/A' }}</button>
-                            </div>
-                        </div>
-                    @elseif($nombre === 'Sistema Operativo')
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">{{ $nombre }} {{ $tc->requerido ? '*' : '' }}</label>
-                            <select name="campos_dinamicos[{{ $tc->id_EquipoCampo }}]" class="form-select" {{ $tc->requerido ? 'required' : '' }}>
-                                <option value="">Seleccionar...</option>
-                                @foreach(['Windows 11 Pro','Windows 11 Home','Windows 10 Pro','Windows 10 Home','Windows Server 2022','Windows Server 2019','Ubuntu','Linux Mint','macOS','ChromeOS','Sin SO'] as $op)
-                                <option value="{{ $op }}" {{ $valor === $op ? 'selected' : '' }}>{{ $op }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @elseif($nombre === 'Tipo Almacenamiento')
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">{{ $nombre }} {{ $tc->requerido ? '*' : '' }}</label>
-                            <select name="campos_dinamicos[{{ $tc->id_EquipoCampo }}]" class="form-select" {{ $tc->requerido ? 'required' : '' }}>
-                                <option value="">Seleccionar...</option>
-                                @foreach(['Mecánico (HDD)','SSD','NVMe','Híbrido (HDD + SSD)'] as $op)
-                                <option value="{{ $op }}" {{ $valor === $op ? 'selected' : '' }}>{{ $op }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @elseif($nombre === 'Tipo Conexión')
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">{{ $nombre }} {{ $tc->requerido ? '*' : '' }}</label>
-                            <select name="campos_dinamicos[{{ $tc->id_EquipoCampo }}]" class="form-select" {{ $tc->requerido ? 'required' : '' }}>
-                                <option value="">Seleccionar...</option>
-                                @foreach(['USB','Inalámbrico','PS/2','Bluetooth','USB + Inalámbrico'] as $op)
-                                <option value="{{ $op }}" {{ $valor === $op ? 'selected' : '' }}>{{ $op }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @elseif($nombre === 'Tipo Teclado')
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">{{ $nombre }} {{ $tc->requerido ? '*' : '' }}</label>
-                            <select name="campos_dinamicos[{{ $tc->id_EquipoCampo }}]" class="form-select" {{ $tc->requerido ? 'required' : '' }}>
-                                <option value="">Seleccionar...</option>
-                                @foreach(['Mecánico','Membrana','Scissor','Fantasma (Topre)'] as $op)
-                                <option value="{{ $op }}" {{ $valor === $op ? 'selected' : '' }}>{{ $op }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @elseif($nombre === 'Retroiluminado')
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">{{ $nombre }} {{ $tc->requerido ? '*' : '' }}</label>
-                            <select name="campos_dinamicos[{{ $tc->id_EquipoCampo }}]" class="form-select" {{ $tc->requerido ? 'required' : '' }}>
-                                <option value="">Seleccionar...</option>
-                                @foreach(['Sí','No'] as $op)
-                                <option value="{{ $op }}" {{ $valor === $op ? 'selected' : '' }}>{{ $op }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @else
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">{{ $nombre }} {{ $tc->requerido ? '*' : '' }}</label>
-                            <input type="text" name="campos_dinamicos[{{ $tc->id_EquipoCampo }}]" class="form-control"
-                                value="{{ $valor }}" {{ $tc->requerido ? 'required' : '' }}>
-                        </div>
-                    @endif
-                @endforeach
+            <h6 class="mt-3"><i class="fas fa-microchip me-1"></i>Especificaciones</h6>
+            <div class="row">
+                <div class="col-md-3 mb-3"><label class="form-label">Serie Motherboard</label><input type="text" name="serieMotherboard" class="form-control" value="{{ $equipo->serieMotherboard }}"></div>
+                <div class="col-md-3 mb-3"><label class="form-label">Procesador</label><input type="text" name="procesador" class="form-control" value="{{ $equipo->procesador }}"></div>
+                <div class="col-md-3 mb-3"><label class="form-label">Memoria RAM</label><input type="text" name="memoriaRam" class="form-control" value="{{ $equipo->memoriaRam }}"></div>
+                <div class="col-md-3 mb-3"><label class="form-label">Almacenamiento</label><input type="text" name="almacenamiento" class="form-control" value="{{ $equipo->almacenamiento }}"></div>
+                <div class="col-md-3 mb-3"><label class="form-label">Sistema Operativo</label><input type="text" name="sistemaOperativo" class="form-control" value="{{ $equipo->sistemaOperativo }}"></div>
+                <div class="col-md-3 mb-3"><label class="form-label">IP</label><input type="text" name="ip" class="form-control" value="{{ $equipo->ip }}"></div>
+                <div class="col-md-3 mb-3"><label class="form-label">MAC</label><input type="text" name="mac" class="form-control" value="{{ $equipo->mac }}"></div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">Estado Garantía</label>
+                    <select name="estadoGarantia" class="form-select">
+                        <option value="">Seleccionar...</option>
+                        @foreach(['Vigente', 'Vencida', 'Sin garantía'] as $op)
+                        <option value="{{ $op }}" {{ $equipo->estadoGarantia == $op ? 'selected' : '' }}>{{ $op }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3"><label class="form-label">Fecha Fin Garantía</label><input type="date" name="fechaFinGarantia" class="form-control" value="{{ $equipo->fechaFinGarantia ? $equipo->fechaFinGarantia->format('Y-m-d') : '' }}"></div>
+                <div class="col-md-12 mb-3"><label class="form-label">Especificaciones adicionales</label><textarea name="especificaciones" class="form-control" rows="2">{{ $equipo->especificaciones }}</textarea></div>
             </div>
 
             <div class="mt-4">
@@ -183,136 +120,4 @@
 </div>
 @endsection
 
-@section('scripts')
-<script>
-document.getElementById('selTipoEquipo')?.addEventListener('change', function() {
-    const container = document.getElementById('camposDinamicos');
-    container.innerHTML = '<p class="text-muted">Cargando campos...</p>';
-    fetch(`/inventario/equipo/campos/${this.value}`)
-        .then(r => r.json())
-        .then(data => {
-            container.innerHTML = '';
-            data.forEach(c => {
-                const nombre = c.campo?.nombre;
-                if (!nombre) return;
-                const req = c.requerido ? 'required' : '';
-                const reqStar = c.requerido ? '*' : '';
-                let html = '';
 
-                if (nombre === 'Estado Garantía') {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <select name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-select" ${req}>
-                                <option value="">Seleccionar...</option>
-                                <option value="Vigente">Vigente</option>
-                                <option value="Vencida">Vencida</option>
-                            </select>
-                        </div>`;
-                } else if (nombre === 'Fecha Fin Garantía') {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <div class="input-group">
-                                <input type="date" name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-control" id="fechaGarantia_${c.id_EquipoCampo}">
-                                <button type="button" class="btn btn-outline-secondary btn-na" data-target="fechaGarantia_${c.id_EquipoCampo}" title="No aplica">N/A</button>
-                            </div>
-                        </div>`;
-                } else if (nombre === 'Sistema Operativo') {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <select name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-select" ${req}>
-                                <option value="">Seleccionar...</option>
-                                <option value="Windows 11 Pro">Windows 11 Pro</option>
-                                <option value="Windows 11 Home">Windows 11 Home</option>
-                                <option value="Windows 10 Pro">Windows 10 Pro</option>
-                                <option value="Windows 10 Home">Windows 10 Home</option>
-                                <option value="Windows Server 2022">Windows Server 2022</option>
-                                <option value="Windows Server 2019">Windows Server 2019</option>
-                                <option value="Ubuntu">Ubuntu</option>
-                                <option value="Linux Mint">Linux Mint</option>
-                                <option value="macOS">macOS</option>
-                                <option value="ChromeOS">ChromeOS</option>
-                                <option value="Sin SO">Sin SO</option>
-                            </select>
-                        </div>`;
-                } else if (nombre === 'Tipo Almacenamiento') {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <select name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-select" ${req}>
-                                <option value="">Seleccionar...</option>
-                                <option value="Mecánico (HDD)">Mecánico (HDD)</option>
-                                <option value="SSD">SSD</option>
-                                <option value="NVMe">NVMe</option>
-                                <option value="Híbrido (HDD + SSD)">Híbrido (HDD + SSD)</option>
-                            </select>
-                        </div>`;
-                } else if (nombre === 'Tipo Conexión') {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <select name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-select" ${req}>
-                                <option value="">Seleccionar...</option>
-                                <option value="USB">USB</option>
-                                <option value="Inalámbrico">Inalámbrico</option>
-                                <option value="PS/2">PS/2</option>
-                                <option value="Bluetooth">Bluetooth</option>
-                                <option value="USB + Inalámbrico">USB + Inalámbrico</option>
-                            </select>
-                        </div>`;
-                } else if (nombre === 'Tipo Teclado') {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <select name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-select" ${req}>
-                                <option value="">Seleccionar...</option>
-                                <option value="Mecánico">Mecánico</option>
-                                <option value="Membrana">Membrana</option>
-                                <option value="Scissor">Scissor</option>
-                                <option value="Fantasma (Topre)">Fantasma (Topre)</option>
-                            </select>
-                        </div>`;
-                } else if (nombre === 'Retroiluminado') {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <select name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-select" ${req}>
-                                <option value="">Seleccionar...</option>
-                                <option value="Sí">Sí</option>
-                                <option value="No">No</option>
-                            </select>
-                        </div>`;
-                } else {
-                    html = `
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">${nombre} ${reqStar}</label>
-                            <input type="text" name="campos_dinamicos[${c.id_EquipoCampo}]" class="form-control" ${req}>
-                        </div>`;
-                }
-
-                container.innerHTML += html;
-            });
-
-            // Eventos para botones N/A
-            container.querySelectorAll('.btn-na').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const input = document.getElementById(this.dataset.target);
-                    if (input.value === 'N/A') {
-                        input.value = '';
-                        input.type = 'date';
-                        this.textContent = 'N/A';
-                        this.classList.remove('active');
-                    } else {
-                        input.value = 'N/A';
-                        input.type = 'text';
-                        this.textContent = 'Fecha';
-                        this.classList.add('active');
-                    }
-                });
-            });
-        });
-});
-</script>
-@endsection

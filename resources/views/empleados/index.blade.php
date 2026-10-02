@@ -65,7 +65,7 @@
                                         data-correo="{{ $u->correo }}" data-telefono="{{ $u->telefono }}"
                                         data-depto="{{ $u->id_Depto }}" data-area="{{ $u->id_Area }}"
                                         data-oficina="{{ $u->id_Oficinas }}" data-tipo="{{ $u->id_TipoEmpleado }}"
-                                        data-tecnico="{{ $u->esTecnico }}" title="Editar">
+                                        data-tecnico="{{ $u->esTecnico }}" data-rol="{{ $rolesActivos[$u->id_Usuario] ?? '' }}" title="Editar">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <button class="btn btn-outline-warning btn-access" data-id="{{ $u->id_Usuario }}"
@@ -151,7 +151,7 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="form-label">Oficina</label>
                             <select name="id_Oficinas" class="form-select">
                                 <option value="">Sin oficina</option>
@@ -160,7 +160,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label class="form-label">Tipo Empleado *</label>
                             <select name="id_TipoEmpleado" class="form-select" required>
                                 @foreach($tiposEmpleado as $t)
@@ -168,7 +168,15 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Rol *</label>
+                            <select name="id_Rol" class="form-select" required>
+                                @foreach($roles as $r)
+                                <option value="{{ $r->id_Rol }}">{{ $r->nombre }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
                             <label class="form-label">&nbsp;</label>
                             <div class="form-check mt-2">
                                 <input class="form-check-input" type="checkbox" name="esTecnico" id="chkTecnico" value="1">
@@ -236,6 +244,7 @@ document.addEventListener('DOMContentLoaded', function() {
             form.id_Area.value = this.dataset.area;
             form.id_Oficinas.value = this.dataset.oficina || '';
             form.id_TipoEmpleado.value = this.dataset.tipo;
+            if (this.dataset.rol) form.id_Rol.value = this.dataset.rol;
             document.getElementById('chkTecnico').checked = this.dataset.tecnico == 1;
             new bootstrap.Modal(document.getElementById('createModal')).show();
         });

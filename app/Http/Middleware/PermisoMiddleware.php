@@ -12,7 +12,7 @@ class PermisoMiddleware
     {
     }
 
-    public function handle(Request $request, Closure $next, string $controller, string $accion = 'Consultar')
+    public function handle(Request $request, Closure $next, string $permiso)
     {
         $idUsuario = session('IdUsuario');
 
@@ -20,7 +20,9 @@ class PermisoMiddleware
             return redirect()->route('login');
         }
 
-        if (!$this->permisosService->tienePermisoPorRuta($idUsuario, $controller, $accion)) {
+        $permitido = $this->permisosService->submoduloActivo($idUsuario, $permiso);
+
+        if (!$permitido) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'No tienes permiso para realizar esta acción'], 403);
             }

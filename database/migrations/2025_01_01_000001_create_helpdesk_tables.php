@@ -50,14 +50,6 @@ return new class extends Migration
             $table->integer('orden')->nullable();
         });
 
-        // 6. tblAcciones
-        Schema::create('tblAcciones', function (Blueprint $table) {
-            $table->id('id_Accion');
-            $table->string('nombre', 50);
-            $table->dateTime('fechaAlta');
-            $table->boolean('activo');
-        });
-
         // 7. tblTipoEquipo
         Schema::create('tblTipoEquipo', function (Blueprint $table) {
             $table->id('id_TipoEquipo');
@@ -111,16 +103,6 @@ return new class extends Migration
             $table->foreignId('id_Area')->nullable()->constrained('tblArea', 'id_Area');
         });
 
-        // 13. tblTipoEquipoCampo (FK: tblTipoEquipo)
-        Schema::create('tblTipoEquipoCampo', function (Blueprint $table) {
-            $table->id('id_TipoEquipoCampo');
-            $table->foreignId('id_TipoEquipo')->constrained('tblTipoEquipo', 'id_TipoEquipo');
-            $table->integer('id_EquipoCampo');
-            $table->boolean('requerido');
-            $table->dateTime('fechaAlta');
-            $table->boolean('activo');
-        });
-
         // 14. tblRoles
         Schema::create('tblRoles', function (Blueprint $table) {
             $table->id('id_Rol');
@@ -166,30 +148,6 @@ return new class extends Migration
             $table->boolean('activo');
         });
 
-        // 18. tblRolPermiso (FK: tblRoles, tblModulos, tblSubModulos, tblAcciones)
-        Schema::create('tblRolPermiso', function (Blueprint $table) {
-            $table->id('id_RolPermiso');
-            $table->foreignId('id_Rol')->constrained('tblRoles', 'id_Rol');
-            $table->foreignId('id_Modulos')->constrained('tblModulos', 'id_Modulos');
-            $table->foreignId('id_SubModulos')->constrained('tblSubModulos', 'id_SubModulos');
-            $table->foreignId('id_Accion')->constrained('tblAcciones', 'id_Accion');
-            $table->boolean('permitido');
-            $table->dateTime('fechaAlta');
-            $table->boolean('activo');
-        });
-
-        // 19. tblPermisoUsuarios (FK: tblUsuario, tblModulos, tblSubModulos, tblAcciones)
-        Schema::create('tblPermisoUsuarios', function (Blueprint $table) {
-            $table->id('id_PermisoUsuarios');
-            $table->foreignId('id_Usuario')->constrained('tblUsuario', 'id_Usuario');
-            $table->foreignId('id_Modulos')->constrained('tblModulos', 'id_Modulos');
-            $table->foreignId('id_SubModulos')->constrained('tblSubModulos', 'id_SubModulos');
-            $table->foreignId('id_Accion')->constrained('tblAcciones', 'id_Accion');
-            $table->boolean('permitido');
-            $table->dateTime('fechaAlta');
-            $table->boolean('activo');
-        });
-
         // 20. tblEquipo (FK: tblTipoEquipo, tblEstatus, tblOficinas)
         Schema::create('tblEquipo', function (Blueprint $table) {
             $table->id('id_Equipo');
@@ -207,16 +165,6 @@ return new class extends Migration
             $table->boolean('activo');
             $table->foreignId('id_Oficinas')->nullable()->constrained('tblOficinas', 'id_Oficinas');
             $table->boolean('esCompartido');
-        });
-
-        // 21. tblEquipoDetalle (FK: tblEquipo)
-        Schema::create('tblEquipoDetalle', function (Blueprint $table) {
-            $table->id('id_EquipoDetalle');
-            $table->foreignId('id_Equipo')->constrained('tblEquipo', 'id_Equipo');
-            $table->integer('id_EquipoCampo');
-            $table->string('valor', 250)->nullable();
-            $table->dateTime('fechaAlta');
-            $table->boolean('activo');
         });
 
         // 22. tblEquipoUsuario (FK: tblEquipo, tblUsuario, tblArea)
@@ -350,10 +298,10 @@ return new class extends Migration
         $tables = [
             'tblConfiguracionSistema', 'tblNotificaciones', 'tblTicketDesarrolloDetalle',
             'tblTicketArchivo', 'tblTicketEvidencia', 'tblTicketComentarios', 'tblTicket',
-            'tblHistorialEquipoUsuario', 'tblEquipoUsuario', 'tblEquipoDetalle', 'tblEquipo',
-            'tblPermisoUsuarios', 'tblRolPermiso', 'tblRolesUsuarios', 'tblLogin', 'tblUsuario',
-            'tblTipoSoporte', 'tblEstatus', 'tblSubModulos', 'tblTipoEquipoCampo', 'tblTipoDesarrollo',
-            'tblSistemas', 'tblTipoEquipo', 'tblRoles', 'tblAcciones', 'tblModulos',
+            'tblHistorialEquipoUsuario', 'tblEquipoUsuario', 'tblEquipo',
+            'tblRolesUsuarios', 'tblLogin', 'tblUsuario',
+            'tblTipoSoporte', 'tblEstatus', 'tblSubModulos', 'tblTipoDesarrollo',
+            'tblSistemas', 'tblTipoEquipo', 'tblRoles', 'tblModulos',
             'tblOficinas', 'tblTipoEmpleado', 'tblArea', 'tblDepto',
         ];
         foreach ($tables as $table) {

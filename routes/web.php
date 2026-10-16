@@ -10,6 +10,8 @@ use App\Http\Controllers\Inventario\EquipoRelacionController;
 use App\Http\Controllers\Inventario\EquipoUsuarioController;
 use App\Http\Controllers\Inventario\TipoEquipoController;
 use App\Http\Controllers\Inventario\TipoRelacionEquipoController;
+use App\Http\Controllers\Inventario\VehiculoController;
+use App\Http\Controllers\Configuracion\CatalogoEquipoController;
 use App\Http\Controllers\Configuracion\RolController;
 use App\Http\Controllers\Configuracion\RolModuloController;
 
@@ -91,6 +93,14 @@ Route::middleware('auth')->group(function () {
             Route::post('/tipo-equipo', [TipoEquipoController::class, 'store'])->name('tipoEquipo.store');
             Route::put('/tipo-equipo/{id}', [TipoEquipoController::class, 'update'])->name('tipoEquipo.update');
             Route::post('/tipo-equipo/toggle/{id}', [TipoEquipoController::class, 'toggleActivo'])->name('tipoEquipo.toggle');
+        });
+
+        // Vehículos (unidades GPS)
+        Route::middleware('permiso:vehiculos')->group(function () {
+            Route::get('/vehiculos', [VehiculoController::class, 'index'])->name('vehiculo.index');
+            Route::post('/vehiculos', [VehiculoController::class, 'store'])->name('vehiculo.store');
+            Route::put('/vehiculos/{id}', [VehiculoController::class, 'update'])->name('vehiculo.update');
+            Route::post('/vehiculos/toggle/{id}', [VehiculoController::class, 'toggleActivo'])->name('vehiculo.toggle');
         });
 
         // Tipos de relación
@@ -196,6 +206,14 @@ Route::middleware('auth')->group(function () {
             Route::post('/oficinas', [OficinaController::class, 'store'])->name('oficinas.store');
             Route::put('/oficinas/{id}', [OficinaController::class, 'update'])->name('oficinas.update');
             Route::post('/oficinas/toggle/{id}', [OficinaController::class, 'toggleActivo'])->name('oficinas.toggle');
+        });
+
+        // Catálogos de Equipo (marcas, modelos, procesadores, SO, almacenamiento)
+        Route::middleware('permiso:catalogo-equipo')->group(function () {
+            Route::get('/catalogo-equipo/{categoria?}', [CatalogoEquipoController::class, 'index'])->name('catalogoEquipo.index');
+            Route::post('/catalogo-equipo/{categoria}', [CatalogoEquipoController::class, 'store'])->name('catalogoEquipo.store');
+            Route::put('/catalogo-equipo/{categoria}/{id}', [CatalogoEquipoController::class, 'update'])->name('catalogoEquipo.update');
+            Route::post('/catalogo-equipo/{categoria}/toggle/{id}', [CatalogoEquipoController::class, 'toggle'])->name('catalogoEquipo.toggle');
         });
     });
 

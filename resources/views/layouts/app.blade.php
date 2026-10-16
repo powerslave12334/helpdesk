@@ -244,10 +244,19 @@
                 <button class="btn-theme-toggle" id="btnThemeToggle" title="Cambiar tema">
                     <i class="fas fa-moon" id="themeIcon"></i>
                 </button>
-                <span class="position-relative" id="notif-bell" style="cursor:pointer; padding:6px 8px; border-radius:var(--radius-sm); transition: background 0.15s;" onmouseover="this.style.background='var(--primary-soft)'" onmouseout="this.style.background='transparent'">
-                    <i class="fas fa-bell" style="color:var(--muted); font-size:15px"></i>
-                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" id="notif-count" style="font-size:9px; padding:3px 5px;">0</span>
-                </span>
+                <div class="position-relative" id="notif-wrapper">
+                    <span class="position-relative" id="notif-bell" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-controls="notif-panel" aria-label="Notificaciones" style="cursor:pointer; padding:6px 8px; border-radius:var(--radius-sm); transition: background 0.15s;" onmouseover="this.style.background='var(--primary-soft)'" onmouseout="this.style.background='transparent'">
+                        <i class="fas fa-bell" style="color:var(--muted); font-size:15px"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" id="notif-count" style="font-size:9px; padding:3px 5px;">0</span>
+                    </span>
+                    <div id="notif-panel" class="d-none" role="region" aria-label="Notificaciones" style="position:absolute; top:calc(100% + 10px); right:0; width:350px; max-width:calc(100vw - 24px); max-height:420px; overflow-y:auto; background:var(--surface-strong); border:1px solid var(--border); border-radius:var(--radius-sm); box-shadow:0 8px 24px rgba(0,0,0,.15); z-index:1080;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--surface-strong);">
+                            <strong style="font-size:13px;">Notificaciones</strong>
+                            <button type="button" id="notif-mark-all" style="background:none; border:none; color:var(--primary); font-size:12px; cursor:pointer; padding:0;">Marcar todas leídas</button>
+                        </div>
+                        <div id="notif-list" style="padding:6px;"></div>
+                    </div>
+                </div>
                 <div style="width:1px; height:24px; background:var(--border); margin:0 4px;"></div>
                 <div style="display:flex; align-items:center; gap:8px; padding:4px 12px 4px 4px; border-radius:var(--radius-sm); background:var(--surface-strong);">
                     <div style="width:30px; height:30px; border-radius:50%; background:var(--primary); color:#fff; display:grid; place-items:center; font-size:11px; font-weight:600;">
@@ -285,6 +294,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
     (function() {
         const body = document.body;
@@ -321,26 +331,141 @@
     (function() {
         const bell = document.getElementById('notif-bell');
         const countBadge = document.getElementById('notif-count');
-        if (!bell) return;
+        const panel = document.getElementById('notif-panel');
+        const list = document.getElementById('notif-list');
+        const markAllBtn = document.getElementById('notif-mark-all');
+        if (!bell || !panel) return;
 
-        function fetchNotificaciones() {
-            fetch('{{ route("api.notificaciones.obtener") }}', {
-                headers: { 'Accept': 'application/json' }
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.noLeidas > 0) {
-                    countBadge.textContent = data.noLeidas;
-                    countBadge.classList.remove('d-none');
-                } else {
-                    countBadge.classList.add('d-none');
-                }
-            })
-            .catch(() => {});
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+        const rObtener = '{{ route("api.notificaciones.obtener") }}';
+        const rMarcar = '{{ route("api.notificaciones.marcarLeido") }}';
+        const rMarcarTodas = '{{ route("api.notificaciones.marcarTodasLeido") }}';
+
+        function escapeHtml(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+            }[c]));
         }
 
-        bell.addEventListener('click', function() {
+        function fmtFecha(f) {
+            if (!f) return '';
+            const d = new Date(f);
+            if (isNaN(d)) return '';
+            return d.toLocaleString('es-MX', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        function actualizarBadge(noLeidas) {
+            if (noLeidas > 0) {
+                countBadge.textContent = noLeidas > 99 ? '99+' : noLeidas;
+                countBadge.classList.remove('d-none');
+            } else {
+                countBadge.classList.add('d-none');
+            }
+        }
+
+        function renderLista(items) {
+            if (!items || items.length === 0) {
+                list.innerHTML = '<div style="padding:16px; text-align:center; color:var(--muted); font-size:13px;">No tienes notificaciones</div>';
+                return;
+            }
+            list.innerHTML = '';
+            items.forEach(n => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.style.cssText = 'display:block; width:100%; text-align:left; border:none; border-bottom:1px solid var(--border); padding:10px 12px; cursor:pointer; font-size:13px; color:inherit; background:' + (n.Leido ? 'transparent' : 'var(--primary-soft)') + ';';
+                btn.innerHTML =
+                    '<div style="display:flex; gap:8px; align-items:flex-start;">' +
+                        '<i class="fas ' + (n.Leido ? 'fa-envelope-open' : 'fa-envelope') + '" style="color:var(--primary); margin-top:3px; font-size:12px;"></i>' +
+                        '<div style="min-width:0;">' +
+                            '<div style="white-space:pre-wrap; word-break:break-word;">' + escapeHtml(n.Mensaje) + '</div>' +
+                            '<div style="color:var(--muted); font-size:11px; margin-top:3px;">' + escapeHtml(fmtFecha(n.FechaCreacion)) + '</div>' +
+                        '</div>' +
+                    '</div>';
+                btn.addEventListener('click', () => abrirNotificacion(n));
+                list.appendChild(btn);
+            });
+        }
+
+        function fetchNotificaciones() {
+            fetch(rObtener, { headers: { 'Accept': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    actualizarBadge(data.noLeidas || 0);
+                    if (!panel.classList.contains('d-none')) {
+                        renderLista(data.notificaciones || []);
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function abrirNotificacion(n) {
+            const marcar = n.Leido
+                ? Promise.resolve()
+                : fetch(rMarcar, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+                    body: JSON.stringify({ id_Notificacion: n.id_Notificacion })
+                }).catch(() => {});
+
+            marcar.then(() => {
+                if (n.UrlAccion) {
+                    window.location.href = n.UrlAccion;
+                } else {
+                    cerrarPanel();
+                    fetchNotificaciones();
+                }
+            });
+        }
+
+        function abrirPanel() {
+            panel.classList.remove('d-none');
+            bell.setAttribute('aria-expanded', 'true');
             fetchNotificaciones();
+        }
+
+        function cerrarPanel() {
+            panel.classList.add('d-none');
+            bell.setAttribute('aria-expanded', 'false');
+        }
+
+        function alternarPanel() {
+            panel.classList.contains('d-none') ? abrirPanel() : cerrarPanel();
+        }
+
+        bell.addEventListener('click', alternarPanel);
+        bell.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                alternarPanel();
+            }
+        });
+
+        markAllBtn?.addEventListener('click', function() {
+            fetch(rMarcarTodas, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
+                body: '{}'
+            })
+            .then(r => r.json())
+            .then(() => fetchNotificaciones())
+            .catch(() => {});
+        });
+
+        document.addEventListener('click', function(e) {
+            const wrapper = document.getElementById('notif-wrapper');
+            if (!panel.classList.contains('d-none') && wrapper && !wrapper.contains(e.target)) {
+                cerrarPanel();
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !panel.classList.contains('d-none')) {
+                cerrarPanel();
+                bell.focus();
+            }
         });
 
         fetchNotificaciones();

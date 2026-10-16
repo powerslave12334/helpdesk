@@ -9,7 +9,7 @@ class NotificacionesController extends Controller
 {
     public function obtener()
     {
-        $idUsuario = session('id_usuario');
+        $idUsuario = session('IdUsuario');
 
         $notificaciones = Notificacion::where('id_UsuarioDestino', $idUsuario)
             ->orderBy('FechaCreacion', 'desc')
@@ -31,7 +31,7 @@ class NotificacionesController extends Controller
             'id_Notificacion' => 'required|integer',
         ]);
 
-        $idUsuario = session('id_usuario');
+        $idUsuario = session('IdUsuario');
 
         Notificacion::where('id_Notificacion', $request->id_Notificacion)
             ->where('id_UsuarioDestino', $idUsuario)
@@ -49,7 +49,7 @@ class NotificacionesController extends Controller
 
     public function marcarTodasLeido()
     {
-        $idUsuario = session('id_usuario');
+        $idUsuario = session('IdUsuario');
 
         Notificacion::where('id_UsuarioDestino', $idUsuario)
             ->where('Leido', false)

@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->web(append: [
+            \App\Http\Middleware\EjecutarCierreDiario::class,
+        ]);
         $middleware->alias([
             'auth.helpdesk' => \App\Http\Middleware\AuthHelpdesk::class,
             'permiso' => \App\Http\Middleware\PermisoMiddleware::class,

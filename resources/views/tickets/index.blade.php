@@ -231,17 +231,26 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">Tipo Soporte *</label>
-                        <select name="id_TipoSoporte" class="form-select" required>
-                            <option value="">Seleccionar...</option>
-                            @foreach($tiposSoporte as $ts)
-                                @if($ts->id_TipoSoporte != 1)
-                                <option value="{{ $ts->id_TipoSoporte }}">{{ $ts->descripcion }}</option>
-                                @endif
-                            @endforeach
+                        <label class="form-label">Tipo de ticket *</label>
+                        <select name="tipoTicket" id="tipoTicket" class="form-select" required>
+                            <option value="falla_tecnica" selected>Falla técnica</option>
+                            <option value="instalacion_gps">Instalación de GPS</option>
+                            <option value="revision_gps">Revisión de GPS</option>
                         </select>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Tipo Soporte *</label>
+                        @php
+                            $tipoSoporteFijo = $tiposSoporte->firstWhere('descripcion', 'Soporte TI')
+                                ?? $tiposSoporte->firstWhere('id_TipoSoporte', '!=', 1)
+                                ?? $tiposSoporte->first();
+                        @endphp
+                        <select class="form-select" disabled>
+                            <option value="{{ $tipoSoporteFijo?->id_TipoSoporte }}" selected>{{ $tipoSoporteFijo?->descripcion ?? 'Soporte TI' }}</option>
+                        </select>
+                        <input type="hidden" name="id_TipoSoporte" value="{{ $tipoSoporteFijo?->id_TipoSoporte }}">
+                    </div>
+                    <div class="mb-3" data-tipo-ticket="falla_tecnica">
                         <label class="form-label">Equipo</label>
                         <select name="id_Equipo" class="form-select">
                             <option value="">Sin equipo</option>
@@ -250,7 +259,38 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3" data-tipo-ticket="instalacion_gps">
+                        <label class="form-label">Unidades GPS *</label>
+                        <select name="vehiculos[]" class="form-select" multiple size="5" required>
+                            @foreach($vehiculos as $vh)
+                            <option value="{{ $vh->id_Vehiculo }}">{{ $vh->numeroUnidad }} ({{ $vh->tipoVehiculo }})</option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">Selecciona una o varias unidades (Ctrl/Cmd para múltiple).</div>
+                    </div>
+                    <div class="mb-3" data-tipo-ticket="revision_gps">
+                        <label class="form-label">Unidad GPS *</label>
+                        <select name="vehiculo" class="form-select" required>
+                            <option value="">Seleccionar...</option>
+                            @foreach($vehiculos as $vh)
+                            <option value="{{ $vh->id_Vehiculo }}">{{ $vh->numeroUnidad }} ({{ $vh->tipoVehiculo }})</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3" data-tipo-ticket="revision_gps">
+                        <label class="form-label">Problema GPS *</label>
+                        <select name="problemaGps" id="problemaGps" class="form-select" required>
+                            <option value="">Seleccionar...</option>
+                            @foreach(\App\Models\Ticket::PROBLEMAS_GPS as $p)
+                            <option value="{{ $p }}">{{ $p === '__otro' ? 'Otro' : $p }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="mb-3" data-tipo-ticket="revision_gps">
+                        <label class="form-label">Especifica el problema *</label>
+                        <input type="text" name="problemaGpsOtro" id="problemaGpsOtro" class="form-control" maxlength="200" style="display:none" disabled>
+                    </div>
+                    <div class="mb-3" data-tipo-ticket="falla_tecnica,revision_gps">
                         <label class="form-label">Evidencia Inicial</label>
                         <input type="file" name="evidencia" class="form-control" accept="image/*">
                     </div>
@@ -258,7 +298,7 @@
                         <label class="form-label">Asunto *</label>
                         <input type="text" name="asunto" class="form-control" maxlength="200" required>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3" data-tipo-ticket="falla_tecnica,revision_gps">
                         <label class="form-label">Problema *</label>
                         <textarea name="problema" class="form-control" rows="4" required></textarea>
                     </div>
@@ -443,6 +483,18 @@
                 </div>
                 <div class="ticket-modal-sidebar">
                     <div class="ticket-meta-section">
+                        <div class="ticket-meta-label">Tipo de ticket</div>
+                        <div class="ticket-meta-value" id="detailTipoTicket"></div>
+                    </div>
+                    <div class="ticket-meta-section" id="metaVehiculos" style="display:none">
+                        <div class="ticket-meta-label">Unidades GPS</div>
+                        <div class="ticket-meta-value" id="detailVehiculos"></div>
+                    </div>
+                    <div class="ticket-meta-section" id="metaProblemaGps" style="display:none">
+                        <div class="ticket-meta-label">Problema GPS</div>
+                        <div class="ticket-meta-value" id="detailProblemaGps"></div>
+                    </div>
+                    <div class="ticket-meta-section">
                         <div class="ticket-meta-label">Tipo de soporte</div>
                         <div class="ticket-meta-value" id="detailTipo"></div>
                     </div>
@@ -512,6 +564,41 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Tipo de ticket: muestra/oculta campos según el tipo seleccionado
+    const selTipoTicket = document.getElementById('tipoTicket');
+    const bloquesTicket = document.querySelectorAll('#createTicketModal [data-tipo-ticket]');
+    bloquesTicket.forEach(b => b.querySelectorAll('[required]').forEach(c => { c.dataset.req = '1'; }));
+
+    function toggleOtroGps() {
+        const selGps = document.getElementById('problemaGps');
+        const otro = document.getElementById('problemaGpsOtro');
+        if (!selGps || !otro) return;
+        const mostrar = selTipoTicket.value === 'revision_gps' && selGps.value === '__otro';
+        otro.style.display = mostrar ? '' : 'none';
+        otro.disabled = !mostrar;
+        otro.toggleAttribute('required', mostrar);
+    }
+
+    function aplicarTipoTicket() {
+        const tipo = selTipoTicket.value;
+        bloquesTicket.forEach(b => {
+            const visible = b.dataset.tipoTicket.split(',').includes(tipo);
+            b.style.display = visible ? '' : 'none';
+            const campos = b.matches('input,select,textarea') ? [b] : b.querySelectorAll('input,select,textarea');
+            campos.forEach(c => {
+                c.disabled = !visible;
+                if (c.dataset.req === '1') c.toggleAttribute('required', visible);
+            });
+        });
+        toggleOtroGps();
+    }
+
+    if (selTipoTicket) {
+        selTipoTicket.addEventListener('change', aplicarTipoTicket);
+        document.getElementById('problemaGps')?.addEventListener('change', toggleOtroGps);
+        aplicarTipoTicket();
+    }
+
     // View ticket detail
     document.querySelectorAll('.btn-view-ticket').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -523,6 +610,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('detailFolio').textContent = '#' + t.id_Ticket;
                     document.getElementById('detailAsunto').textContent = t.asunto;
                     document.getElementById('detailTipo').textContent = t.tipoSoporte?.descripcion || 'N/A';
+                    document.getElementById('detailTipoTicket').textContent = data.tipoTicketLabel || 'Falla técnica';
+
+                    const metaVehiculos = document.getElementById('metaVehiculos');
+                    const vehiculos = data.vehiculos || [];
+                    if (vehiculos.length) {
+                        metaVehiculos.style.display = '';
+                        document.getElementById('detailVehiculos').innerHTML = vehiculos
+                            .map(v => v.numeroUnidad + ' (' + v.tipoVehiculo + ')')
+                            .join('<br>');
+                    } else {
+                        metaVehiculos.style.display = 'none';
+                    }
+
+                    const metaGps = document.getElementById('metaProblemaGps');
+                    if (t.problemaGps) {
+                        metaGps.style.display = '';
+                        document.getElementById('detailProblemaGps').textContent = t.problemaGps;
+                    } else {
+                        metaGps.style.display = 'none';
+                    }
+
                     document.getElementById('detailArea').textContent = t.tipoSoporte?.area?.nombre || 'N/A';
                     document.getElementById('detailTecnico').textContent = t.tecnico ? t.tecnico.nombre + ' ' + t.tecnico.app : 'Sin asignar';
                     document.getElementById('detailEquipo').textContent = t.equipo ? t.equipo.nombreEquipo : 'Sin equipo';

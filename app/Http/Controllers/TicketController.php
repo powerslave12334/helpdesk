@@ -8,20 +8,26 @@ use App\Models\TicketEvidencia;
 use App\Models\TipoSoporte;
 use App\Models\Estatus;
 use App\Models\Equipo;
+use App\Models\TipoEquipo;
 use App\Models\TipoDesarrollo;
 use App\Models\Sistema;
+use App\Models\ModuloSistema;
 use App\Models\Usuario;
+use App\Models\Vehiculo;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use App\Services\PermisosService;
+use App\Services\TicketNotificacionService;
 
 class TicketController extends Controller
 {
-    public function __construct(private PermisosService $permisosService)
-    {
+    public function __construct(
+        private PermisosService $permisosService,
+        private TicketNotificacionService $notificaciones,
+    ) {
     }
     public function index()
     {
@@ -39,27 +45,46 @@ class TicketController extends Controller
 
         $tiposSoporte = TipoSoporte::where('activo', true)->get();
         $estatus = Estatus::where('activo', true)->where('id_Modulos', 1)->get();
-        $equipos = Equipo::with(['asignaciones.usuario'])
-            ->where('activo', true)
-            ->get();
+        $equipos = $this->equiposPermitidos($idUsuario)->get();
         $tecnicos = Usuario::where('esTecnico', true)->where('activo', true)->get();
         $tiposDesarrollo = TipoDesarrollo::where('enabled', true)->get();
         $sistemas = Sistema::where('enabled', true)->get();
+        $vehiculos = Vehiculo::where('activo', true)->orderBy('numeroUnidad')->get();
 
         return view('tickets.index', compact(
             'misTickets', 'asignados', 'todos', 'esAdmin',
             'tiposSoporte', 'estatus', 'equipos', 'tecnicos',
-            'tiposDesarrollo', 'sistemas'
+            'tiposDesarrollo', 'sistemas', 'vehiculos'
         ));
     }
 
     public function store(Request $request)
     {
-        $request->validate([
+        $tipoTicket = $request->input('tipoTicket', 'falla_tecnica');
+
+        $reglas = [
+            'tipoTicket' => 'required|in:' . implode(',', array_keys(Ticket::tiposTicket())),
             'asunto' => 'required|string|max:200',
-            'problema' => 'required|string',
             'id_TipoSoporte' => 'required|integer',
-        ]);
+        ];
+
+        match ($tipoTicket) {
+            'instalacion_gps' => $reglas += [
+                'vehiculos' => 'required|array|min:1',
+                'vehiculos.*' => 'integer|exists:tblVehiculo,id_Vehiculo',
+            ],
+            'revision_gps' => $reglas += [
+                'vehiculo' => 'required|integer|exists:tblVehiculo,id_Vehiculo',
+                'problemaGps' => 'required|in:' . implode(',', Ticket::PROBLEMAS_GPS),
+                'problemaGpsOtro' => 'required_if:problemaGps,__otro|nullable|string|max:190',
+                'problema' => 'required|string',
+            ],
+            default => $reglas += [
+                'problema' => 'required|string',
+            ],
+        };
+
+        $request->validate($reglas);
 
         $idUsuario = session('IdUsuario');
 
@@ -74,13 +99,31 @@ class TicketController extends Controller
         $ticket = new Ticket();
         $ticket->id_Usuario = $idUsuario;
         $ticket->id_TipoSoporte = $request->id_TipoSoporte;
+        $ticket->tipoTicket = $tipoTicket;
         $ticket->id_Tecnico = $tecnico?->id_Usuario;
         $ticket->id_Estatus = $estatusAbierto?->id_Estatus;
-        $ticket->id_Equipo = $request->id_Equipo;
+        $ticket->id_Equipo = $this->equipoPermitidoParaUsuario($request->input('id_Equipo'), $idUsuario);
         $ticket->asunto = $request->asunto;
-        $ticket->problema = $request->problema;
         $ticket->fechaAlta = now();
         $ticket->activo = true;
+
+        if ($tipoTicket === 'instalacion_gps') {
+            $ids = Vehiculo::whereIn('id_Vehiculo', $request->input('vehiculos', []))
+                ->where('activo', true)
+                ->orderBy('numeroUnidad')
+                ->get();
+            $ticket->vehiculos = $ids->pluck('id_Vehiculo')->implode(',');
+            $ticket->problema = 'Instalación de GPS — unidades: ' . $ids->pluck('numeroUnidad')->implode(', ');
+        } elseif ($tipoTicket === 'revision_gps') {
+            $ticket->vehiculos = (string) (int) $request->vehiculo;
+            $ticket->problemaGps = $request->problemaGps === '__otro'
+                ? 'Otro: ' . trim($request->problemaGpsOtro)
+                : $request->problemaGps;
+            $ticket->problema = $request->problema;
+        } else {
+            $ticket->problema = $request->problema;
+        }
+
         $ticket->save();
 
         if ($request->hasFile('evidencia')) {
@@ -101,6 +144,10 @@ class TicketController extends Controller
                 'fechaAlta' => now(),
                 'activo' => true,
             ]);
+        }
+
+        if ($tecnico) {
+            $this->notificaciones->notificar($ticket, $tecnico, 'creado');
         }
 
         return redirect()->route('tickets.index')->with('success', 'Ticket #' . $ticket->id_Ticket . ' creado correctamente');
@@ -131,6 +178,15 @@ class TicketController extends Controller
         $ticket->activo = true;
         $ticket->save();
 
+        $tecnico = Usuario::find($request->id_Tecnico);
+        if ($tecnico) {
+            $this->notificaciones->notificar($ticket, $tecnico, 'creado', [
+                'Sistema' => Sistema::find($request->id_Sistemas)?->nombre,
+                'Módulo' => ModuloSistema::find($request->id_Modulo)?->nombre,
+                'Tipo de desarrollo' => TipoDesarrollo::find($request->input('id_TipoDesarrollo'))?->nombre,
+            ]);
+        }
+
         return redirect()->route('tickets.index')->with('success', 'Ticket de desarrollo #' . $ticket->id_Ticket . ' creado correctamente');
     }
 
@@ -147,6 +203,8 @@ class TicketController extends Controller
 
         return response()->json([
             'ticket' => $ticket,
+            'vehiculos' => $ticket->vehiculosDelTicket(),
+            'tipoTicketLabel' => $ticket->etiquetaTipoTicket(),
             'estatus' => $estatus,
             'tecnicos' => $tecnicos,
             'esAdmin' => $esAdmin,
@@ -248,6 +306,7 @@ class TicketController extends Controller
         }
 
         $cambios = [];
+        $tecnicoNuevo = null;
         if ($ticket->id_Estatus != $request->id_Estatus) {
             $estatus = Estatus::find($request->id_Estatus);
             $cambios[] = 'Estatus: ' . $estatus->descripcion;
@@ -259,8 +318,8 @@ class TicketController extends Controller
         }
 
         if ($request->id_Tecnico && $ticket->id_Tecnico != $request->id_Tecnico) {
-            $tecnico = Usuario::find($request->id_Tecnico);
-            $cambios[] = 'Técnico: ' . $tecnico->nombre . ' ' . $tecnico->app;
+            $tecnicoNuevo = Usuario::find($request->id_Tecnico);
+            $cambios[] = 'Técnico: ' . $tecnicoNuevo->nombre . ' ' . $tecnicoNuevo->app;
             $ticket->id_Tecnico = $request->id_Tecnico;
         }
 
@@ -276,6 +335,10 @@ class TicketController extends Controller
                 'fechaAlta' => now(),
                 'activo' => true,
             ]);
+        }
+
+        if ($tecnicoNuevo) {
+            $this->notificaciones->notificar($ticket, $tecnicoNuevo, 'reasignado');
         }
 
         return response()->json(['success' => true, 'message' => 'Gestión actualizada']);
@@ -328,6 +391,45 @@ class TicketController extends Controller
             ->where('enabled', true)
             ->get();
         return response()->json($submodulos);
+    }
+
+    /**
+     * Equipos que el usuario puede vincular a un ticket de soporte:
+     * impresoras activas (cualquiera) o equipos con asignación vigente
+     * al usuario (activo y sin fechaBaja).
+     */
+    private function equiposPermitidos(int $idUsuario)
+    {
+        $idImpresora = TipoEquipo::where('descripcion', 'Impresora')->value('id_TipoEquipo');
+
+        return Equipo::where('activo', true)
+            ->where(function ($q) use ($idUsuario, $idImpresora) {
+                if ($idImpresora !== null) {
+                    $q->where('id_TipoEquipo', $idImpresora);
+                }
+                $q->orWhereHas('asignaciones', function ($a) use ($idUsuario) {
+                    $a->where('id_Usuario', $idUsuario)
+                        ->where('activo', true)
+                        ->whereNull('fechaBaja');
+                });
+            });
+    }
+
+    /**
+     * Devuelve el id_Equipo solo si está en la lista permitida;
+     * en cualquier otro caso null ("Sin equipo"). No interrumpe el alta.
+     */
+    private function equipoPermitidoParaUsuario(?string $idEquipo, int $idUsuario): ?int
+    {
+        if ($idEquipo === null || $idEquipo === '') {
+            return null;
+        }
+
+        $permitido = $this->equiposPermitidos($idUsuario)
+            ->where('id_Equipo', $idEquipo)
+            ->exists();
+
+        return $permitido ? (int) $idEquipo : null;
     }
 
     private function esAdmin($idUsuario)

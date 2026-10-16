@@ -294,6 +294,9 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-outline-danger btn-sm" id="btnEliminar">
+                    <i class="fas fa-trash me-1"></i>Eliminar
+                </button>
                 <a href="#" class="btn btn-outline-primary btn-sm" id="btnReporte">
                     <i class="fas fa-file-pdf me-1"></i>Llenar Reporte
                 </a>
@@ -564,6 +567,36 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     });
                 }
+            };
+
+            const btnEliminar = document.getElementById('btnEliminar');
+            btnEliminar.onclick = function() {
+                Swal.fire({
+                    title: '¿Eliminar mantenimiento?',
+                    text: 'Esta acción no se puede deshacer.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        fetch('/inventario/mantenimientos/' + selectedEvent.id, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Content-Type': 'application/json'
+                            }
+                        }).then(r => r.json()).then(data => {
+                            if (data.success) {
+                                bootstrap.Modal.getInstance(document.getElementById('detailModal')).hide();
+                                calendar.refetchEvents();
+                                Swal.fire('Eliminado', 'El mantenimiento fue eliminado correctamente.', 'success');
+                            }
+                        });
+                    }
+                });
             };
 
             new bootstrap.Modal(document.getElementById('detailModal')).show();

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\CorreoHtml;
 use App\Services\CorreoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -89,19 +90,21 @@ class LoginController extends Controller
         $correoService = new CorreoService();
         $asunto = 'Help Desk - Recuperación de Contraseña';
         $nombreUsuario = trim(($login->nombre ?? '') . ' ' . ($login->app ?? '') . ' ' . ($login->apm ?? ''));
-        $htmlCuerpo = "
-            <div style='font-family: Arial, sans-serif; padding: 20px;'>
-                <h2 style='color: #333;'>Recuperación de Contraseña</h2>
-                <p>Hola <strong>{$nombreUsuario}</strong>,</p>
-                <p>Se ha generado una contraseña temporal para tu cuenta <strong>{$login->usuario}</strong>.</p>
-                <p>Tu nueva contraseña temporal es:</p>
-                <div style='background-color: #f4f4f4; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0;'>
-                    <span style='font-size: 18px; font-weight: bold; color: #d9534f; letter-spacing: 2px;'>{$tempPassword}</span>
-                </div>
-                <p>Por favor, inicia sesión con esta contraseña y cámbiala lo antes posible.</p>
-                <p style='color: #999; font-size: 12px;'>Si no solicitaste este cambio, contacte al administrador del sistema.</p>
-            </div>
-        ";
+        $htmlCuerpo = CorreoHtml::plantilla([
+            'etiqueta' => 'Recuperación de contraseña',
+            'saludo' => $nombreUsuario,
+            'intro' => 'Generamos una contraseña temporal para tu cuenta <strong>' . e($login->usuario)
+                . '</strong>. Úsala para iniciar sesión y cámbiala lo antes posible.',
+            'bloqueTitulo' => 'Contraseña temporal',
+            'bloque' => '<span style="font-family: ui-monospace, Consolas, \'Courier New\', monospace; font-size:18px; font-weight:700; letter-spacing:1px; color:#0f172a;">'
+                . e($tempPassword) . '</span>',
+            'cta' => [
+                'texto' => 'Iniciar sesión',
+                'url' => route('login'),
+            ],
+            'pie' => 'Si no solicitaste este cambio, contacta al administrador del sistema.',
+            'firma' => $correoService->firma(),
+        ]);
 
         $resultado = $correoService->enviarCorreo($login->correo, $asunto, $htmlCuerpo);
 

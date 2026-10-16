@@ -13,10 +13,15 @@ class Equipo extends Model
         'marca', 'modelo', 'id_TipoEquipo', 'id_Estatus', 'fechaAdquisicion',
         'numeroSerie', 'nombreEquipo', 'ubicacion', 'observaciones',
         'id_PeriodoMantenimiento', 'fechaUltimoMantenimiento', 'fechaAlta', 'activo', 'id_Oficinas', 'esCompartido',
-        'serieMotherboard', 'procesador', 'memoriaRam', 'almacenamiento', 'sistemaOperativo',
+        'serieMotherboard', 'procesador', 'memoriaRam', 'almacenamiento', 'tamanoAlmacenamiento', 'sistemaOperativo',
         'ip', 'mac', 'estadoGarantia', 'fechaFinGarantia', 'especificaciones',
+        'tamano', 'puertos', 'costo',
+        'tipoTeclado', 'conectividad', 'capacidad', 'voltajeEntrada', 'voltajeSalida', 'contactos',
+        'tipoImpresora', 'colorImpresion', 'multifuncion', 'funciones',
+        'tipoCamara', 'resolucion', 'conexion',
+        'tipoGps', 'imei', 'operador', 'lineaSim',
     ];
-    protected $casts = ['activo' => 'boolean', 'esCompartido' => 'boolean', 'fechaAdquisicion' => 'datetime', 'fechaUltimoMantenimiento' => 'datetime', 'fechaAlta' => 'datetime', 'fechaFinGarantia' => 'date'];
+    protected $casts = ['activo' => 'boolean', 'esCompartido' => 'boolean', 'costo' => 'decimal:2', 'contactos' => 'integer', 'multifuncion' => 'boolean', 'fechaAdquisicion' => 'datetime', 'fechaUltimoMantenimiento' => 'datetime', 'fechaAlta' => 'datetime', 'fechaFinGarantia' => 'date'];
 
     public function tipoEquipo() { return $this->belongsTo(TipoEquipo::class, 'id_TipoEquipo'); }
     public function estatus() { return $this->belongsTo(Estatus::class, 'id_Estatus'); }

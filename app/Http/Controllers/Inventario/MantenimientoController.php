@@ -8,6 +8,7 @@ use App\Models\Equipo;
 use App\Models\EquipoUsuario;
 use App\Models\Usuario;
 use App\Models\Estatus;
+use App\Services\MantenimientoNotificacionService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -104,7 +105,7 @@ class MantenimientoController extends Controller
         return response()->json($events);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, MantenimientoNotificacionService $notificaciones)
     {
         $request->validate([
             'id_Equipo' => 'required|exists:tblEquipo,id_Equipo',
@@ -116,7 +117,7 @@ class MantenimientoController extends Controller
 
         $estatusPendiente = Estatus::where('descripcion', 'Pendiente')->first();
 
-        Mantenimiento::create([
+        $mantenimiento = Mantenimiento::create([
             'id_Equipo' => $request->id_Equipo,
             'id_UsuarioTecnico' => $request->id_UsuarioTecnico,
             'fechaProgramada' => $request->fechaProgramada,
@@ -126,6 +127,8 @@ class MantenimientoController extends Controller
             'fechaAlta' => now(),
             'activo' => true,
         ]);
+
+        $notificaciones->notificarUsuarioEquipo($mantenimiento);
 
         $equipo = Equipo::find($request->id_Equipo);
         if ($equipo && $equipo->id_PeriodoMantenimiento) {

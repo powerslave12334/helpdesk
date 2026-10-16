@@ -431,6 +431,7 @@ CREATE TABLE tblTicket (
     id_Ticket BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     id_Usuario BIGINT UNSIGNED NOT NULL,
     id_TipoSoporte BIGINT UNSIGNED NOT NULL,
+    tipoTicket VARCHAR(20) NOT NULL DEFAULT 'falla_tecnica',
     id_Tecnico BIGINT UNSIGNED NULL,
     asunto VARCHAR(200) NOT NULL,
     problema TEXT NOT NULL,
@@ -439,6 +440,8 @@ CREATE TABLE tblTicket (
     activo TINYINT(1) NOT NULL,
     id_Estatus BIGINT UNSIGNED NULL,
     id_Equipo BIGINT UNSIGNED NULL,
+    vehiculos VARCHAR(255) NULL,
+    problemaGps VARCHAR(200) NULL,
     fechaCierre DATETIME NULL,
     PRIMARY KEY (id_Ticket),
     FOREIGN KEY (id_Usuario) REFERENCES tblUsuario(id_Usuario),
@@ -454,6 +457,7 @@ CREATE TABLE tblTicket (
 | id_Ticket | bigint PK | No | auto_increment | — |
 | id_Usuario | bigint FK | No | — | → tblUsuario.id_Usuario (creador) |
 | id_TipoSoporte | bigint FK | No | — | → tblTipoSoporte.id_TipoSoporte |
+| tipoTicket | varchar(20) | No | falla_tecnica | `falla_tecnica` / `instalacion_gps` / `revision_gps` |
 | id_Tecnico | bigint FK | Si | — | → tblUsuario.id_Usuario (técnico) |
 | asunto | varchar(200) | No | — | — |
 | problema | text | No | — | — |
@@ -462,7 +466,12 @@ CREATE TABLE tblTicket (
 | activo | boolean | No | — | — |
 | id_Estatus | bigint FK | Si | — | → tblEstatus.id_Estatus |
 | id_Equipo | bigint FK | Si | — | → tblEquipo.id_Equipo |
+| vehiculos | varchar(255) | Si | — | ids de tblVehiculo separados por coma (instalación = varios, revisión = uno) |
+| problemaGps | varchar(200) | Si | — | valor del catálogo `Ticket::PROBLEMAS_GPS` (o `Otro: …`) |
 | fechaCierre | datetime | Si | — | — |
+
+> **Nota producción:** `tipoTicket`, `vehiculos` y `problemaGps` se aplican en SQL Server con el script
+> `database/sqlsrv/alter_tblTicket_tipo_ticket.sql` (pendiente de aprobación; NO ejecutar aún).
 
 **Relaciones Eloquent:**
 - `belongsTo` → Usuario (id_Usuario, como creador)
@@ -684,6 +693,8 @@ CREATE TABLE tblNotificaciones (
 
 **Nota:** No usa convención `fechaAlta`/`activo` — usa `FechaCreacion`/`Leido`.
 
+**Valores de `Tipo`:** el vocabulario legacy es snake_case (`ticket_asignado`, `comentario`). La app Laravel ahora también escribe filas aquí desde `TicketNotificacionService` (al crear o reasignar un ticket) con `ticket_asignado` y `ticket_reasignado`; y al cerrarse un ticket por inactividad (`tickets:cerrar-inactivos`) con `ticket_cerrado`, destinado al solicitante y al técnico, con `UrlAccion = route('tickets.show', id)`. El endpoint `GET api/notificaciones` no filtra por `Tipo`.
+
 ---
 
 ## Módulo 4: Inventario / Equipos
@@ -704,6 +715,34 @@ CREATE TABLE tblTipoEquipo (
 |---------|------|----------|---------|-----|
 | id_TipoEquipo | bigint PK | No | auto_increment | — |
 | descripcion | varchar(250) | No | — | — |
+| fechaAlta | datetime | No | — | — |
+| activo | boolean | No | — | — |
+
+---
+
+### tblVehiculo — Catálogo de Vehículos / Unidades GPS
+
+> Nueva (`2026_10_05_000001_crear_tblvehiculo_y_tipo_ticket_tblticket.php`). CRUD en
+> **Inventario → Vehículos** (`inventario.vehiculo.*`, permiso `vehiculos`). Las unidades se vinculan a
+> tickets de tipo `instalacion_gps` / `revision_gps` vía la columna `tblTicket.vehiculos`.
+
+```sql
+CREATE TABLE tblVehiculo (
+    id_Vehiculo BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    numeroUnidad VARCHAR(50) NOT NULL,
+    tipoVehiculo VARCHAR(30) NOT NULL,      -- 'Tractocamión' | 'Camión'
+    fechaAlta DATETIME NOT NULL,
+    activo TINYINT(1) NOT NULL,
+    PRIMARY KEY (id_Vehiculo),
+    UNIQUE KEY (numeroUnidad)
+);
+```
+
+| Columna | Tipo | Nullable | Default | FK |
+|---------|------|----------|---------|-----|
+| id_Vehiculo | bigint PK | No | auto_increment | — |
+| numeroUnidad | varchar(50) | No | — | única |
+| tipoVehiculo | varchar(30) | No | — | catálogo `Vehiculo::TIPOS` |
 | fechaAlta | datetime | No | — | — |
 | activo | boolean | No | — | — |
 
@@ -730,12 +769,33 @@ CREATE TABLE tblEquipo (
     procesador VARCHAR(150) NULL,
     memoriaRam VARCHAR(100) NULL,
     almacenamiento VARCHAR(150) NULL,
+    tamanoAlmacenamiento VARCHAR(50) NULL,
     sistemaOperativo VARCHAR(100) NULL,
     ip VARCHAR(45) NULL,
     mac VARCHAR(50) NULL,
     estadoGarantia VARCHAR(50) NULL,
     fechaFinGarantia DATE NULL,
     especificaciones TEXT NULL,
+    tipoTeclado VARCHAR(100) NULL,
+    conectividad VARCHAR(100) NULL,
+    tipoImpresora VARCHAR(50) NULL,
+    colorImpresion VARCHAR(20) NULL,
+    multifuncion TINYINT(1) NULL,
+    funciones VARCHAR(150) NULL,
+    tipoCamara VARCHAR(50) NULL,
+    resolucion VARCHAR(10) NULL,
+    conexion VARCHAR(30) NULL,
+    tipoGps VARCHAR(50) NULL,
+    imei VARCHAR(20) NULL,
+    operador VARCHAR(50) NULL,
+    lineaSim VARCHAR(20) NULL,
+    capacidad VARCHAR(50) NULL,
+    voltajeEntrada VARCHAR(20) NULL,
+    voltajeSalida VARCHAR(20) NULL,
+    contactos SMALLINT UNSIGNED NULL,
+    tamano VARCHAR(50) NULL,
+    puertos VARCHAR(255) NULL,
+    costo DECIMAL(12,2) NULL,
     nombreEquipo VARCHAR(150) NULL,
     ubicacion VARCHAR(150) NULL,
     observaciones TEXT NULL,
@@ -765,12 +825,33 @@ CREATE TABLE tblEquipo (
 | procesador | varchar(150) | Si | — | — |
 | memoriaRam | varchar(100) | Si | — | — |
 | almacenamiento | varchar(150) | Si | — | — |
+| tamanoAlmacenamiento | varchar(50) | Si | — | — |
 | sistemaOperativo | varchar(100) | Si | — | — |
 | ip | varchar(45) | Si | — | — |
 | mac | varchar(50) | Si | — | — |
 | estadoGarantia | varchar(50) | Si | — | — |
 | fechaFinGarantia | date | Si | — | — |
 | especificaciones | text | Si | — | — |
+| tipoTeclado | varchar(100) | Si | — | — |
+| conectividad | varchar(100) | Si | — | — |
+| tipoImpresora | varchar(50) | Si | — | — |
+| colorImpresion | varchar(20) | Si | — | — |
+| multifuncion | boolean | Si | — | — |
+| funciones | varchar(150) | Si | — | — |
+| tipoCamara | varchar(50) | Si | — | — |
+| resolucion | varchar(10) | Si | — | — |
+| conexion | varchar(30) | Si | — | — |
+| tipoGps | varchar(50) | Si | — | — |
+| imei | varchar(20) | Si | — | — |
+| operador | varchar(50) | Si | — | — |
+| lineaSim | varchar(20) | Si | — | — |
+| capacidad | varchar(50) | Si | — | — |
+| voltajeEntrada | varchar(20) | Si | — | — |
+| voltajeSalida | varchar(20) | Si | — | — |
+| contactos | smallint unsigned | Si | — | — |
+| tamano | varchar(50) | Si | — | — |
+| puertos | varchar(255) | Si | — | — |
+| costo | decimal(12,2) | Si | — | — |
 | nombreEquipo | varchar(150) | Si | — | — |
 | ubicacion | varchar(150) | Si | — | — |
 | observaciones | text | Si | — | — |
@@ -782,6 +863,125 @@ CREATE TABLE tblEquipo (
 | esCompartido | boolean | No | — | — |
 
 **Nota:** `id_PeriodoMantenimiento` es FK lógica sin constraint a nivel BD.
+
+> **Marca y Modelo se capturan en texto libre para TODOS los tipos**
+> (`con_marca_dropdown` y `con_modelo_dropdown` vacíos en
+> `config/equipo_perfiles.php`). Solo `ubicacion` usa el catálogo de
+> Departamentos (tipos 1–8). Las tablas `tblCatMarca`/`tblCatModelo`
+> siguen gestionables en Configuración pero ya no alimentan los formularios.
+>
+> Para el tipo **PC Escritorio (CPU)** (`id_TipoEquipo = 1`),
+> `ubicacion` (Departamentos), `procesador`, `almacenamiento` (tipo) y
+> `sistemaOperativo` se capturan desde los catálogos de abajo y
+> `tamanoAlmacenamiento` guarda el tamaño por separado (ej. "512 GB").
+> Para los demás tipos, ver las notas por tipo más abajo.
+>
+> Para el tipo **Monitor** (`id_TipoEquipo = 2`), `ubicacion` se captura
+> desde Departamentos, y usa campos propios:
+> `tamano` (ej. "24 pulgadas"), `puertos` (checkboxes + texto libre unidos con
+> coma, ej. "HDMI, DisplayPort, USB"), `costo`, `fechaAdquisicion`. Al guardar,
+> los campos que no aplican al Monitor (período/último mantenimiento, serie
+> motherboard, procesador, memoria RAM, almacenamiento, sistema operativo, ip,
+> mac) se guardan en `NULL`.
+>
+> Para los tipos **Teclado** (`3`) y **Mouse** (`4`): `ubicacion` usa
+> Departamentos, `marca` en texto libre, `modelo` **no es obligatorio** (si
+> no se captura se guarda `''` porque la columna es `NOT NULL`) y se guardan
+> `fechaAdquisicion` y `costo`. Teclado usa `tipoTeclado` (catálogo
+> `tblCatTipoTeclado`) y ambos usan `conectividad` (catálogo
+> `tblCatConectividad`); el resto de campos PC se guardan en `NULL` y el
+> período de mantenimiento en `0`.
+>
+> Para el tipo **Regulador** (`5`): `ubicacion` usa Departamentos, `marca` y
+> `modelo` en texto libre, `modelo` sí es obligatorio, y usa campos propios `capacidad`,
+> `voltajeEntrada`, `voltajeSalida` y `contactos` (entero 0–999), más
+> `fechaAdquisicion` y `costo`. Los campos PC se guardan en `NULL` y el
+> período en `0`.
+>
+> Para el tipo **Laptop** (`6`): usa los **mismos catálogos y campos que PC
+> Escritorio** (`marca` y `modelo` en texto libre, ubicación desde
+> Departamentos, procesador, tipo de almacenamiento, sistema operativo en catálogo y
+> `tamanoAlmacenamiento`; `modelo` obligatorio; serie motherboard, memoria
+> RAM, IP, MAC y período/último mantenimiento visibles) **más**
+> `fechaAdquisicion` y `costo`. Sin columnas nuevas: todo vive en las
+> columnas existentes de `tblEquipo`.
+>
+> Los valores de `tipoTeclado`, `conectividad`, `tamano`, `puertos` y
+> `capacidad`/`voltaje*` se guardan como **texto** en `tblEquipo` (sin FK),
+> igual que el resto de los catálogos de equipo, para conservar el histórico.
+>
+> Para el tipo **Impresora** (`7`): `marca` y `modelo` en texto libre,
+> `ubicacion` desde Departamentos, `modelo` obligatorio, y usa campos propios `tipoImpresora`
+> (catálogo `tblCatTipoImpresora`), `colorImpresion` (`Color` /
+> `Monocromática`), `multifuncion` (1/0, "Sí"/"No") y `funciones`
+> (checkboxes unidos con coma: "Imprimir, Copiar"), más `numeroSerie`,
+> `fechaAdquisicion`, `costo`, `ip`, `estadoGarantia`/`fechaFinGarantia` y
+> `especificaciones`. **No** se muestran
+> serie motherboard ni memoria RAM (`sin_internos` en
+> `config/equipo_perfiles.php`); los campos PC (procesador, almacenamiento,
+> SO) se guardan en `NULL` y el período en `0`.
+>
+> Para el tipo **Cámara** (`8`): `marca` y `modelo` se capturan en **texto
+> libre** (como GPS/Celular), `ubicacion` desde dropdown (Departamentos), y
+> usa campos propios `tipoCamara` (catálogo `tblCatTipoCamara`),
+> `resolucion` (`1MP`/`2MP`/`4MP`/`5MP`/`8MP`) y `conexion`
+> (`PoE`/`Cableado`/`Inalámbrica`), más `numeroSerie`, `fechaAdquisicion`,
+> `costo`, `ip`, `estadoGarantia`/`fechaFinGarantia` y `especificaciones`.
+> **No** se muestran
+> serie motherboard ni memoria RAM (`sin_internos`); los campos PC se guardan
+> en `NULL` y el período en `0`.
+>
+> Para el tipo **GPS** (`9`): `marca` y `modelo` en texto libre,
+> `ubicacion` en texto libre (no usa Departamentos), y usa campos propios
+> `tipoGps` (catálogo `tblCatTipoGps`), `imei` (exactamente 15 dígitos),
+> `operador` (lista fija `operadores_gps` en `config/equipo_perfiles.php`:
+> Telcel, AT&T, Movistar, Unefon, Otro) y `lineaSim`, más `numeroSerie`,
+> `fechaAdquisicion`, `costo`, `estadoGarantia`/`fechaFinGarantia` y
+> `especificaciones`. **No** se muestran serie motherboard, memoria RAM, IP,
+> MAC ni los campos PC en texto libre (procesador, almacenamiento y sistema
+> operativo) — `sin_internos` + `sin_textos_pc`; sí se muestran período y
+> último mantenimiento.
+
+---
+
+### Catálogos de Equipo — tblCatMarca / tblCatModelo / tblCatProcesador / tblCatSistemaOperativo / tblCatTipoAlmacenamiento / tblCatTipoTeclado / tblCatConectividad / tblCatTipoImpresora / tblCatTipoCamara / tblCatTipoGps
+
+Catálogos que alimentan los dropdowns de los formularios de equipo.
+`tblCatMarca` y `tblCatModelo` ya **no alimentan los formularios** (Marca y
+Modelo son texto libre en todos los tipos) pero siguen gestionables en
+Configuración; el resto sí alimenta dropdowns: procesador, SO y tipo de
+almacenamiento (PC/Laptop), tipo de teclado y conectividad (Teclado/Mouse),
+tipo de impresora (Impresora), tipo de cámara (Cámara) y tipo de GPS (GPS).
+Se gestionan desde **Configuración → Catálogos de Equipo**
+(`configuracion/catalogoEquipo.*`); la migración `2026_10_02_000003` crea los
+primeros 5, `2026_10_03_000003` crea los 2 siguientes, `2026_10_05_000002`
+crea `tblCatTipoImpresora`, `2026_10_05_000003` crea `tblCatTipoCamara` y
+`2026_10_06_000001` crea `tblCatTipoGps`,
+con semilla inicial + los valores ya usados en equipos existentes.
+
+| Tabla | PK | Columnas | FK |
+|-------|----|----------|----|
+| tblCatMarca | id_Marca | nombre (unique), fechaAlta, activo | — |
+| tblCatModelo | id_Modelo | id_Marca, nombre, fechaAlta, activo | id_Marca → tblCatMarca |
+| tblCatProcesador | id_Procesador | nombre (unique), fechaAlta, activo | — |
+| tblCatSistemaOperativo | id_SistemaOperativo | nombre (unique), fechaAlta, activo | — |
+| tblCatTipoAlmacenamiento | id_TipoAlmacenamiento | nombre (unique), fechaAlta, activo | — |
+| tblCatTipoTeclado | id_TipoTeclado | nombre (unique), fechaAlta, activo | — |
+| tblCatConectividad | id_Conectividad | nombre (unique), fechaAlta, activo | — |
+| tblCatTipoImpresora | id_TipoImpresora | nombre (unique), fechaAlta, activo | — |
+| tblCatTipoCamara | id_TipoCamara | nombre (unique), fechaAlta, activo | — |
+| tblCatTipoGps | id_TipoGps | nombre (unique), fechaAlta, activo | — |
+
+> Semilla de `tblCatTipoTeclado`: Mecánico, Membrana, Ergonómico.
+> Semilla de `tblCatConectividad`: USB, Inalámbrico, Bluetooth, PS/2.
+> Semilla de `tblCatTipoImpresora`: Láser, Inyección de tinta, Matricial, Térmica.
+> Semilla de `tblCatTipoCamara`: Domo, Bala, PTZ, Cónica.
+> Semilla de `tblCatTipoGps`: Vehicular, Motocicleta, Personal, Patrimonial.
+
+> `tblEquipo` guarda los **valores** de estos catálogos como texto en sus
+> columnas (`marca`, `modelo`, etc.) — no hay FK — para conservar el histórico
+> aunque el catálogo cambie. En edición, un valor que ya no exista en el
+> catálogo se muestra como opción extra para no perderlo.
 
 ---
 
@@ -1281,3 +1481,12 @@ Estas tablas existen en la BD pero NO tienen archivo de migración en `database/
 | `2026_09_28_000005_reemplazar_campos_personalizados.php` | agrega 10 columnas a tblEquipo y elimina tblEquipoCampo, tblTipoEquipoCampo y tblEquipoDetalle (migra "Serie Motherboard") |
 | `2026_10_02_000001_eliminar_submodulos_modulos_y_roles_usuarios.php` | elimina los submódulos `modulos` y `roles-usuarios` de tblSubModulos + sus filas en tblRolSubModulo (pantallas retiradas del menú) |
 | `2026_10_02_000002_sincronizar_catalogo_modulos_desde_config.php` | refleja `config/modulos.php` en tblModulos/tblSubModulos (elimina claves fuera del registro, p. ej. `submodulos` y `nuevo`) |
+| `2026_10_02_000003_crear_catalogos_equipo.php` | crea las 5 tablas de catálogo de equipo (marca, modelo, procesador, SO, tipo almacenamiento) con semilla inicial |
+| `2026_10_02_000004_agregar_tamano_almacenamiento_a_tblequipo.php` | agrega `tblequipo.tamanoAlmacenamiento` (tamaño del almacenamiento de PC Escritorio) |
+| `2026_10_03_000001_agregar_campos_monitor_a_tblequipo.php` | agrega `tblequipo.tamano`, `tblequipo.puertos` y `tblequipo.costo` (campos del tipo Monitor) |
+| `2026_10_03_000002_agregar_campos_perifericos_a_tblequipo.php` | agrega `tblequipo.tipoTeclado`, `conectividad`, `capacidad`, `voltajeEntrada`, `voltajeSalida` y `contactos` (campos de Teclado, Mouse y Regulador) |
+| `2026_10_03_000003_crear_catalogos_teclado_conectividad.php` | crea `tblCatTipoTeclado` y `tblCatConectividad` con semilla inicial |
+| `2026_10_05_000001_crear_tblvehiculo_y_tipo_ticket_tblticket.php` | crea `tblVehiculo` y agrega `tblTicket.tipoTicket`, `tblTicket.vehiculos` y `tblTicket.problemaGps` (en producción: `database/sqlsrv/alter_tblTicket_tipo_ticket.sql`) |
+| `2026_10_05_000002_crear_catalogo_tipo_impresora_y_campos_impresora.php` | crea `tblCatTipoImpresora` con semilla y agrega `tblEquipo.tipoImpresora`, `colorImpresion`, `multifuncion` y `funciones` (en producción: `database/sqlsrv/alter_tblequipo_impresora.sql`) |
+| `2026_10_05_000003_crear_catalogo_tipo_camara_y_campos_camara.php` | crea `tblCatTipoCamara` con semilla y agrega `tblEquipo.tipoCamara`, `resolucion` y `conexion` (en producción: `database/sqlsrv/alter_tblequipo_camara.sql`) |
+| `2026_10_06_000001_crear_catalogo_tipo_gps_y_campos_gps.php` | crea `tblCatTipoGps` con semilla y agrega `tblEquipo.tipoGps`, `imei`, `operador` y `lineaSim` (en producción: `database/sqlsrv/alter_tblequipo_gps.sql`) |

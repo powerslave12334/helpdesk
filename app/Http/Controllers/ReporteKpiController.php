@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Usuario;
 use App\Services\PermisosService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -74,12 +73,13 @@ class ReporteKpiController extends Controller
 
     public function exportar(Request $request)
     {
-        // Solo técnicos y administradores (mismo alcance que el KPI del dashboard).
+        // Reporte exclusivo del área habilitada en config/kpi.php (Soporte TI).
+        // El rol no otorga acceso: Root y Administrador quedan fuera si su
+        // área no está en la lista.
         $idUsuario = (int) auth()->id();
-        $esAdmin = $this->permisosService->esAdministrador($idUsuario);
-        $esTecnico = (bool) Usuario::where('id_Usuario', $idUsuario)->value('esTecnico');
-        if (!$esAdmin && !$esTecnico) {
-            abort(403, 'Solo técnicos y administradores pueden descargar el reporte KPI.');
+        if (!$this->permisosService->puedeDescargarKpi($idUsuario)) {
+            $areas = implode(' / ', (array) config('kpi.areas_permitidas', ['Soporte TI']));
+            abort(403, "El reporte KPI es exclusivo del área: {$areas}.");
         }
 
         $datos = $request->validate([

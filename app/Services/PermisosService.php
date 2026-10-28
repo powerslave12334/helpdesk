@@ -80,4 +80,34 @@ class PermisosService
     {
         return in_array($clave, $this->submodulosActivosUsuarioClaves($idUsuario), true);
     }
+
+    /**
+     * Descarga del reporte KPI Tickets (FO-SGC-08).
+     *
+     * El acceso lo da el ÁREA del usuario (config kpi.areas_permitidas, por
+     * defecto "Soporte TI"), no su rol: ni Root ni Administrador lo obtienen
+     * por sí solos. La autenticación ya garantiza que el usuario esté activo
+     * (HelpdeskUserProvider filtra por activo), por eso no se repite aquí.
+     */
+    public function puedeDescargarKpi(int $idUsuario): bool
+    {
+        // El valor por defecto protege por si existe una caché de configuración
+        // anterior que no conoce config/kpi.php.
+        $areas = config('kpi.areas_permitidas', ['Soporte TI']);
+
+        if ($areas === []) {
+            return false;
+        }
+
+        $idsAreas = DB::table('tblArea')->whereIn('nombre', $areas)->pluck('id_Area');
+
+        if ($idsAreas->isEmpty()) {
+            return false;
+        }
+
+        return DB::table('tblUsuario')
+            ->where('id_Usuario', $idUsuario)
+            ->whereIn('id_Area', $idsAreas)
+            ->exists();
+    }
 }

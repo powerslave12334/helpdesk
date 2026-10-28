@@ -46,8 +46,8 @@ class DashboardController extends Controller
         // Para habilitar el botón de asignación rápida en la pestaña Equipos.
         $puedeAsignarEquipos = $this->permisosService->submoduloActivo($idUsuario, 'asignacion-equipo');
 
-        // Descarga del reporte mensual KPI Tickets (técnicos y administradores).
-        $puedeDescargarKpi = $esAdmin || $esTecnico;
+        // Descarga del reporte mensual KPI Tickets (área habilitada, ver config/kpi.php).
+        $puedeDescargarKpi = $this->permisosService->puedeDescargarKpi($idUsuario);
 
         $usuario = auth()->user();
         return view('dashboard', compact(

@@ -22,4 +22,21 @@ return [
         explode(',', (string) env('KPI_AREAS_PERMITIDAS', 'Soporte TI'))
     ))),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Áreas habilitadas para descargar el reporte KPI Desarrollo
+    |--------------------------------------------------------------------------
+    |
+    | Mismo criterio que areas_permitidas pero para el reporte del área de
+    | Desarrollo de Software. Un usuario en ambas áreas verá los dos botones.
+    |
+    |   KPI_AREAS_DESARROLLO=Desarrollo de Software
+    |
+    */
+
+    'areas_desarrollo' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('KPI_AREAS_DESARROLLO', 'Desarrollo de Software'))
+    ))),
+
 ];

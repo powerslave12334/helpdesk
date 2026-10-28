@@ -93,7 +93,23 @@ class PermisosService
     {
         // El valor por defecto protege por si existe una caché de configuración
         // anterior que no conoce config/kpi.php.
-        $areas = config('kpi.areas_permitidas', ['Soporte TI']);
+        return $this->usuarioEnAreas($idUsuario, config('kpi.areas_permitidas', ['Soporte TI']));
+    }
+
+    /**
+     * Descarga del reporte KPI Desarrollo (mismo FO-SGC-08, área de
+     * Desarrollo de Software). Mismo criterio por área que
+     * puedeDescargarKpi(), con su propia lista en config/kpi.php.
+     */
+    public function puedeDescargarKpiDesarrollo(int $idUsuario): bool
+    {
+        return $this->usuarioEnAreas($idUsuario, config('kpi.areas_desarrollo', ['Desarrollo de Software']));
+    }
+
+    /** ¿El usuario pertenece a alguna de las áreas indicadas (por nombre)? */
+    private function usuarioEnAreas(int $idUsuario, mixed $areas): bool
+    {
+        $areas = array_values(array_filter((array) $areas));
 
         if ($areas === []) {
             return false;

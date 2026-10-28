@@ -3,6 +3,7 @@
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ReporteKpiController;
+use App\Http\Controllers\ReporteKpiDesarrolloController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\Inventario\EquipoController;
@@ -43,6 +44,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     // Reporte mensual "KPI Tickets" (Excel) para técnicos y administradores.
     Route::get('/dashboard/reporte-kpi', [ReporteKpiController::class, 'exportar'])->name('dashboard.reporte-kpi');
+    // Reporte mensual "KPI Desarrollo" (Excel) para el área de Desarrollo.
+    Route::get('/dashboard/reporte-kpi-desarrollo', [ReporteKpiDesarrolloController::class, 'exportar'])->name('dashboard.reporte-kpi-desarrollo');
 
     // Tickets
     Route::middleware('permiso:tickets')->group(function () {

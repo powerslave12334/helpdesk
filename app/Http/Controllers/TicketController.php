@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Ticket;
 use App\Models\TicketComentario;
+use App\Models\TicketDesarrolloDetalle;
 use App\Models\TicketEvidencia;
 use App\Models\TipoSoporte;
 use App\Models\Estatus;
@@ -159,8 +160,12 @@ class TicketController extends Controller
             'asunto' => 'required|string|max:100',
             'descripcionTicket' => 'required|string',
             'id_TipoSoporte' => 'required|integer',
+            'id_TipoDesarrollo' => 'required|integer',
             'id_Sistemas' => 'required|integer',
             'id_Modulo' => 'required|integer',
+            // Opcional: no todos los módulos tienen submódulos.
+            'id_Submodulo' => 'nullable|integer',
+            'fechaEstimadaTermino' => 'nullable|date',
             'id_Tecnico' => 'required|integer',
         ]);
 
@@ -177,6 +182,18 @@ class TicketController extends Controller
         $ticket->fechaAlta = now();
         $ticket->activo = true;
         $ticket->save();
+
+        // Detalle de desarrollo: alimenta el reporte KPI Desarrollo
+        // (módulo/submódulo/tipo). Sin esto tblTicketDesarrolloDetalle
+        // queda vacía y el reporte sale sin clasificar.
+        TicketDesarrolloDetalle::create([
+            'id_Ticket' => $ticket->id_Ticket,
+            'id_TipoDesarrollo' => $request->id_TipoDesarrollo,
+            'id_Sistemas' => $request->id_Sistemas,
+            'id_Modulo' => $request->id_Modulo,
+            'id_Submodulo' => $request->filled('id_Submodulo') ? $request->id_Submodulo : null,
+            'fechaEstimadaTermino' => $request->filled('fechaEstimadaTermino') ? $request->fechaEstimadaTermino : null,
+        ]);
 
         $tecnico = Usuario::find($request->id_Tecnico);
         if ($tecnico) {

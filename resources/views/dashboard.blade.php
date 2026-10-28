@@ -100,28 +100,56 @@
             · {{ now()->format('d/m/Y') }}
         </div>
     </div>
-    @if($puedeDescargarKpi)
-        <form action="{{ route('dashboard.reporte-kpi') }}" method="GET" class="d-flex align-items-end gap-2 flex-wrap" aria-label="Descargar reporte KPI mensual">
-            <div>
-                <label for="kpiMes" class="form-label mb-1" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600;">Mes</label>
-                <select name="mes" id="kpiMes" class="form-select form-select-sm">
-                    @foreach($mesesKpi as $num => $nombre)
-                        <option value="{{ $num }}" @selected($num === $mesKpi)>{{ $nombre }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label for="kpiAnio" class="form-label mb-1" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600;">Año</label>
-                <select name="anio" id="kpiAnio" class="form-select form-select-sm">
-                    @for($y = now()->year; $y >= 2020; $y--)
-                        <option value="{{ $y }}" @selected($y === $anioKpi)>{{ $y }}</option>
-                    @endfor
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary btn-sm" title="Descargar reporte KPI Tickets en Excel">
-                <i class="fas fa-file-excel me-1" aria-hidden="true"></i>Descargar KPI
-            </button>
-        </form>
+    {{-- Descarga de reportes KPI: cada área ve el suyo (ver config/kpi.php). --}}
+    @if($puedeDescargarKpi || $puedeDescargarKpiDesarrollo)
+        <div class="d-flex align-items-end gap-3 flex-wrap">
+        @if($puedeDescargarKpi)
+            <form action="{{ route('dashboard.reporte-kpi') }}" method="GET" class="d-flex align-items-end gap-2 flex-wrap" aria-label="Descargar reporte KPI Tickets">
+                <div>
+                    <label for="kpiMes" class="form-label mb-1" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600;">Mes</label>
+                    <select name="mes" id="kpiMes" class="form-select form-select-sm">
+                        @foreach($mesesKpi as $num => $nombre)
+                            <option value="{{ $num }}" @selected($num === $mesKpi)>{{ $nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="kpiAnio" class="form-label mb-1" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600;">Año</label>
+                    <select name="anio" id="kpiAnio" class="form-select form-select-sm">
+                        @for($y = now()->year; $y >= 2020; $y--)
+                            <option value="{{ $y }}" @selected($y === $anioKpi)>{{ $y }}</option>
+                        @endfor
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm" title="Descargar reporte KPI Tickets en Excel">
+                    <i class="fas fa-file-excel me-1" aria-hidden="true"></i>Descargar KPI
+                </button>
+            </form>
+        @endif
+        @if($puedeDescargarKpiDesarrollo)
+            <form action="{{ route('dashboard.reporte-kpi-desarrollo') }}" method="GET" class="d-flex align-items-end gap-2 flex-wrap" aria-label="Descargar reporte KPI Desarrollo">
+                <div>
+                    <label for="kpiMesDes" class="form-label mb-1" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600;">Mes</label>
+                    <select name="mes" id="kpiMesDes" class="form-select form-select-sm">
+                        @foreach($mesesKpi as $num => $nombre)
+                            <option value="{{ $num }}" @selected($num === $mesKpi)>{{ $nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="kpiAnioDes" class="form-label mb-1" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600;">Año</label>
+                    <select name="anio" id="kpiAnioDes" class="form-select form-select-sm">
+                        @for($y = now()->year; $y >= 2020; $y--)
+                            <option value="{{ $y }}" @selected($y === $anioKpi)>{{ $y }}</option>
+                        @endfor
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-info btn-sm text-white" title="Descargar reporte KPI Desarrollo en Excel">
+                    <i class="fas fa-file-excel me-1" aria-hidden="true"></i>Descargar KPI Desarrollo
+                </button>
+            </form>
+        @endif
+        </div>
     @endif
 </div>
 

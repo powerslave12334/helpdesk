@@ -352,8 +352,14 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Módulo *</label>
-                        <select name="id_Modulo" id="selModulos" class="form-select" required disabled>
+                        <select name="id_Modulo" id="selModulosDes" class="form-select" required disabled>
                             <option value="">Seleccionar sistema primero...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Submódulo</label>
+                        <select name="id_Submodulo" id="selSubmodulosDes" class="form-select" disabled>
+                            <option value="">Seleccionar módulo primero...</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -368,6 +374,11 @@
                     <div class="mb-3">
                         <label class="form-label">Asunto *</label>
                         <input type="text" name="asunto" class="form-control" maxlength="100" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Fecha estimada de término</label>
+                        <input type="date" name="fechaEstimadaTermino" class="form-control">
+                        <div class="form-text">Alimenta el indicador de tiempo de entrega del reporte KPI Desarrollo.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Descripción del Desarrollo *</label>
@@ -540,14 +551,20 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Cascading: Sistemas -> Modulos
+    // Cascading: Sistemas -> Modulos -> Submodulos (ticket de desarrollo)
     const selSistemas = document.getElementById('selSistemas');
-    const selModulos = document.getElementById('selModulos');
-    if (selSistemas) {
+    const selModulos = document.getElementById('selModulosDes');
+    const selSubmodulos = document.getElementById('selSubmodulosDes');
+    if (selSistemas && selModulos) {
         selSistemas.addEventListener('change', function() {
             const id = this.value;
             selModulos.innerHTML = '<option value="">Cargando...</option>';
             selModulos.disabled = true;
+            // Módulo nuevo: submódulo vuelve a su estado inicial.
+            if (selSubmodulos) {
+                selSubmodulos.innerHTML = '<option value="">Seleccionar módulo primero...</option>';
+                selSubmodulos.disabled = true;
+            }
             if (id) {
                 fetch(`/tickets/modulos/${id}`)
                     .then(r => r.json())
@@ -560,6 +577,33 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
             } else {
                 selModulos.innerHTML = '<option value="">Seleccionar sistema primero...</option>';
+            }
+        });
+    }
+    if (selModulos && selSubmodulos) {
+        selModulos.addEventListener('change', function() {
+            const id = this.value;
+            selSubmodulos.innerHTML = '<option value="">Cargando...</option>';
+            selSubmodulos.disabled = true;
+            if (id) {
+                fetch(`/tickets/submodulos/${id}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        // No todos los módulos tienen submódulos: si no hay,
+                        // se queda deshabilitado con "Sin submódulo".
+                        if (data.length === 0) {
+                            selSubmodulos.innerHTML = '<option value="">Sin submódulo</option>';
+                            selSubmodulos.disabled = true;
+                            return;
+                        }
+                        selSubmodulos.innerHTML = '<option value="">Seleccionar...</option>';
+                        data.forEach(s => {
+                            selSubmodulos.innerHTML += `<option value="${s.id_SubmodulosSistemas}">${s.nombre}</option>`;
+                        });
+                        selSubmodulos.disabled = false;
+                    });
+            } else {
+                selSubmodulos.innerHTML = '<option value="">Seleccionar módulo primero...</option>';
             }
         });
     }

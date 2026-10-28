@@ -62,6 +62,11 @@
     };
     $rol = $esAdmin ? 'Administrador' : ($esTecnico ? 'Técnico' : 'Usuario');
 
+    // Selectores del reporte KPI (mes/año).
+    $mesesKpi = [1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril', 5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'];
+    $anioKpi = request()->filled('anio') ? request()->integer('anio') : now()->year;
+    $mesKpi = request()->filled('mes') ? request()->integer('mes') : now()->month;
+
     $presets = ['hoy' => 'Hoy', '7d' => 'Últimos 7 días', '30d' => 'Últimos 30 días', 'mes' => 'Este mes', 'anio' => 'Este año', 'todo' => 'Todo', 'custom' => 'Personalizado'];
     $params = request()->except(['tab']);
     $tabUrl = fn($t) => route('dashboard', array_merge($params, ['tab' => $t]));
@@ -73,7 +78,13 @@
     }
     if ($filtros['tipo']) $chips[] = 'Tipo: ' . optional($catalogos['tiposSoporte']->firstWhere('id_TipoSoporte', $filtros['tipo']))->descripcion;
     if ($filtros['estatus']) $chips[] = 'Estatus: ' . optional($catalogos['estatusTicket']->firstWhere('id_Estatus', $filtros['estatus']))->descripcion;
-    if ($filtros['tecnico']) { $t = $catalogos['tecnicos']->firstWhere('id_Usuario', $filtros['tecnico']); $chips[] = 'Técnico: ' . ($t ? $t->nombre . ' ' . $t->app : $filtros['tecnico']); }
+    // El filtro de técnico está fijo al dueño de la sesión (el admin no puede abrir otro).
+    if ($esAdmin) {
+        $chips[] = ($esTecnico ? 'Técnico: ' : 'Creador: ') . ($usuario ? $usuario->nombreCompleto() : 'Sesión') . ' (fijo)';
+    } elseif ($filtros['tecnico']) {
+        $t = $catalogos['tecnicos']->firstWhere('id_Usuario', $filtros['tecnico']);
+        $chips[] = 'Técnico: ' . ($t ? $t->nombre . ' ' . $t->app : $filtros['tecnico']);
+    }
     if ($filtros['depto']) $chips[] = 'Depto: ' . optional($catalogos['deptos']->firstWhere('id_Depto', $filtros['depto']))->nombre;
     if ($filtros['area']) $chips[] = 'Área: ' . optional($catalogos['areas']->firstWhere('id_Area', $filtros['area']))->nombre;
     $chips = array_values(array_filter($chips));
@@ -83,8 +94,35 @@
 <div class="page-head">
     <div>
         <h1>Panel</h1>
-        <div class="sub">{{ $rol }} · {{ now()->format('d/m/Y') }}</div>
+        <div class="sub">
+            {{ $rol }}@if($usuario) · {{ $usuario->nombreCompleto() }}@endif
+            @if($esAdmin) · Mis tickets (sesión) @endif
+            · {{ now()->format('d/m/Y') }}
+        </div>
     </div>
+    @if($puedeDescargarKpi)
+        <form action="{{ route('dashboard.reporte-kpi') }}" method="GET" class="d-flex align-items-end gap-2 flex-wrap" aria-label="Descargar reporte KPI mensual">
+            <div>
+                <label for="kpiMes" class="form-label mb-1" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600;">Mes</label>
+                <select name="mes" id="kpiMes" class="form-select form-select-sm">
+                    @foreach($mesesKpi as $num => $nombre)
+                        <option value="{{ $num }}" @selected($num === $mesKpi)>{{ $nombre }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label for="kpiAnio" class="form-label mb-1" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600;">Año</label>
+                <select name="anio" id="kpiAnio" class="form-select form-select-sm">
+                    @for($y = now()->year; $y >= 2020; $y--)
+                        <option value="{{ $y }}" @selected($y === $anioKpi)>{{ $y }}</option>
+                    @endfor
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm" title="Descargar reporte KPI Tickets en Excel">
+                <i class="fas fa-file-excel me-1" aria-hidden="true"></i>Descargar KPI
+            </button>
+        </form>
+    @endif
 </div>
 
 {{-- ───────────── Barra de filtros (solo admin, pestaña Tickets) ───────────── --}}
@@ -128,15 +166,7 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label">Técnico</label>
-                <select name="tecnico" class="form-select form-select-sm" data-autosubmit>
-                    <option value="">Todos</option>
-                    @foreach($catalogos['tecnicos'] as $o)
-                        <option value="{{ $o->id_Usuario }}" {{ (string)$filtros['tecnico'] === (string)$o->id_Usuario ? 'selected' : '' }}>{{ $o->nombre }} {{ $o->app }}</option>
-                    @endforeach
-                </select>
-            </div>
+            {{-- El filtro de técnico se omite: siempre es el dueño de la sesión --}}
             <div class="col-6 col-md-2">
                 <label class="form-label">Departamento</label>
                 <select name="depto" class="form-select form-select-sm" data-autosubmit>
@@ -194,7 +224,6 @@
                 <div class="kpi kpi-amber"><div class="kpi-icon"><i class="fas fa-spinner" aria-hidden="true"></i></div><div><div class="kpi-value">{{ $cnt('En proceso') }}</div><div class="kpi-label">En Proceso</div></div></div>
                 <div class="kpi kpi-green"><div class="kpi-icon"><i class="fas fa-check-circle" aria-hidden="true"></i></div><div><div class="kpi-value">{{ $cnt('Resuelto') }}</div><div class="kpi-label">Resueltos</div></div></div>
                 <div class="kpi kpi-slate"><div class="kpi-icon"><i class="fas fa-times-circle" aria-hidden="true"></i></div><div><div class="kpi-value">{{ $cnt('Cerrado') }}</div><div class="kpi-label">Cerrados</div></div></div>
-                <div class="kpi kpi-red"><div class="kpi-icon"><i class="fas fa-user-slash" aria-hidden="true"></i></div><div><div class="kpi-value">{{ $t['sin_asignar'] }}</div><div class="kpi-label">Sin Asignar</div></div></div>
                 <div class="kpi kpi-red"><div class="kpi-icon"><i class="fas fa-hourglass-half" aria-hidden="true"></i></div><div><div class="kpi-value">{{ $t['vencidos'] }}</div><div class="kpi-label">Vencidos (&gt;7d)</div></div></div>
                 <div class="kpi kpi-green"><div class="kpi-icon"><i class="fas fa-percentage" aria-hidden="true"></i></div><div><div class="kpi-value">{{ $t['tasa_resolucion'] }}%</div><div class="kpi-label">Tasa Resolución</div></div></div>
                 <div class="kpi kpi-cyan"><div class="kpi-icon"><i class="fas fa-stopwatch" aria-hidden="true"></i></div><div><div class="kpi-value">{{ $fmtTiempo($t['tiempo_promedio_horas']) }}</div><div class="kpi-label">Tiempo Prom.</div></div></div>
@@ -246,6 +275,272 @@
                 <div class="col-md-7 mb-3"><div class="card h-100"><div class="card-header"><i class="fas fa-chart-bar me-2" aria-hidden="true"></i>Equipos por Tipo</div><div class="card-body"><canvas id="chartEquiposTipo" role="img" aria-label="Equipos por tipo"></canvas></div></div></div>
                 <div class="col-md-5 mb-3"><div class="card h-100"><div class="card-header"><i class="fas fa-chart-pie me-2" aria-hidden="true"></i>Equipos por Estatus</div><div class="card-body"><canvas id="chartEquiposEstatus" role="img" aria-label="Equipos por estatus"></canvas></div></div></div>
             </div>
+
+            {{-- Sub-tabs de inventario: Sin asignar / Asignados --}}
+            <ul class="nav nav-tabs mb-3" id="tabsInventario" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-sin-asignar" data-bs-toggle="tab" data-bs-target="#panelSinAsignar" type="button" role="tab" aria-controls="panelSinAsignar" aria-selected="true">
+                        <i class="fas fa-unlink me-1" aria-hidden="true"></i>Sin Asignar
+                        <span class="badge bg-secondary ms-1">{{ $kpis['inventario']['sin_asignar'] }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-asignados" data-bs-toggle="tab" data-bs-target="#panelAsignados" type="button" role="tab" aria-controls="panelAsignados" aria-selected="false">
+                        <i class="fas fa-user-tag me-1" aria-hidden="true"></i>Asignados
+                        <span class="badge bg-secondary ms-1">{{ $kpis['inventario']['asignados'] }}</span>
+                    </button>
+                </li>
+            </ul>
+            <div class="tab-content mb-3" id="tabsInventarioContent">
+                <div class="tab-pane fade show active" id="panelSinAsignar" role="tabpanel" aria-labelledby="tab-sin-asignar" tabindex="0">
+            <div class="card mb-3" data-table>
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-unlink me-2" aria-hidden="true"></i>Equipos Sin Asignar</h5>
+                    <span class="badge bg-secondary">{{ $kpis['inventario']['sin_asignar_lista']->count() }}</span>
+                </div>
+                <div class="card-body">
+                    <div class="table-toolbar">
+                        <div class="table-toolbar-left">
+                            <div class="table-search">
+                                <i class="fas fa-search"></i>
+                                <input type="text" data-table-search placeholder="Buscar por equipo, serie, ubicación...">
+                            </div>
+                            <select class="table-filter" data-table-filter="tipoEquipo">
+                                <option value="">Todos los tipos</option>
+                                @foreach($kpis['inventario']['sin_asignar_lista']->pluck('tipoEquipo')->unique()->filter()->sort() as $tipo)
+                                <option value="{{ $tipo }}">{{ $tipo }}</option>
+                                @endforeach
+                            </select>
+                            <select class="table-filter" data-table-filter="estatusEquipo">
+                                <option value="">Todos los estatus</option>
+                                @foreach($kpis['inventario']['sin_asignar_lista']->map(fn($x) => $x->estatusEquipo ?? 'Sin estatus')->unique()->sort() as $est)
+                                <option value="{{ $est }}">{{ $est }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="table-toolbar-right">
+                            <span class="table-info">Por página</span>
+                            <select class="table-filter" data-table-per-page>
+                                <option value="5">5</option>
+                                <option value="10" selected>10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="10000">Todos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Folio</th>
+                                    <th>Tipo de Equipo</th>
+                                    <th>Nombre</th>
+                                    <th>Marca / Modelo</th>
+                                    <th>No. Serie</th>
+                                    <th>Sistema Operativo</th>
+                                    <th>Ubicación</th>
+                                    <th>Estatus</th>
+                                    <th>Garantía</th>
+                                    @if($puedeAsignarEquipos)<th>Acciones</th>@endif
+                                </tr>
+                            </thead>
+                            <tbody data-table-body>
+                                @forelse($kpis['inventario']['sin_asignar_lista'] as $eq)
+                                <tr data-row>
+                                    <td><strong>#{{ $eq->id_Equipo }}</strong></td>
+                                    <td data-field="tipoEquipo"><span class="badge bg-light text-dark border">{{ $eq->tipoEquipo ?? 'N/A' }}</span></td>
+                                    <td>{{ $eq->nombreEquipo ?: '—' }}</td>
+                                    <td>{{ trim(($eq->marca ?? '') . ' ' . ($eq->modelo ?? '')) ?: '—' }}</td>
+                                    <td>{{ $eq->numeroSerie ?: '—' }}</td>
+                                    <td>{{ $eq->sistemaOperativo ?: '—' }}</td>
+                                    <td>{{ $eq->ubicacion ?: '—' }}</td>
+                                    <td data-field="estatusEquipo"><span class="badge bg-secondary">{{ $eq->estatusEquipo ?? 'Sin estatus' }}</span></td>
+                                    <td>
+                                        @if($eq->fechaFinGarantia)
+                                            @if(\Illuminate\Support\Carbon::parse($eq->fechaFinGarantia)->isPast())
+                                                <span class="badge bg-danger">Vencida {{ \Illuminate\Support\Carbon::parse($eq->fechaFinGarantia)->format('d/m/Y') }}</span>
+                                            @else
+                                                <span class="badge bg-success">Vence {{ \Illuminate\Support\Carbon::parse($eq->fechaFinGarantia)->format('d/m/Y') }}</span>
+                                            @endif
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
+                                    @if($puedeAsignarEquipos)
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-primary btn-asignacion-rapida"
+                                            data-id="{{ $eq->id_Equipo }}"
+                                            data-nombre="{{ $eq->nombreEquipo }}"
+                                            data-descripcion="{{ trim(($eq->nombreEquipo ?: '#' . $eq->id_Equipo) . ' · ' . $eq->marca . ' ' . $eq->modelo . ' · ' . ($eq->tipoEquipo ?? '')) }}"
+                                            title="Asignación rápida">
+                                            <i class="fas fa-user-plus me-1" aria-hidden="true"></i>Asignar
+                                        </button>
+                                    </td>
+                                    @endif
+                                </tr>
+                                @empty
+                                <tr><td colspan="{{ $puedeAsignarEquipos ? 10 : 9 }}" class="text-center text-muted py-4">No hay equipos sin asignar</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="table-footer">
+                        <span class="table-info" data-table-info></span>
+                        <div class="pagination" data-table-pagination></div>
+                    </div>
+                </div>
+            </div>
+                </div>{{-- /panelSinAsignar --}}
+
+                <div class="tab-pane fade" id="panelAsignados" role="tabpanel" aria-labelledby="tab-asignados" tabindex="0">
+                    <div class="card mb-3" data-table>
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-user-tag me-2" aria-hidden="true"></i>Equipos Asignados</h5>
+                            <span class="badge bg-secondary">{{ $kpis['inventario']['asignados_lista']->count() }}</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-toolbar">
+                                <div class="table-toolbar-left">
+                                    <div class="table-search">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" data-table-search placeholder="Buscar por equipo, usuario, serie, área...">
+                                    </div>
+                                    <select class="table-filter" data-table-filter="tipoEquipo">
+                                        <option value="">Todos los tipos</option>
+                                        @foreach($kpis['inventario']['asignados_lista']->pluck('tipoEquipo')->unique()->filter()->sort() as $tipo)
+                                        <option value="{{ $tipo }}">{{ $tipo }}</option>
+                                        @endforeach
+                                    </select>
+                                    <select class="table-filter" data-table-filter="areaAsignada">
+                                        <option value="">Todas las áreas</option>
+                                        @foreach($kpis['inventario']['asignados_lista']->pluck('areaAsignada')->unique()->filter()->sort() as $ar)
+                                        <option value="{{ $ar }}">{{ $ar }}</option>
+                                        @endforeach
+                                    </select>
+                                    <select class="table-filter" data-table-filter="estatusEquipo">
+                                        <option value="">Todos los estatus</option>
+                                        @foreach($kpis['inventario']['asignados_lista']->map(fn($x) => $x->estatusEquipo ?? 'Sin estatus')->unique()->sort() as $est)
+                                        <option value="{{ $est }}">{{ $est }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="table-toolbar-right">
+                                    <span class="table-info">Por página</span>
+                                    <select class="table-filter" data-table-per-page>
+                                        <option value="5">5</option>
+                                        <option value="10" selected>10</option>
+                                        <option value="25">25</option>
+                                        <option value="50">50</option>
+                                        <option value="10000">Todos</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Folio</th>
+                                            <th>Tipo de Equipo</th>
+                                            <th>Nombre</th>
+                                            <th>Marca / Modelo</th>
+                                            <th>No. Serie</th>
+                                            <th>Usuario Asignado</th>
+                                            <th>Área</th>
+                                            <th>Fecha Asignación</th>
+                                            <th>Estatus</th>
+                                            <th>Garantía</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody data-table-body>
+                                        @forelse($kpis['inventario']['asignados_lista'] as $as)
+                                        <tr data-row>
+                                            <td><strong>#{{ $as->id_Equipo }}</strong></td>
+                                            <td data-field="tipoEquipo"><span class="badge bg-light text-dark border">{{ $as->tipoEquipo ?? 'N/A' }}</span></td>
+                                            <td>{{ $as->nombreEquipo ?: '—' }}</td>
+                                            <td>{{ trim(($as->marca ?? '') . ' ' . ($as->modelo ?? '')) ?: '—' }}</td>
+                                            <td>{{ $as->numeroSerie ?: '—' }}</td>
+                                            <td>{{ trim(($as->usuarioNombre ?? '') . ' ' . ($as->usuarioApp ?? '') . ' ' . ($as->usuarioApm ?? '')) }}</td>
+                                            <td data-field="areaAsignada">{{ $as->areaAsignada ?: '—' }}</td>
+                                            <td>{{ $as->fechaAsignacion ? \Illuminate\Support\Carbon::parse($as->fechaAsignacion)->format('d/m/Y') : '—' }}</td>
+                                            <td data-field="estatusEquipo"><span class="badge bg-secondary">{{ $as->estatusEquipo ?? 'Sin estatus' }}</span></td>
+                                            <td>
+                                                @if($as->fechaFinGarantia)
+                                                    @if(\Illuminate\Support\Carbon::parse($as->fechaFinGarantia)->isPast())
+                                                        <span class="badge bg-danger">Vencida {{ \Illuminate\Support\Carbon::parse($as->fechaFinGarantia)->format('d/m/Y') }}</span>
+                                                    @else
+                                                        <span class="badge bg-success">Vence {{ \Illuminate\Support\Carbon::parse($as->fechaFinGarantia)->format('d/m/Y') }}</span>
+                                                    @endif
+                                                @else
+                                                    <span class="text-muted">—</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr><td colspan="10" class="text-center text-muted py-4">No hay equipos asignados</td></tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="table-footer">
+                                <span class="table-info" data-table-info></span>
+                                <div class="pagination" data-table-pagination></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>{{-- /panelAsignados --}}
+            </div>{{-- /tabsInventarioContent --}}
+
+            @if($puedeAsignarEquipos)
+            <!-- Modal Asignación Rápida -->
+            <div class="modal fade" id="asignacionRapidaModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <form method="POST" action="{{ route('inventario.asignacion.rapida') }}">
+                        @csrf
+                        <input type="hidden" name="id_Equipo" id="rapidaIdEquipo">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title"><i class="fas fa-user-plus me-2" aria-hidden="true"></i>Asignación Rápida</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-3" id="rapidaEquipoInfo"></p>
+                                <div class="mb-3">
+                                    <label class="form-label">Usuario *</label>
+                                    <select name="id_Usuario" class="form-select" required>
+                                        <option value="">Seleccione un usuario...</option>
+                                        @foreach($catalogos['usuariosAsignacion'] as $u)
+                                        <option value="{{ $u->id_Usuario }}">{{ trim($u->nombre . ' ' . $u->app . ' ' . $u->apm) }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Área</label>
+                                    <select name="id_Area" class="form-select">
+                                        <option value="">Sin área</option>
+                                        @foreach($catalogos['areas'] as $a)
+                                        <option value="{{ $a->id_Area }}">{{ $a->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Fecha de Asignación *</label>
+                                    <input type="date" name="fechaAsignacion" class="form-control" value="{{ date('Y-m-d') }}" required>
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label">Observaciones</label>
+                                    <textarea name="observaciones" class="form-control" rows="2"></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-primary"><i class="fas fa-check me-1" aria-hidden="true"></i>Asignar</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            @endif
         </section>
     @else
         <section aria-label="KPIs de mantenimiento">
@@ -258,6 +553,123 @@
             <div class="row mb-3">
                 <div class="col-12"><div class="card"><div class="card-header"><i class="fas fa-chart-bar me-2" aria-hidden="true"></i>Mantenimientos por estatus</div><div class="card-body"><canvas id="chartMantEstatus" role="img" aria-label="Mantenimientos próximos y vencidos"></canvas></div></div></div>
             </div>
+
+            {{-- Sub-tabs de mantenimiento: Pendientes / Vencidos / Completados --}}
+            @php
+                $mantTabs = [
+                    'pendientes' => ['lista' => $kpis['mantenimiento']['pendientes_lista'], 'total' => $kpis['mantenimiento']['pendientes'], 'titulo' => 'Mantenimientos Pendientes', 'icono' => 'fas fa-clock', 'vacio' => 'No hay mantenimientos pendientes'],
+                    'vencidos' => ['lista' => $kpis['mantenimiento']['vencidos_lista'], 'total' => $kpis['mantenimiento']['vencidos'], 'titulo' => 'Mantenimientos Vencidos', 'icono' => 'fas fa-calendar-times', 'vacio' => 'No hay mantenimientos vencidos'],
+                    'completados' => ['lista' => $kpis['mantenimiento']['completados_lista'], 'total' => $kpis['mantenimiento']['completados'], 'titulo' => 'Mantenimientos Completados', 'icono' => 'fas fa-check-double', 'vacio' => 'No hay mantenimientos completados'],
+                ];
+            @endphp
+
+            <ul class="nav nav-tabs mb-3" id="tabsMantenimiento" role="tablist">
+                @foreach($mantTabs as $clave => $t)
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link {{ $loop->first ? 'active' : '' }}" id="tab-mant-{{ $clave }}" data-bs-toggle="tab" data-bs-target="#panelMant{{ ucfirst($clave) }}" type="button" role="tab" aria-controls="panelMant{{ ucfirst($clave) }}" aria-selected="{{ $loop->first ? 'true' : 'false' }}">
+                        <i class="{{ $t['icono'] }} me-1" aria-hidden="true"></i>{{ str_replace('Mantenimientos ', '', $t['titulo']) }}
+                        <span class="badge bg-secondary ms-1">{{ $t['total'] }}</span>
+                    </button>
+                </li>
+                @endforeach
+            </ul>
+
+            <div class="tab-content mb-3" id="tabsMantenimientoContent">
+                @foreach($mantTabs as $clave => $t)
+                <div class="tab-pane fade {{ $loop->first ? 'show active' : '' }}" id="panelMant{{ ucfirst($clave) }}" role="tabpanel" aria-labelledby="tab-mant-{{ $clave }}" tabindex="0">
+                    <div class="card mb-3" data-table>
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="{{ $t['icono'] }} me-2" aria-hidden="true"></i>{{ $t['titulo'] }}</h5>
+                            <span class="badge bg-secondary">{{ $t['lista']->count() }}</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-toolbar">
+                                <div class="table-toolbar-left">
+                                    <div class="table-search">
+                                        <i class="fas fa-search"></i>
+                                        <input type="text" data-table-search placeholder="Buscar por equipo, técnico, serie...">
+                                    </div>
+                                    <select class="table-filter" data-table-filter="tipoEquipo">
+                                        <option value="">Todos los tipos</option>
+                                        @foreach($t['lista']->pluck('tipoEquipo')->unique()->filter()->sort() as $tipo)
+                                        <option value="{{ $tipo }}">{{ $tipo }}</option>
+                                        @endforeach
+                                    </select>
+                                    <select class="table-filter" data-table-filter="tecnico">
+                                        <option value="">Todos los técnicos</option>
+                                        @foreach($t['lista']->map(fn($x) => trim(($x->tecnicoNombre ?? '') . ' ' . ($x->tecnicoApp ?? '')))->unique()->filter()->sort() as $tec)
+                                        <option value="{{ $tec }}">{{ $tec }}</option>
+                                        @endforeach
+                                    </select>
+                                    <select class="table-filter" data-table-filter="tipoMantenimiento">
+                                        <option value="">Todos los mantenimientos</option>
+                                        @foreach($t['lista']->pluck('tipoMantenimiento')->unique()->filter()->sort() as $tm)
+                                        <option value="{{ $tm }}">{{ $tm }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="table-toolbar-right">
+                                    <span class="table-info">Por página</span>
+                                    <select class="table-filter" data-table-per-page>
+                                        <option value="5">5</option>
+                                        <option value="10" selected>10</option>
+                                        <option value="25">25</option>
+                                        <option value="50">50</option>
+                                        <option value="10000">Todos</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Folio</th>
+                                            <th>Tipo Equipo</th>
+                                            <th>Equipo</th>
+                                            <th>No. Serie</th>
+                                            <th>Técnico</th>
+                                            <th>Tipo Mant.</th>
+                                            <th>F. Programada</th>
+                                            <th>F. Ejecución</th>
+                                            <th>Reporte</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody data-table-body>
+                                        @forelse($t['lista'] as $m)
+                                        <tr data-row>
+                                            <td><strong>#{{ $m->id_Mantenimiento }}</strong></td>
+                                            <td data-field="tipoEquipo"><span class="badge bg-light text-dark border">{{ $m->tipoEquipo ?? 'N/A' }}</span></td>
+                                            <td>{{ trim(($m->nombreEquipo ?: '') . ' · ' . $m->marca . ' ' . $m->modelo) }}</td>
+                                            <td>{{ $m->numeroSerie ?: '—' }}</td>
+                                            <td data-field="tecnico">{{ trim(($m->tecnicoNombre ?? '') . ' ' . ($m->tecnicoApp ?? '') . ' ' . ($m->tecnicoApm ?? '')) }}</td>
+                                            <td data-field="tipoMantenimiento"><span class="badge bg-info text-dark">{{ $m->tipoMantenimiento }}</span></td>
+                                            <td>{{ $m->fechaProgramada ? \Illuminate\Support\Carbon::parse($m->fechaProgramada)->format('d/m/Y') : '—' }}</td>
+                                            <td>{{ $m->fechaEjecucion ? \Illuminate\Support\Carbon::parse($m->fechaEjecucion)->format('d/m/Y') : '—' }}</td>
+                                            <td>
+                                                @if($m->reporteCerrado)
+                                                    <span class="badge bg-success">Cerrado</span>
+                                                @elseif($m->fechaEjecucion)
+                                                    <span class="badge bg-warning text-dark">Ejecutado</span>
+                                                @else
+                                                    <span class="badge bg-secondary">Pendiente</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr><td colspan="9" class="text-center text-muted py-4">{{ $t['vacio'] }}</td></tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="table-footer">
+                                <span class="table-info" data-table-info></span>
+                                <div class="pagination" data-table-pagination></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
+            </div>{{-- /tabsMantenimientoContent --}}
         </section>
     @endif
 @else
@@ -287,6 +699,25 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 (function() {
+    // Asignación rápida: abrir modal con los datos del equipo
+    var modalRapida = document.getElementById('asignacionRapidaModal');
+    if (modalRapida) {
+        var infoEquipo = document.getElementById('rapidaEquipoInfo');
+        var inputEquipo = document.getElementById('rapidaIdEquipo');
+        document.querySelectorAll('.btn-asignacion-rapida').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                inputEquipo.value = this.dataset.id;
+                infoEquipo.innerHTML = '<strong>Equipo:</strong> ' + (this.dataset.descripcion || ('#' + this.dataset.id));
+                var form = modalRapida.querySelector('form');
+                form.reset();
+                inputEquipo.value = this.dataset.id;
+                var fecha = form.querySelector('input[name="fechaAsignacion"]');
+                if (fecha) fecha.value = '{{ date('Y-m-d') }}';
+                new bootstrap.Modal(modalRapida).show();
+            });
+        });
+    }
+
     // Autosubmit de filtros
     document.querySelectorAll('[data-autosubmit]').forEach(function(el) {
         el.addEventListener('change', function() { document.getElementById('filterForm').submit(); });

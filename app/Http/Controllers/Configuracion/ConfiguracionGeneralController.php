@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Configuracion;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConfiguracionSistema;
+use App\Support\ConexionActiva;
 use Illuminate\Http\Request;
 
 class ConfiguracionGeneralController extends Controller
@@ -11,7 +12,13 @@ class ConfiguracionGeneralController extends Controller
     public function index()
     {
         $configuraciones = ConfiguracionSistema::all();
-        return view('configuracion.configuracion_general', compact('configuraciones'));
+        $conexionActiva = ConexionActiva::actual();
+        $conexiones = ConexionActiva::OPCIONES;
+        $infoConexiones = collect($conexiones)->mapWithKeys(
+            fn ($datos, $clave) => [$clave => ConexionActiva::info($clave)]
+        );
+
+        return view('configuracion.configuracion_general', compact('configuraciones', 'conexionActiva', 'infoConexiones'));
     }
 
     public function store(Request $request)

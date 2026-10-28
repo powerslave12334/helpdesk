@@ -10,9 +10,29 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('tblSubModulos', function (Blueprint $table) {
-            $table->string('clave', 100)->nullable()->unique()->after('controller');
-        });
+        if (!Schema::hasColumn('tblSubModulos', 'clave')) {
+            Schema::table('tblSubModulos', function (Blueprint $table) {
+                $table->string('clave', 100)->nullable()->after('controller');
+            });
+        }
+
+        // SQL Server no permite múltiples NULL en un índice UNIQUE (a diferencia
+        // de MySQL); se usa un índice filtrado. Idempotente para re-ejecución.
+        if (DB::connection()->getDriverName() === 'sqlsrv') {
+            $existe = DB::select(
+                "SELECT 1 AS x FROM sys.indexes WHERE name = 'tblsubmodulos_clave_unique' AND object_id = OBJECT_ID('dbo.tblSubModulos')"
+            );
+            if (empty($existe)) {
+                DB::statement('CREATE UNIQUE INDEX tblsubmodulos_clave_unique ON dbo.tblSubModulos (clave) WHERE clave IS NOT NULL');
+            }
+        } else {
+            $tieneIndice = DB::select("SHOW INDEX FROM tblSubModulos WHERE Key_name = 'tblsubmodulos_clave_unique'");
+            if (empty($tieneIndice)) {
+                Schema::table('tblSubModulos', function (Blueprint $table) {
+                    $table->unique('clave');
+                });
+            }
+        }
 
         $map = [
             'modulos' => 'modulos',
@@ -81,10 +101,13 @@ return new class extends Migration
             }
         }
 
-        Schema::create('tblRolSubModulo', function (Blueprint $table) {
+        // En productivo las tablas legacy usan int como PK; en MySQL local, bigint.
+        $tipoLlave = DB::connection()->getDriverName() === 'sqlsrv' ? 'integer' : 'bigInteger';
+
+        Schema::create('tblRolSubModulo', function (Blueprint $table) use ($tipoLlave) {
             $table->id('id_RolSubModulo');
-            $table->foreignId('id_Rol')->constrained('tblRoles', 'id_Rol');
-            $table->foreignId('id_SubModulos')->constrained('tblSubModulos', 'id_SubModulos');
+            $table->{$tipoLlave}('id_Rol')->unsigned()->constrained('tblRoles', 'id_Rol');
+            $table->{$tipoLlave}('id_SubModulos')->unsigned()->constrained('tblSubModulos', 'id_SubModulos');
             $table->dateTime('fechaAlta');
             $table->boolean('activo');
             $table->unique(['id_Rol', 'id_SubModulos']);

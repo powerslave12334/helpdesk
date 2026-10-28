@@ -7,6 +7,59 @@
     <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal"><i class="fas fa-plus me-1"></i>Nueva Configuración</button>
 </div>
 
+@php($infoActiva = $infoConexiones[$conexionActiva])
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h6 class="mb-1"><i class="fas fa-database me-2"></i>Base de datos activa</h6>
+                <small class="text-muted">Conmuta entre la BD local de desarrollo y la BD productiva.</small>
+            </div>
+            <span class="badge {{ $conexionActiva === 'mysql' ? 'bg-success' : 'bg-danger' }}" style="font-size:13px;">
+                {{ $infoActiva['etiqueta'] }} — {{ $infoActiva['host'] }} / {{ $infoActiva['database'] }}
+            </span>
+        </div>
+        <hr class="my-3">
+        <form method="POST" action="{{ route('configuracion.baseDatos.cambiar') }}" id="formBaseDatos" class="d-flex flex-wrap align-items-end gap-3">
+            @csrf
+            <div class="flex-grow-1" style="min-width:280px;">
+                <label class="form-label small mb-1" for="selectConexion">Conexión destino</label>
+                <select name="conexion" id="selectConexion" class="form-select form-select-sm">
+                    @foreach($infoConexiones as $clave => $info)
+                        <option value="{{ $clave }}" @selected($clave === $conexionActiva)>
+                            {{ $info['etiqueta'] }} — {{ $info['host'] }}/{{ $info['database'] }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <button type="submit" formaction="{{ route('configuracion.baseDatos.probar') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-plug me-1"></i>Probar conexión
+            </button>
+            <button type="submit" formaction="{{ route('configuracion.baseDatos.cambiar') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-exchange-alt me-1"></i>Cambiar
+            </button>
+        </form>
+        <script>
+            document.getElementById('formBaseDatos').addEventListener('submit', function (e) {
+                const destino = this.querySelector('[name=conexion]').value;
+                const boton = e.submitter;
+                const esCambio = boton && boton.formAction && boton.formAction.includes('cambiar');
+                if (esCambio && destino === 'sqlsrv_productivo') {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: '¿Cambiar a la BD productiva?',
+                        text: 'La aplicación operará sobre 192.168.11.20 (HELPDESK). Todas las escrituras irán a productivo.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, cambiar',
+                        cancelButtonText: 'Cancelar'
+                    }).then((r) => { if (r.isConfirmed) { this.submit(); } });
+                }
+            });
+        </script>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-body">
         <div data-table>

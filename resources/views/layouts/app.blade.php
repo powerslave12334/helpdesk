@@ -239,6 +239,11 @@
                     <span class="text-muted" style="font-size:13px">Bienvenido,</span>
                     <strong style="font-size:14px">{{ session('NombreUsuario', auth()->user()->nombreCompleto()) }}</strong>
                 </div>
+                @if(\App\Support\ConexionActiva::esProductivo() && auth()->user()?->esAdministrador())
+                    <span class="badge bg-danger" style="font-size:11px; letter-spacing:.3px;" title="La aplicación está operando sobre la base de datos productiva (192.168.11.20 - HELPDESK)">
+                        <i class="fas fa-exclamation-triangle me-1"></i>BD PRODUCTIVO
+                    </span>
+                @endif
             </div>
             <div class="d-flex align-items-center gap-2">
                 <button class="btn-theme-toggle" id="btnThemeToggle" title="Cambiar tema">
@@ -411,12 +416,8 @@
                 }).catch(() => {});
 
             marcar.then(() => {
-                if (n.UrlAccion) {
-                    window.location.href = n.UrlAccion;
-                } else {
-                    cerrarPanel();
-                    fetchNotificaciones();
-                }
+                cerrarPanel();
+                fetchNotificaciones();
             });
         }
 

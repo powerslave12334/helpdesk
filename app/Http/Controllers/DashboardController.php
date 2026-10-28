@@ -18,14 +18,22 @@ class DashboardController extends Controller
 
     public function index(Request $request)
     {
-        $idUsuario = session('IdUsuario');
+        $idUsuario = (int) auth()->id();
         $esAdmin = $this->permisosService->esAdministrador($idUsuario);
         $esTecnico = (bool) Usuario::where('id_Usuario', $idUsuario)->value('esTecnico');
         $tab = in_array($request->get('tab'), ['tickets', 'equipos', 'mantenimientos'], true)
             ? $request->get('tab')
             : 'tickets';
 
+        // El dashboard del admin se acota SIEMPRE al dueño de la sesión:
+        // técnico => tickets asignados a él; no técnico => los que él creó.
+        // Se anula el filtro 'tecnico' de la URL porque no se puede abrir otro técnico.
         $filtros = $esAdmin ? $this->filtros($request) : $this->filtrosVacios();
+        if ($esAdmin) {
+            $filtros['tecnico'] = null;
+            $filtros['idTecnicoPropio'] = $esTecnico ? $idUsuario : null;
+            $filtros['idCreadorPropio'] = $esTecnico ? null : $idUsuario;
+        }
 
         $kpis = $esAdmin
             ? $this->kpisAdmin($filtros)
@@ -35,8 +43,16 @@ class DashboardController extends Controller
 
         $catalogos = $this->catalogos();
 
+        // Para habilitar el botón de asignación rápida en la pestaña Equipos.
+        $puedeAsignarEquipos = $this->permisosService->submoduloActivo($idUsuario, 'asignacion-equipo');
+
+        // Descarga del reporte mensual KPI Tickets (técnicos y administradores).
+        $puedeDescargarKpi = $esAdmin || $esTecnico;
+
         $usuario = auth()->user();
-        return view('dashboard', compact('usuario', 'kpis', 'recentTickets', 'esAdmin', 'esTecnico', 'tab', 'filtros', 'catalogos'));
+        return view('dashboard', compact(
+            'usuario', 'kpis', 'recentTickets', 'esAdmin', 'esTecnico', 'tab', 'filtros', 'catalogos', 'puedeAsignarEquipos', 'puedeDescargarKpi'
+        ));
     }
 
     // ─────────────────────────── Filtros ───────────────────────────
@@ -73,6 +89,9 @@ class DashboardController extends Controller
             'tecnico' => $request->integer('tecnico') ?: null,
             'depto' => $request->integer('depto') ?: null,
             'area' => $request->integer('area') ?: null,
+            // Se inyectan en index() cuando el admin está en modo personal.
+            'idTecnicoPropio' => null,
+            'idCreadorPropio' => null,
         ];
     }
 
@@ -81,6 +100,7 @@ class DashboardController extends Controller
         return [
             'preset' => 'todo', 'desde' => null, 'hasta' => null,
             'tipo' => null, 'estatus' => null, 'tecnico' => null, 'depto' => null, 'area' => null,
+            'idTecnicoPropio' => null, 'idCreadorPropio' => null,
         ];
     }
 
@@ -95,6 +115,8 @@ class DashboardController extends Controller
         if ($f['tipo']) $q->where('t.id_TipoSoporte', $f['tipo']);
         if ($f['estatus']) $q->where('t.id_Estatus', $f['estatus']);
         if ($f['tecnico']) $q->where('t.id_Tecnico', $f['tecnico']);
+        if (!empty($f['idTecnicoPropio'])) $q->where('t.id_Tecnico', $f['idTecnicoPropio']);
+        if (!empty($f['idCreadorPropio'])) $q->where('t.id_Usuario', $f['idCreadorPropio']);
         if ($f['depto']) {
             $q->whereIn('t.id_Usuario', DB::table('tblUsuario')->where('id_Depto', $f['depto'])->pluck('id_Usuario'));
         }
@@ -103,6 +125,18 @@ class DashboardController extends Controller
         }
 
         return $q;
+    }
+
+    /** Consulta base de mantenimientos activos con joins a equipo, tipo, técnico y estatus. */
+    private function mantenimientosBase()
+    {
+        return DB::table('tblMantenimiento as m')
+            ->where('m.activo', true)
+            ->join('tblEquipo as me', 'me.id_Equipo', '=', 'm.id_Equipo')
+            ->join('tblTipoEquipo as mt', 'mt.id_TipoEquipo', '=', 'me.id_TipoEquipo')
+            ->join('tblUsuario as mu', 'mu.id_Usuario', '=', 'm.id_UsuarioTecnico')
+            // Join por FK directa: no se filtra por id_Modulos para no excluir el estatus real.
+            ->leftJoin('tblEstatus as mse', 'mse.id_Estatus', '=', 'm.id_Estatus');
     }
 
     // ─────────────────────────── KPIs ───────────────────────────
@@ -138,7 +172,7 @@ class DashboardController extends Controller
 
         $tiempoPromedioHoras = (clone $this->baseTickets($f))
             ->whereNotNull('t.fechaCierre')
-            ->select(DB::raw('AVG(TIMESTAMPDIFF(HOUR, t.fechaAlta, t.fechaCierre)) as horas'))
+            ->select(DB::raw('AVG(' . $this->diffHoras('t.fechaAlta', 't.fechaCierre') . ') as horas'))
             ->value('horas');
 
         // Actividad reciente (ignora el rango de fechas, respeta los demás filtros)
@@ -177,6 +211,54 @@ class DashboardController extends Controller
                     ->where('eu.activo', true)->whereNull('eu.fechaBaja');
             })->count();
 
+        // Detalle de los equipos sin asignar (para la tabla de la pestaña Equipos).
+        $equiposSinAsignarLista = (clone $eq)
+            ->join('tblTipoEquipo as te', 'te.id_TipoEquipo', '=', 'e.id_TipoEquipo')
+            ->leftJoin('tblEstatus as st', function ($j) {
+                $j->on('st.id_Estatus', '=', 'e.id_Estatus')->where('st.id_Modulos', 2);
+            })
+            ->whereNotExists(function ($sub) {
+                $sub->select(DB::raw(1))->from('tblEquipoUsuario as eu')
+                    ->whereColumn('eu.id_Equipo', 'e.id_Equipo')
+                    ->where('eu.activo', true)->whereNull('eu.fechaBaja');
+            })
+            ->orderBy('te.descripcion')
+            ->orderBy('e.marca')
+            ->orderBy('e.modelo')
+            ->get([
+                'e.id_Equipo', 'e.nombreEquipo', 'e.marca', 'e.modelo', 'e.numeroSerie',
+                'e.ubicacion', 'e.sistemaOperativo', 'e.ip', 'e.fechaFinGarantia', 'e.fechaAlta',
+                'te.descripcion as tipoEquipo', 'st.descripcion as estatusEquipo',
+            ]);
+
+        // Detalle de los equipos asignados (con usuario y área de la asignación activa).
+        $equiposAsignadosLista = (clone $eq)
+            ->join('tblEquipoUsuario as eu', function ($j) {
+                $j->on('eu.id_Equipo', '=', 'e.id_Equipo')->where('eu.activo', true)->whereNull('eu.fechaBaja');
+            })
+            ->join('tblTipoEquipo as te', 'te.id_TipoEquipo', '=', 'e.id_TipoEquipo')
+            ->join('tblUsuario as u', 'u.id_Usuario', '=', 'eu.id_Usuario')
+            ->leftJoin('tblArea as a', 'a.id_Area', '=', 'eu.id_Area')
+            ->leftJoin('tblEstatus as st', function ($j) {
+                $j->on('st.id_Estatus', '=', 'e.id_Estatus')->where('st.id_Modulos', 2);
+            })
+            ->orderBy('u.nombre')
+            ->orderBy('te.descripcion')
+            ->get([
+                'e.id_Equipo', 'e.nombreEquipo', 'e.marca', 'e.modelo', 'e.numeroSerie',
+                'e.ubicacion', 'e.sistemaOperativo', 'e.fechaFinGarantia',
+                'te.descripcion as tipoEquipo', 'st.descripcion as estatusEquipo',
+                'u.nombre as usuarioNombre', 'u.app as usuarioApp', 'u.apm as usuarioApm',
+                'a.nombre as areaAsignada', 'eu.fechaAsignacion as fechaAsignacion',
+            ]);
+
+        $equiposAsignados = (clone $eq)
+            ->whereExists(function ($sub) {
+                $sub->select(DB::raw(1))->from('tblEquipoUsuario as eu')
+                    ->whereColumn('eu.id_Equipo', 'e.id_Equipo')
+                    ->where('eu.activo', true)->whereNull('eu.fechaBaja');
+            })->count();
+
         $garantiasVencidas = (clone $eq)->whereNotNull('e.fechaFinGarantia')->whereDate('e.fechaFinGarantia', '<', today())->count();
         $garantiasPorVencer = (clone $eq)->whereNotNull('e.fechaFinGarantia')
             ->whereDate('e.fechaFinGarantia', '>=', today())
@@ -189,6 +271,40 @@ class DashboardController extends Controller
         $mantTotal = (clone $mBase)->count();
         $mantCerrados = (clone $mBase)->where('reporteCerrado', true)->count();
         $pctReporteCerrado = $mantTotal > 0 ? round(($mantCerrados / $mantTotal) * 100, 1) : 0;
+
+        // Conteos por estado para los sub-tabs (misma lógica que MantenimientoController::api).
+        $mantPendientes = (clone $mBase)->whereNull('fechaEjecucion')->where('fechaProgramada', '>=', now())->count();
+        $mantCompletados = (clone $mBase)->whereNotNull('fechaEjecucion')->count();
+
+        // Helper para las listas de mantenimiento con sus joins.
+        $mantColumnas = [
+            'm.id_Mantenimiento', 'm.tipoMantenimiento', 'm.fechaProgramada', 'm.fechaEjecucion',
+            'm.reporteCerrado', 'm.observaciones',
+            'me.id_Equipo', 'me.nombreEquipo', 'me.marca', 'me.modelo', 'me.numeroSerie', 'me.ubicacion',
+            'mt.descripcion as tipoEquipo',
+            'mu.nombre as tecnicoNombre', 'mu.app as tecnicoApp', 'mu.apm as tecnicoApm',
+            'mse.descripcion as estatusMantenimiento',
+        ];
+
+        // Pendientes: sin ejecutar y con fecha programada futura (o de hoy).
+        $mantPendientesLista = $this->mantenimientosBase()
+            ->whereNull('m.fechaEjecucion')
+            ->where('m.fechaProgramada', '>=', now())
+            ->orderBy('m.fechaProgramada')
+            ->get($mantColumnas);
+
+        // Vencidos: sin ejecutar y con fecha programada ya pasada.
+        $mantVencidosLista = $this->mantenimientosBase()
+            ->whereNull('m.fechaEjecucion')
+            ->where('m.fechaProgramada', '<', now())
+            ->orderBy('m.fechaProgramada')
+            ->get($mantColumnas);
+
+        // Completados: ya tienen fecha de ejecución.
+        $mantCompletadosLista = $this->mantenimientosBase()
+            ->whereNotNull('m.fechaEjecucion')
+            ->orderByDesc('m.fechaEjecucion')
+            ->get($mantColumnas);
 
         return [
             'tickets' => [
@@ -209,6 +325,9 @@ class DashboardController extends Controller
                 'por_tipo' => $equiposPorTipo,
                 'por_estatus' => $equiposPorEstatus,
                 'sin_asignar' => $equiposSinAsignar,
+                'sin_asignar_lista' => $equiposSinAsignarLista,
+                'asignados' => $equiposAsignados,
+                'asignados_lista' => $equiposAsignadosLista,
                 'garantias_vencidas' => $garantiasVencidas,
                 'garantias_por_vencer' => $garantiasPorVencer,
             ],
@@ -217,6 +336,11 @@ class DashboardController extends Controller
                 'vencidos' => $mantVencidos,
                 'pct_reporte_cerrado' => $pctReporteCerrado,
                 'total' => $mantTotal,
+                'pendientes' => $mantPendientes,
+                'completados' => $mantCompletados,
+                'pendientes_lista' => $mantPendientesLista,
+                'vencidos_lista' => $mantVencidosLista,
+                'completados_lista' => $mantCompletadosLista,
             ],
         ];
     }
@@ -236,7 +360,7 @@ class DashboardController extends Controller
         $pendientesVistoBueno = (clone $q)->where('t.id_Estatus', $resueltoId)->count();
 
         $tiempoPromedioHoras = (clone $q)->whereNotNull('t.fechaCierre')
-            ->select(DB::raw('AVG(TIMESTAMPDIFF(HOUR, t.fechaAlta, t.fechaCierre)) as horas'))->value('horas');
+            ->select(DB::raw('AVG(' . $this->diffHoras('t.fechaAlta', 't.fechaCierre') . ') as horas'))->value('horas');
 
         $asignados = 0;
         if ($esTecnico) {
@@ -250,6 +374,14 @@ class DashboardController extends Controller
             'pendientes_visto_bueno' => $pendientesVistoBueno,
             'tiempo_promedio_horas' => $tiempoPromedioHoras,
         ];
+    }
+
+    private function diffHoras(string $desde, string $hasta): string
+    {
+        return match (DB::connection()->getDriverName()) {
+            'sqlsrv' => "DATEDIFF(HOUR, {$desde}, {$hasta})",
+            default => "TIMESTAMPDIFF(HOUR, {$desde}, {$hasta})",
+        };
     }
 
     private function tendencia(array $f): array
@@ -266,8 +398,14 @@ class DashboardController extends Controller
         $q = $this->baseTickets($f)->where('t.fechaAlta', '>=', $desde)->where('t.fechaAlta', '<=', $hasta);
 
         $formato = $porMes ? '%Y-%m' : '%Y-%m-%d';
-        $rows = $q->select(DB::raw("DATE_FORMAT(t.fechaAlta, '{$formato}') as periodo"), DB::raw('COUNT(*) as total'))
-            ->groupBy('periodo')->pluck('total', 'periodo');
+        $periodoSql = match (DB::connection()->getDriverName()) {
+            'sqlsrv' => $porMes
+                ? 'CONVERT(varchar(7), t.fechaAlta, 126)'
+                : 'CONVERT(varchar(10), t.fechaAlta, 126)',
+            default => "DATE_FORMAT(t.fechaAlta, '{$formato}')",
+        };
+        $rows = $q->select(DB::raw("{$periodoSql} as periodo"), DB::raw('COUNT(*) as total'))
+            ->groupBy(DB::raw($periodoSql))->pluck('total', 'periodo');
 
         $labels = [];
         $data = [];
@@ -299,6 +437,8 @@ class DashboardController extends Controller
         if ($f['tipo']) $q->where('id_TipoSoporte', $f['tipo']);
         if ($f['estatus']) $q->where('id_Estatus', $f['estatus']);
         if ($f['tecnico']) $q->where('id_Tecnico', $f['tecnico']);
+        if (!empty($f['idTecnicoPropio'])) $q->where('id_Tecnico', $f['idTecnicoPropio']);
+        if (!empty($f['idCreadorPropio'])) $q->where('id_Usuario', $f['idCreadorPropio']);
         if ($f['depto']) $q->whereIn('id_Usuario', DB::table('tblUsuario')->where('id_Depto', $f['depto'])->pluck('id_Usuario'));
         if ($f['area']) $q->whereIn('id_Usuario', DB::table('tblUsuario')->where('id_Area', $f['area'])->pluck('id_Usuario'));
 
@@ -320,6 +460,8 @@ class DashboardController extends Controller
             'tecnicos' => DB::table('tblUsuario')->where('esTecnico', true)->where('activo', true)->get(['id_Usuario', 'nombre', 'app']),
             'deptos' => DB::table('tblDepto')->where('activo', true)->orderBy('nombre')->get(['id_Depto', 'nombre']),
             'areas' => DB::table('tblArea')->where('activo', true)->orderBy('nombre')->get(['id_Area', 'nombre']),
+            // Para el modal de asignación rápida de equipos
+            'usuariosAsignacion' => DB::table('tblUsuario')->where('activo', true)->orderBy('nombre')->get(['id_Usuario', 'nombre', 'app', 'apm']),
         ];
     }
 }

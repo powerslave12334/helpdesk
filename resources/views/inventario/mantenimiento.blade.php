@@ -504,9 +504,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (estado) params.append('estado', estado);
 
             fetch('{{ route("inventario.mantenimientos.api") }}?' + params.toString())
-                .then(r => r.json())
+                .then(r => {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
                 .then(data => successCallback(data))
-                .catch(err => successCallback([]));
+                .catch(err => {
+                    // No tragar el error en silencio: se registra para poder diagnosticar
+                    // por que el calendario no muestra eventos.
+                    console.error('Error cargando eventos del calendario:', err);
+                    successCallback([]);
+                });
         },
         eventClick: function(info) {
             selectedEvent = info.event;

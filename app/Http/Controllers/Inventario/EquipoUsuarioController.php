@@ -87,6 +87,64 @@ class EquipoUsuarioController extends Controller
         }
     }
 
+    /**
+     * Asignación rápida desde el dashboard (pestaña Equipos).
+     * Misma lógica que store(), pero redirige de vuelta al dashboard.
+     */
+    public function asignacionRapida(Request $request)
+    {
+        $request->validate([
+            'id_Equipo' => 'required|integer|exists:tblEquipo,id_Equipo',
+            'id_Usuario' => 'required|integer|exists:tblUsuario,id_Usuario',
+            'fechaAsignacion' => 'required|date',
+            'id_Area' => 'nullable|integer',
+        ]);
+
+        $asignacionActiva = EquipoUsuario::where('id_Equipo', $request->id_Equipo)
+            ->where('activo', true)->whereNull('fechaBaja')->first();
+        if ($asignacionActiva) {
+            return back()->with('error', 'Este equipo ya tiene una asignación activa');
+        }
+
+        DB::beginTransaction();
+        try {
+            $equipo = Equipo::findOrFail($request->id_Equipo);
+
+            $asignacion = EquipoUsuario::create([
+                'id_Equipo' => $request->id_Equipo,
+                'id_Usuario' => $request->id_Usuario,
+                'id_Area' => $request->id_Area,
+                'fechaAsignacion' => $request->fechaAsignacion,
+                'observaciones' => $request->observaciones,
+                'fechaAlta' => now(),
+                'activo' => true,
+            ]);
+
+            HistorialEquipoUsuario::create([
+                'id_Equipo' => $request->id_Equipo,
+                'id_Usuario' => $request->id_Usuario,
+                'fechaAsignacion' => $request->fechaAsignacion,
+                'id_Area' => $request->id_Area,
+                'fechaAlta' => now(),
+                'fechaAccion' => now(),
+                'id_UsuarioAccion' => (int) auth()->id(),
+                'accion' => 'Vincular',
+                'equipoMarca' => $equipo->marca,
+                'equipoModelo' => $equipo->modelo,
+                'equipoNombre' => $equipo->nombreEquipo,
+                'equipoNumeroSerie' => $equipo->numeroSerie,
+                'equipoUbicacion' => $equipo->ubicacion,
+            ]);
+
+            DB::commit();
+            return redirect()->route('dashboard', ['tab' => 'equipos'])
+                ->with('success', 'Equipo asignado correctamente');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Error al asignar: ' . $e->getMessage());
+        }
+    }
+
     public function update(Request $request, $id)
     {
         $request->validate([

@@ -2,22 +2,26 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('tblMantenimiento', function (Blueprint $table) {
+        // En productivo las tablas legacy usan int como PK; en MySQL local, bigint.
+        $tipoLlave = DB::connection()->getDriverName() === 'sqlsrv' ? 'integer' : 'bigInteger';
+
+        Schema::create('tblMantenimiento', function (Blueprint $table) use ($tipoLlave) {
             $table->id('id_Mantenimiento');
-            $table->foreignId('id_Equipo')->constrained('tblEquipo', 'id_Equipo');
-            $table->foreignId('id_UsuarioTecnico')->constrained('tblUsuario', 'id_Usuario');
+            $table->{$tipoLlave}('id_Equipo')->unsigned()->constrained('tblEquipo', 'id_Equipo');
+            $table->{$tipoLlave}('id_UsuarioTecnico')->unsigned()->constrained('tblUsuario', 'id_Usuario');
             $table->dateTime('fechaProgramada');
             $table->dateTime('fechaEjecucion')->nullable();
-            $table->foreignId('id_Estatus')->constrained('tblEstatus', 'id_Estatus')->nullable();
+            $table->{$tipoLlave}('id_Estatus')->nullable()->unsigned()->constrained('tblEstatus', 'id_Estatus');
             $table->string('tipoMantenimiento', 50)->default('Preventivo');
             $table->text('observaciones')->nullable();
-            $table->foreignId('id_Ticket')->nullable()->constrained('tblTicket', 'id_Ticket');
+            $table->{$tipoLlave}('id_Ticket')->nullable()->unsigned()->constrained('tblTicket', 'id_Ticket');
             $table->dateTime('fechaAlta')->useCurrent();
             $table->boolean('activo')->default(true);
         });

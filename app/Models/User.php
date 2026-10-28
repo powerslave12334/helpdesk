@@ -90,8 +90,8 @@ class User extends Authenticatable
     public function esAdministrador()
     {
         return $this->roles()->where(function ($q) {
-            $q->whereRaw("LOWER(nombre) LIKE '%admin%'")
-              ->orWhereRaw("LOWER(nombre) = 'root'");
-        })->where('activo', true)->exists();
+            $q->whereRaw("LOWER(tblRoles.nombre) LIKE '%admin%'")
+              ->orWhereRaw("LOWER(tblRoles.nombre) = 'root'");
+        })->where('tblRoles.activo', true)->exists();
     }
 }

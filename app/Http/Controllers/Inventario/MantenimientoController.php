@@ -36,7 +36,13 @@ class MantenimientoController extends Controller
             ->where('activo', true);
 
         if ($start && $end) {
-            $query->whereBetween('fechaProgramada', [$start, $end]);
+            // FullCalendar envía fechas ISO 8601 con offset de zona (ej. 2026-06-01T00:00:00-06:00).
+            // SQL Server no puede convertirlas a datetime (error 22007) y MySQL las tolera,
+            // por lo que se normalizan a un formato comun aceptado por ambos.
+            $query->whereBetween('fechaProgramada', [
+                Carbon::parse($start)->format('Y-m-d H:i:s'),
+                Carbon::parse($end)->format('Y-m-d H:i:s'),
+            ]);
         }
 
         if ($tecnicoId) {

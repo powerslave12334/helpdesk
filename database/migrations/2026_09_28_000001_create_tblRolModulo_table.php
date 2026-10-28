@@ -9,10 +9,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('tblRolModulo', function (Blueprint $table) {
+        // En productivo las tablas legacy usan int como PK; en MySQL local, bigint.
+        $tipoLlave = DB::connection()->getDriverName() === 'sqlsrv' ? 'integer' : 'bigInteger';
+
+        Schema::create('tblRolModulo', function (Blueprint $table) use ($tipoLlave) {
             $table->id('id_RolModulo');
-            $table->foreignId('id_Rol')->constrained('tblRoles', 'id_Rol');
-            $table->foreignId('id_Modulos')->constrained('tblModulos', 'id_Modulos');
+            $table->{$tipoLlave}('id_Rol')->unsigned()->constrained('tblRoles', 'id_Rol');
+            $table->{$tipoLlave}('id_Modulos')->unsigned()->constrained('tblModulos', 'id_Modulos');
             $table->dateTime('fechaAlta');
             $table->boolean('activo');
             $table->unique(['id_Rol', 'id_Modulos']);

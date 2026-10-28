@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ReporteKpiController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\Inventario\EquipoController;
@@ -40,6 +41,8 @@ Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    // Reporte mensual "KPI Tickets" (Excel) para técnicos y administradores.
+    Route::get('/dashboard/reporte-kpi', [ReporteKpiController::class, 'exportar'])->name('dashboard.reporte-kpi');
 
     // Tickets
     Route::middleware('permiso:tickets')->group(function () {
@@ -127,6 +130,7 @@ Route::middleware('auth')->group(function () {
             Route::post('/asignacion/toggle/{id}', [EquipoUsuarioController::class, 'toggleActivo'])->name('asignacion.toggle');
             Route::post('/asignacion/desvincular', [EquipoUsuarioController::class, 'desvincular'])->name('asignacion.desvincular');
             Route::post('/asignacion/desvincular-seleccionados', [EquipoUsuarioController::class, 'desvincularSeleccionados'])->name('asignacion.desvincularSeleccionados');
+            Route::post('/asignacion/rapida', [EquipoUsuarioController::class, 'asignacionRapida'])->name('asignacion.rapida');
             Route::get('/asignacion/acta/{id}', [EquipoUsuarioController::class, 'generarActa'])->name('asignacion.acta');
         });
 
@@ -174,6 +178,10 @@ Route::middleware('auth')->group(function () {
             Route::post('/config-general', [ConfiguracionGeneralController::class, 'store'])->name('configGeneral.store');
             Route::put('/config-general/{id}', [ConfiguracionGeneralController::class, 'update'])->name('configGeneral.update');
             Route::post('/config-general/toggle/{id}', [ConfiguracionGeneralController::class, 'toggleActivo'])->name('configGeneral.toggle');
+
+            // Conmutador de base de datos (local MySQL <-> productivo SQL Server)
+            Route::post('/base-datos/cambiar', [\App\Http\Controllers\Configuracion\BaseDatosController::class, 'cambiar'])->name('baseDatos.cambiar');
+            Route::post('/base-datos/probar', [\App\Http\Controllers\Configuracion\BaseDatosController::class, 'probar'])->name('baseDatos.probar');
         });
 
         // Estatus

@@ -31,6 +31,7 @@ use App\Http\Controllers\TicketConfig\ModuloSistemaController;
 use App\Http\Controllers\TicketConfig\SubModuloSistemaController;
 use App\Http\Controllers\Inventario\MantenimientoController;
 use App\Http\Controllers\TipoEmpleadoController;
+use App\Http\Controllers\ReporteKpiGpsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('login'));
@@ -46,6 +47,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/reporte-kpi', [ReporteKpiController::class, 'exportar'])->name('dashboard.reporte-kpi');
     // Reporte mensual "KPI Desarrollo" (Excel) para el área de Desarrollo.
     Route::get('/dashboard/reporte-kpi-desarrollo', [ReporteKpiDesarrolloController::class, 'exportar'])->name('dashboard.reporte-kpi-desarrollo');
+    Route::get('/dashboard/reporte-kpi-gps', [ReporteKpiGpsController::class, 'exportar'])->name('dashboard.reporte-kpi-gps');
 
     // Tickets
     Route::middleware('permiso:tickets')->group(function () {

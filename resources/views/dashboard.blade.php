@@ -101,7 +101,7 @@
         </div>
     </div>
     {{-- Descarga de reportes KPI: cada área ve el suyo (ver config/kpi.php). --}}
-    @if($puedeDescargarKpi || $puedeDescargarKpiDesarrollo)
+    @if($puedeDescargarKpi || $puedeDescargarKpiDesarrollo || $puedeDescargarKpiGps)
         <div class="d-flex align-items-end gap-3 flex-wrap">
         @if($puedeDescargarKpi)
             <form action="{{ route('dashboard.reporte-kpi') }}" method="GET" class="d-flex align-items-end gap-2 flex-wrap" aria-label="Descargar reporte KPI Tickets">
@@ -146,6 +146,29 @@
                 </div>
                 <button type="submit" class="btn btn-info btn-sm text-white" title="Descargar reporte KPI Desarrollo en Excel">
                     <i class="fas fa-file-excel me-1" aria-hidden="true"></i>Descargar KPI Desarrollo
+                </button>
+            </form>
+        @endif
+        @if($puedeDescargarKpiGps)
+            <form action="{{ route('dashboard.reporte-kpi-gps') }}" method="GET" class="d-flex align-items-end gap-2 flex-wrap" aria-label="Descargar reporte KPI GPS">
+                <div>
+                    <label for="kpiMesGps" class="form-label mb-1" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600;">Mes</label>
+                    <select name="mes" id="kpiMesGps" class="form-select form-select-sm">
+                        @foreach($mesesKpi as $num => $nombre)
+                            <option value="{{ $num }}" @selected($num === $mesKpi)>{{ $nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="kpiAnioGps" class="form-label mb-1" style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600;">Año</label>
+                    <select name="anio" id="kpiAnioGps" class="form-select form-select-sm">
+                        @for($y = now()->year; $y >= 2020; $y--)
+                            <option value="{{ $y }}" @selected($y === $anioKpi)>{{ $y }}</option>
+                        @endfor
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-secondary btn-sm" title="Descargar reporte KPI GPS en Excel">
+                    <i class="fas fa-gps me-1" aria-hidden="true"></i>Descargar KPI GPS
                 </button>
             </form>
         @endif

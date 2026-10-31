@@ -3,55 +3,107 @@
 namespace App\Http\Controllers\Inventario;
 
 use App\Http\Controllers\Controller;
-use App\Models\Vehiculo;
+use App\Models\InstalacionGPS;
 use Illuminate\Http\Request;
 
 class VehiculoController extends Controller
 {
     public function index()
     {
-        $vehiculos = Vehiculo::orderBy('id_Vehiculo')->get();
-        return view('inventario.vehiculo', compact('vehiculos'));
+        $instalaciones = InstalacionGPS::orderBy('id_InstalacionGPS')->get();
+        return view('inventario.vehiculo', compact('instalaciones'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'numeroUnidad' => 'required|string|max:50|unique:tblVehiculo,numeroUnidad',
-            'tipoVehiculo' => 'required|in:' . implode(',', Vehiculo::tipos()),
+            'unidad' => 'required|string|max:50',
+            'marca' => 'required|string|max:100',
+            'placas' => 'required|string|max:20',
+            'placas_federal' => 'nullable|string|max:20',
+            'fecha_cambio_sim' => 'nullable|date',
+            'sim_cambiado' => 'required|boolean',
+            'reinstalacion' => 'required|boolean',
+            'fecha_reinstalacion' => 'nullable|date',
+            'marca_gps' => 'nullable|string|max:100',
+            'modelo_gps' => 'nullable|string|max:100',
+            'imei' => 'nullable|string|max:20',
+            'numero_anterior' => 'nullable|string|max:20',
+            'numero_actual' => 'required|string|max:20',
         ]);
 
-        Vehiculo::create([
-            'numeroUnidad' => $request->numeroUnidad,
-            'tipoVehiculo' => $request->tipoVehiculo,
+        InstalacionGPS::create([
+            'unidad' => $request->unidad,
+            'marca' => $request->marca,
+            'placas' => $request->placas,
+            'placas_federal' => $request->placas_federal,
+            'fecha_cambio_sim' => $request->fecha_cambio_sim,
+            'sim_cambiado' => $request->sim_cambiado,
+            'reinstalacion' => $request->reinstalacion,
+            'fecha_reinstalacion' => $request->filled('fecha_reinstalacion') ? $request->fecha_reinstalacion : null,
+            'marca_gps' => $request->marca_gps,
+            'modelo_gps' => $request->modelo_gps,
+            'imei' => $request->imei,
+            'numero_anterior' => $request->numero_anterior,
+            'numero_actual' => $request->numero_actual,
             'fechaAlta' => now(),
             'activo' => true,
         ]);
 
-        return redirect()->route('inventario.vehiculo.index')->with('success', 'Vehículo creado correctamente');
+        return redirect()->route('inventario.vehiculo.index')->with('success', 'Instalación GPS creada correctamente');
     }
 
     public function update(Request $request, $id)
     {
         $request->validate([
-            'numeroUnidad' => 'required|string|max:50|unique:tblVehiculo,numeroUnidad,' . $id . ',id_Vehiculo',
-            'tipoVehiculo' => 'required|in:' . implode(',', Vehiculo::tipos()),
+            'unidad' => 'required|string|max:50',
+            'marca' => 'required|string|max:100',
+            'placas' => 'required|string|max:20',
+            'placas_federal' => 'nullable|string|max:20',
+            'fecha_cambio_sim' => 'nullable|date',
+            'sim_cambiado' => 'required|boolean',
+            'reinstalacion' => 'required|boolean',
+            'fecha_reinstalacion' => 'nullable|date',
+            'marca_gps' => 'nullable|string|max:100',
+            'modelo_gps' => 'nullable|string|max:100',
+            'imei' => 'nullable|string|max:20',
+            'numero_anterior' => 'nullable|string|max:20',
+            'numero_actual' => 'required|string|max:20',
         ]);
 
-        Vehiculo::findOrFail($id)->update([
-            'numeroUnidad' => $request->numeroUnidad,
-            'tipoVehiculo' => $request->tipoVehiculo,
-        ]);
+        $instalacion = InstalacionGPS::findOrFail($id);
+        $instalacion->unidad = $request->unidad;
+        $instalacion->marca = $request->marca;
+        $instalacion->placas = $request->placas;
+        $instalacion->placas_federal = $request->placas_federal;
+        $instalacion->fecha_cambio_sim = $request->fecha_cambio_sim;
+        $instalacion->sim_cambiado = $request->sim_cambiado;
+        $instalacion->reinstalacion = $request->reinstalacion;
+        $instalacion->fecha_reinstalacion = $request->filled('fecha_reinstalacion') ? $request->fecha_reinstalacion : null;
+        $instalacion->marca_gps = $request->marca_gps;
+        $instalacion->modelo_gps = $request->modelo_gps;
+        $instalacion->imei = $request->imei;
+        $instalacion->numero_anterior = $request->numero_anterior;
+        $instalacion->numero_actual = $request->numero_actual;
+        $instalacion->save();
 
-        return redirect()->route('inventario.vehiculo.index')->with('success', 'Vehículo actualizado correctamente');
+        return redirect()->route('inventario.vehiculo.index')->with('success', 'Instalación GPS actualizada correctamente');
     }
 
     public function toggleActivo($id)
     {
-        $vehiculo = Vehiculo::findOrFail($id);
-        $vehiculo->activo = !$vehiculo->activo;
-        $vehiculo->save();
+        $instalacion = InstalacionGPS::findOrFail($id);
+        $instalacion->activo = !$instalacion->activo;
+        $instalacion->save();
 
-        return back()->with('success', $vehiculo->activo ? 'Vehículo activado' : 'Vehículo desactivado');
+        return back()->with('success', $instalacion->activo ? 'Instalación activada' : 'Instalación desactivada');
+    }
+
+    public function destroy($id)
+    {
+        $instalacion = InstalacionGPS::findOrFail($id);
+        $instalacion->delete();
+
+        return redirect()->route('inventario.vehiculo.index')->with('success', 'Instalación GPS eliminada correctamente');
     }
 }

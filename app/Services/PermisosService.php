@@ -106,6 +106,11 @@ class PermisosService
         return $this->usuarioEnAreas($idUsuario, config('kpi.areas_desarrollo', ['Desarrollo de Software']));
     }
 
+    public function puedeDescargarKpiGps(int $idUsuario): bool
+    {
+        return $this->usuarioEnAreas($idUsuario, config('kpi.areas_gps', ['Soporte TI']));
+    }
+
     /** ¿El usuario pertenece a alguna de las áreas indicadas (por nombre)? */
     private function usuarioEnAreas(int $idUsuario, mixed $areas): bool
     {

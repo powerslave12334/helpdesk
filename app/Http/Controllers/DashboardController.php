@@ -49,10 +49,11 @@ class DashboardController extends Controller
         // Descarga de reportes mensuales KPI (áreas habilitadas, ver config/kpi.php).
         $puedeDescargarKpi = $this->permisosService->puedeDescargarKpi($idUsuario);
         $puedeDescargarKpiDesarrollo = $this->permisosService->puedeDescargarKpiDesarrollo($idUsuario);
+        $puedeDescargarKpiGps = $this->permisosService->puedeDescargarKpiGps($idUsuario);
 
         $usuario = auth()->user();
         return view('dashboard', compact(
-            'usuario', 'kpis', 'recentTickets', 'esAdmin', 'esTecnico', 'tab', 'filtros', 'catalogos', 'puedeAsignarEquipos', 'puedeDescargarKpi', 'puedeDescargarKpiDesarrollo'
+            'usuario', 'kpis', 'recentTickets', 'esAdmin', 'esTecnico', 'tab', 'filtros', 'catalogos', 'puedeAsignarEquipos', 'puedeDescargarKpi', 'puedeDescargarKpiDesarrollo', 'puedeDescargarKpiGps'
         ));
     }
 

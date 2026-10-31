@@ -39,4 +39,21 @@ return [
         explode(',', (string) env('KPI_AREAS_DESARROLLO', 'Desarrollo de Software'))
     ))),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Áreas habilitadas para descargar el reporte KPI GPS
+    |--------------------------------------------------------------------------
+    |
+    | Mismo criterio que areas_permitidas pero para el reporte del área de
+    | GPS. Un usuario en ambas áreas verá el botón de KPI GPS.
+    |
+    |   KPI_AREAS_GPS=Soporte TI
+    |
+    */
+
+    'areas_gps' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', (string) env('KPI_AREAS_GPS', 'Soporte TI'))
+    ))),
+
 ];

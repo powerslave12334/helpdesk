@@ -32,9 +32,12 @@ class CerrarTicketsInactivos extends Command
             return 1;
         }
 
-        // Obtener tickets que NO están cerrados y están activos
+        // Obtener tickets que NO están cerrados y están activos. Los tickets de
+        // desarrollo no se cierran por inactividad: su ciclo lo controla el
+        // responsable y el KPI Desarrollo depende de su estatus.
         $tickets = Ticket::with('estatus')
             ->where('activo', true)
+            ->where('tipoTicket', '!=', 'desarrollo')
             ->where('id_Estatus', '!=', $estatusCerrado->id_Estatus)
             ->whereNotNull('id_Estatus')
             ->get();

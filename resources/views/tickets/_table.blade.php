@@ -21,6 +21,8 @@
                     <span class="badge bg-success ms-1">Instalación GPS</span>
                     @elseif(($ticket->tipoTicket ?? 'falla_tecnica') === 'revision_gps')
                     <span class="badge bg-warning text-dark ms-1">Revisión GPS</span>
+                    @elseif(($ticket->tipoTicket ?? 'falla_tecnica') === 'desarrollo')
+                    <span class="badge bg-primary ms-1">Desarrollo</span>
                     @endif
                 </td>
                 <td data-field="tipo"><span class="badge bg-info">{{ $ticket->tipoSoporte->descripcion ?? 'N/A' }}</span></td>

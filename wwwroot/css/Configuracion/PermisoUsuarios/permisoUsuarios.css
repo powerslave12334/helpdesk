@@ -1,9 +1,0 @@
-.user-filter-form {
-    grid-template-columns: minmax(260px, 460px);
-}
-
-@media (max-width: 760px) {
-    .user-filter-form {
-        grid-template-columns: 1fr;
-    }
-}

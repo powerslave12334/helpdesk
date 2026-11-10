@@ -494,6 +494,10 @@
                 </div>
                 <div class="ticket-modal-sidebar">
                     <div class="ticket-meta-section">
+                        <div class="ticket-meta-label">Solicitante</div>
+                        <div class="ticket-meta-value" id="detailSolicitante"></div>
+                    </div>
+                    <div class="ticket-meta-section">
                         <div class="ticket-meta-label">Tipo de ticket</div>
                         <div class="ticket-meta-value" id="detailTipoTicket"></div>
                     </div>
@@ -655,6 +659,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('detailAsunto').textContent = t.asunto;
                     document.getElementById('detailTipo').textContent = t.tipoSoporte?.descripcion || 'N/A';
                     document.getElementById('detailTipoTicket').textContent = data.tipoTicketLabel || 'Falla técnica';
+
+                    // Quién levantó el ticket
+                    const solicitante = t.usuario;
+                    document.getElementById('detailSolicitante').textContent = solicitante
+                        ? ([solicitante.nombre, solicitante.app, solicitante.apm].filter(Boolean).join(' ').trim() || 'Sin nombre')
+                        : 'No registrado';
 
                     const metaVehiculos = document.getElementById('metaVehiculos');
                     const vehiculos = data.vehiculos || [];

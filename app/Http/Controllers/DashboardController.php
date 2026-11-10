@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Ticket;
 use App\Models\Equipo;
+use App\Models\Ticket;
 use App\Models\Usuario;
 use App\Services\PermisosService;
 use Illuminate\Http\Request;
@@ -12,9 +12,7 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function __construct(private PermisosService $permisosService)
-    {
-    }
+    public function __construct(private PermisosService $permisosService) {}
 
     public function index(Request $request)
     {
@@ -52,6 +50,7 @@ class DashboardController extends Controller
         $puedeDescargarKpiGps = $this->permisosService->puedeDescargarKpiGps($idUsuario);
 
         $usuario = auth()->user();
+
         return view('dashboard', compact(
             'usuario', 'kpis', 'recentTickets', 'esAdmin', 'esTecnico', 'tab', 'filtros', 'catalogos', 'puedeAsignarEquipos', 'puedeDescargarKpi', 'puedeDescargarKpiDesarrollo', 'puedeDescargarKpiGps'
         ));
@@ -70,12 +69,24 @@ class DashboardController extends Controller
         $hasta = null;
 
         switch ($preset) {
-            case 'hoy': $desde = $now->copy()->startOfDay(); $hasta = $now->copy()->endOfDay(); break;
-            case '7d': $desde = $now->copy()->subDays(6)->startOfDay(); $hasta = $now->copy()->endOfDay(); break;
-            case '30d': $desde = $now->copy()->subDays(29)->startOfDay(); $hasta = $now->copy()->endOfDay(); break;
-            case 'mes': $desde = $now->copy()->startOfMonth(); $hasta = $now->copy()->endOfMonth(); break;
-            case 'anio': $desde = $now->copy()->startOfYear(); $hasta = $now->copy()->endOfYear(); break;
-            case 'todo': $desde = null; $hasta = null; break;
+            case 'hoy': $desde = $now->copy()->startOfDay();
+                $hasta = $now->copy()->endOfDay();
+                break;
+            case '7d': $desde = $now->copy()->subDays(6)->startOfDay();
+                $hasta = $now->copy()->endOfDay();
+                break;
+            case '30d': $desde = $now->copy()->subDays(29)->startOfDay();
+                $hasta = $now->copy()->endOfDay();
+                break;
+            case 'mes': $desde = $now->copy()->startOfMonth();
+                $hasta = $now->copy()->endOfMonth();
+                break;
+            case 'anio': $desde = $now->copy()->startOfYear();
+                $hasta = $now->copy()->endOfYear();
+                break;
+            case 'todo': $desde = null;
+                $hasta = null;
+                break;
             case 'custom':
                 $desde = $request->filled('desde') ? Carbon::parse($request->get('desde'))->startOfDay() : null;
                 $hasta = $request->filled('hasta') ? Carbon::parse($request->get('hasta'))->endOfDay() : null;
@@ -111,14 +122,28 @@ class DashboardController extends Controller
         $q = DB::table('tblTicket as t')->where('t.activo', true);
 
         if ($conRango) {
-            if ($f['desde']) $q->where('t.fechaAlta', '>=', $f['desde']);
-            if ($f['hasta']) $q->where('t.fechaAlta', '<=', $f['hasta']);
+            if ($f['desde']) {
+                $q->where('t.fechaAlta', '>=', $f['desde']);
+            }
+            if ($f['hasta']) {
+                $q->where('t.fechaAlta', '<=', $f['hasta']);
+            }
         }
-        if ($f['tipo']) $q->where('t.id_TipoSoporte', $f['tipo']);
-        if ($f['estatus']) $q->where('t.id_Estatus', $f['estatus']);
-        if ($f['tecnico']) $q->where('t.id_Tecnico', $f['tecnico']);
-        if (!empty($f['idTecnicoPropio'])) $q->where('t.id_Tecnico', $f['idTecnicoPropio']);
-        if (!empty($f['idCreadorPropio'])) $q->where('t.id_Usuario', $f['idCreadorPropio']);
+        if ($f['tipo']) {
+            $q->where('t.id_TipoSoporte', $f['tipo']);
+        }
+        if ($f['estatus']) {
+            $q->where('t.id_Estatus', $f['estatus']);
+        }
+        if ($f['tecnico']) {
+            $q->where('t.id_Tecnico', $f['tecnico']);
+        }
+        if (! empty($f['idTecnicoPropio'])) {
+            $q->where('t.id_Tecnico', $f['idTecnicoPropio']);
+        }
+        if (! empty($f['idCreadorPropio'])) {
+            $q->where('t.id_Usuario', $f['idCreadorPropio']);
+        }
         if ($f['depto']) {
             $q->whereIn('t.id_Usuario', DB::table('tblUsuario')->where('id_Depto', $f['depto'])->pluck('id_Usuario'));
         }
@@ -151,7 +176,7 @@ class DashboardController extends Controller
             ->groupBy('e.descripcion')
             ->pluck('total', 'descripcion');
 
-        $count = fn($nombre) => (int) ($porEstatus[$nombre] ?? 0);
+        $count = fn ($nombre) => (int) ($porEstatus[$nombre] ?? 0);
         $totalTickets = (int) $porEstatus->sum();
         $resueltos = $count('Resuelto');
         $cerrados = $count('Cerrado');
@@ -174,7 +199,7 @@ class DashboardController extends Controller
 
         $tiempoPromedioHoras = (clone $this->baseTickets($f))
             ->whereNotNull('t.fechaCierre')
-            ->select(DB::raw('AVG(' . $this->diffHoras('t.fechaAlta', 't.fechaCierre') . ') as horas'))
+            ->select(DB::raw('AVG('.$this->diffHoras('t.fechaAlta', 't.fechaCierre').') as horas'))
             ->value('horas');
 
         // Actividad reciente (ignora el rango de fechas, respeta los demás filtros)
@@ -362,7 +387,7 @@ class DashboardController extends Controller
         $pendientesVistoBueno = (clone $q)->where('t.id_Estatus', $resueltoId)->count();
 
         $tiempoPromedioHoras = (clone $q)->whereNotNull('t.fechaCierre')
-            ->select(DB::raw('AVG(' . $this->diffHoras('t.fechaAlta', 't.fechaCierre') . ') as horas'))->value('horas');
+            ->select(DB::raw('AVG('.$this->diffHoras('t.fechaAlta', 't.fechaCierre').') as horas'))->value('horas');
 
         $asignados = 0;
         if ($esTecnico) {
@@ -382,6 +407,7 @@ class DashboardController extends Controller
     {
         return match (DB::connection()->getDriverName()) {
             'sqlsrv' => "DATEDIFF(HOUR, {$desde}, {$hasta})",
+            'sqlite' => "CAST((julianday({$hasta}) - julianday({$desde})) * 24 AS INTEGER)",
             default => "TIMESTAMPDIFF(HOUR, {$desde}, {$hasta})",
         };
     }
@@ -434,20 +460,40 @@ class DashboardController extends Controller
     {
         $q = Ticket::with(['usuario', 'tecnico', 'tipoSoporte', 'estatus'])->where('activo', true);
 
-        if ($f['desde']) $q->where('fechaAlta', '>=', $f['desde']);
-        if ($f['hasta']) $q->where('fechaAlta', '<=', $f['hasta']);
-        if ($f['tipo']) $q->where('id_TipoSoporte', $f['tipo']);
-        if ($f['estatus']) $q->where('id_Estatus', $f['estatus']);
-        if ($f['tecnico']) $q->where('id_Tecnico', $f['tecnico']);
-        if (!empty($f['idTecnicoPropio'])) $q->where('id_Tecnico', $f['idTecnicoPropio']);
-        if (!empty($f['idCreadorPropio'])) $q->where('id_Usuario', $f['idCreadorPropio']);
-        if ($f['depto']) $q->whereIn('id_Usuario', DB::table('tblUsuario')->where('id_Depto', $f['depto'])->pluck('id_Usuario'));
-        if ($f['area']) $q->whereIn('id_Usuario', DB::table('tblUsuario')->where('id_Area', $f['area'])->pluck('id_Usuario'));
+        if ($f['desde']) {
+            $q->where('fechaAlta', '>=', $f['desde']);
+        }
+        if ($f['hasta']) {
+            $q->where('fechaAlta', '<=', $f['hasta']);
+        }
+        if ($f['tipo']) {
+            $q->where('id_TipoSoporte', $f['tipo']);
+        }
+        if ($f['estatus']) {
+            $q->where('id_Estatus', $f['estatus']);
+        }
+        if ($f['tecnico']) {
+            $q->where('id_Tecnico', $f['tecnico']);
+        }
+        if (! empty($f['idTecnicoPropio'])) {
+            $q->where('id_Tecnico', $f['idTecnicoPropio']);
+        }
+        if (! empty($f['idCreadorPropio'])) {
+            $q->where('id_Usuario', $f['idCreadorPropio']);
+        }
+        if ($f['depto']) {
+            $q->whereIn('id_Usuario', DB::table('tblUsuario')->where('id_Depto', $f['depto'])->pluck('id_Usuario'));
+        }
+        if ($f['area']) {
+            $q->whereIn('id_Usuario', DB::table('tblUsuario')->where('id_Area', $f['area'])->pluck('id_Usuario'));
+        }
 
-        if (!$esAdmin) {
+        if (! $esAdmin) {
             $q->where(function ($w) use ($idUsuario, $esTecnico) {
                 $w->where('id_Usuario', $idUsuario);
-                if ($esTecnico) $w->orWhere('id_Tecnico', $idUsuario);
+                if ($esTecnico) {
+                    $w->orWhere('id_Tecnico', $idUsuario);
+                }
             });
         }
 

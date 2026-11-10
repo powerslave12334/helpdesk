@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Configuracion;
 
 use App\Http\Controllers\Controller;
 use App\Models\ConfiguracionSistema;
+use App\Services\CorreoService;
 use App\Support\ConexionActiva;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ConfiguracionGeneralController extends Controller
 {
@@ -18,7 +20,76 @@ class ConfiguracionGeneralController extends Controller
             fn ($datos, $clave) => [$clave => ConexionActiva::info($clave)]
         );
 
-        return view('configuracion.configuracion_general', compact('configuraciones', 'conexionActiva', 'infoConexiones'));
+        $correoService = app(CorreoService::class);
+        $correosAutomaticos = $correoService->automaticosActivos();
+        $smtp = $this->estadoSmtp();
+
+        return view('configuracion.configuracion_general', compact(
+            'configuraciones',
+            'conexionActiva',
+            'infoConexiones',
+            'correosAutomaticos',
+            'smtp'
+        ));
+    }
+
+    /**
+     * Enciende o apaga el envío de correos automáticos
+     * (llave `CorreoAutomaticosActivo`, leída por CorreoService).
+     */
+    public function toggleCorreosAutomaticos()
+    {
+        $actual = app(CorreoService::class)->automaticosActivos();
+        $nuevo = ! $actual;
+
+        ConfiguracionSistema::updateOrCreate(
+            ['clave' => 'CorreoAutomaticosActivo'],
+            [
+                'valor' => $nuevo ? '1' : '0',
+                'descripcion' => 'Activa el envío automático de correos (notificaciones de tickets y mantenimientos).',
+                'fechaAlta' => now(),
+                'activo' => true,
+            ]
+        );
+
+        return back()->with(
+            'success',
+            $nuevo ? 'Correos automáticos activados' : 'Correos automáticos desactivados'
+        );
+    }
+
+    /**
+     * Resumen del SMTP configurado para mostrar en el panel.
+     */
+    private function estadoSmtp(): array
+    {
+        $claves = ['CorreoServidorSmtp', 'CorreoPuertoSmtp', 'CorreoRemitente', 'CorreoUsuario', 'CorreoPassword'];
+
+        $valores = DB::table('tblConfiguracionSistema')
+            ->where('activo', true)
+            ->whereIn('clave', $claves)
+            ->pluck('valor', 'clave');
+
+        $servidor = $valores['CorreoServidorSmtp'] ?? '';
+        $puerto = $valores['CorreoPuertoSmtp'] ?? '';
+        $remitente = $valores['CorreoRemitente'] ?? '';
+        $usuario = $valores['CorreoUsuario'] ?? '';
+        $password = $valores['CorreoPassword'] ?? '';
+
+        $incompletos = array_values(array_filter([
+            empty($servidor) ? 'servidor' : null,
+            empty($remitente) ? 'remitente' : null,
+            empty($usuario) ? 'usuario' : null,
+            empty($password) ? 'contraseña' : null,
+        ]));
+
+        return [
+            'servidor' => $servidor,
+            'puerto' => $puerto,
+            'remitente' => $remitente,
+            'completo' => empty($incompletos),
+            'faltantes' => $incompletos,
+        ];
     }
 
     public function store(Request $request)
@@ -41,6 +112,7 @@ class ConfiguracionGeneralController extends Controller
             'fechaAlta' => now(),
             'activo' => true,
         ]);
+
         return redirect()->route('configuracion.configGeneral.index')->with('success', 'Configuración creada');
     }
 
@@ -63,14 +135,16 @@ class ConfiguracionGeneralController extends Controller
             'valor' => $request->valor,
             'descripcion' => $request->descripcion,
         ]);
+
         return redirect()->route('configuracion.configGeneral.index')->with('success', 'Configuración actualizada');
     }
 
     public function toggleActivo($id)
     {
         $config = ConfiguracionSistema::findOrFail($id);
-        $config->activo = !$config->activo;
+        $config->activo = ! $config->activo;
         $config->save();
+
         return back()->with('success', $config->activo ? 'Activado' : 'Desactivado');
     }
 }

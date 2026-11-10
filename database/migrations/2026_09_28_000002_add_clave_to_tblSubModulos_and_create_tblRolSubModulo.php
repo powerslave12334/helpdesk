@@ -10,7 +10,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasColumn('tblSubModulos', 'clave')) {
+        if (! Schema::hasColumn('tblSubModulos', 'clave')) {
             Schema::table('tblSubModulos', function (Blueprint $table) {
                 $table->string('clave', 100)->nullable()->after('controller');
             });
@@ -18,12 +18,24 @@ return new class extends Migration
 
         // SQL Server no permite múltiples NULL en un índice UNIQUE (a diferencia
         // de MySQL); se usa un índice filtrado. Idempotente para re-ejecución.
-        if (DB::connection()->getDriverName() === 'sqlsrv') {
+        $driver = DB::connection()->getDriverName();
+
+        if ($driver === 'sqlsrv') {
             $existe = DB::select(
                 "SELECT 1 AS x FROM sys.indexes WHERE name = 'tblsubmodulos_clave_unique' AND object_id = OBJECT_ID('dbo.tblSubModulos')"
             );
             if (empty($existe)) {
                 DB::statement('CREATE UNIQUE INDEX tblsubmodulos_clave_unique ON dbo.tblSubModulos (clave) WHERE clave IS NOT NULL');
+            }
+        } elseif ($driver === 'sqlite') {
+            // SQLite no soporta SHOW INDEX; el índice se crea directamente.
+            $tieneIndice = DB::select(
+                "SELECT 1 AS x FROM sqlite_master WHERE type = 'index' AND name = 'tblsubmodulos_clave_unique'"
+            );
+            if (empty($tieneIndice)) {
+                Schema::table('tblSubModulos', function (Blueprint $table) {
+                    $table->unique('clave');
+                });
             }
         } else {
             $tieneIndice = DB::select("SHOW INDEX FROM tblSubModulos WHERE Key_name = 'tblsubmodulos_clave_unique'");
@@ -88,7 +100,20 @@ return new class extends Migration
 
         foreach ($nuevos as $n) {
             $existe = DB::table('tblSubModulos')->where('clave', $n['clave'])->exists();
-            if (!$existe) {
+            if (! $existe) {
+                // En una BD nueva el módulo padre puede no existir aún (en las
+                // BD existentes ya estaba poblado); se crea para no violar la FK.
+                $existeModulo = DB::table('tblModulos')->where('id_Modulos', $n['id_Modulos'])->exists();
+                if (! $existeModulo) {
+                    DB::table('tblModulos')->insert([
+                        'id_Modulos' => $n['id_Modulos'],
+                        'nombre' => 'Módulo '.$n['id_Modulos'],
+                        'fechaAlta' => now(),
+                        'activo' => true,
+                        'orden' => 0,
+                    ]);
+                }
+
                 DB::table('tblSubModulos')->insert([
                     'id_Modulos' => $n['id_Modulos'],
                     'nombre' => $n['nombre'],
@@ -126,7 +151,7 @@ return new class extends Migration
                     ->where('id_SubModulos', $idSub)
                     ->exists();
 
-                if (!$existe) {
+                if (! $existe) {
                     DB::table('tblRolSubModulo')->insert([
                         'id_Rol' => $rm->id_Rol,
                         'id_SubModulos' => $idSub,

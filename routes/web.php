@@ -1,45 +1,48 @@
 <?php
 
-use App\Http\Controllers\LoginController;
+use App\Http\Controllers\Configuracion\AreaController;
+use App\Http\Controllers\Configuracion\BaseDatosController;
+use App\Http\Controllers\Configuracion\CatalogoEquipoController;
+use App\Http\Controllers\Configuracion\ConfiguracionGeneralController;
+use App\Http\Controllers\Configuracion\DeptoController;
+use App\Http\Controllers\Configuracion\EstatusController;
+use App\Http\Controllers\Configuracion\OficinaController;
+use App\Http\Controllers\Configuracion\RolController;
+use App\Http\Controllers\Configuracion\RolModuloController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ReporteKpiController;
-use App\Http\Controllers\ReporteKpiDesarrolloController;
-use App\Http\Controllers\TicketController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\Inventario\EquipoController;
 use App\Http\Controllers\Inventario\EquipoHistorialController;
 use App\Http\Controllers\Inventario\EquipoRelacionController;
 use App\Http\Controllers\Inventario\EquipoUsuarioController;
+use App\Http\Controllers\Inventario\InstalacionGPSController;
+use App\Http\Controllers\Inventario\InventoryFieldController;
+use App\Http\Controllers\Inventario\MantenimientoController;
 use App\Http\Controllers\Inventario\TipoEquipoController;
 use App\Http\Controllers\Inventario\TipoRelacionEquipoController;
 use App\Http\Controllers\Inventario\VehiculoController;
-use App\Http\Controllers\Configuracion\CatalogoEquipoController;
-use App\Http\Controllers\Configuracion\RolController;
-use App\Http\Controllers\Configuracion\RolModuloController;
-
-use App\Http\Controllers\Configuracion\ConfiguracionGeneralController;
-use App\Http\Controllers\Configuracion\OficinaController;
-use App\Http\Controllers\Configuracion\EstatusController;
-use App\Http\Controllers\Configuracion\AreaController;
-use App\Http\Controllers\Configuracion\DeptoController;
+use App\Http\Controllers\Iso9001\FormatoIsoController;
+use App\Http\Controllers\LoginController;
 use App\Http\Controllers\NotificacionesController;
-use App\Http\Controllers\TicketConfig\TipoSoporteController;
-use App\Http\Controllers\TicketConfig\TipoEquipoTicketController;
-use App\Http\Controllers\TicketConfig\TipoDesarrolloController;
-use App\Http\Controllers\TicketConfig\SistemasController;
-use App\Http\Controllers\TicketConfig\ModuloSistemaController;
-use App\Http\Controllers\TicketConfig\SubModuloSistemaController;
-use App\Http\Controllers\Inventario\MantenimientoController;
-use App\Http\Controllers\TipoEmpleadoController;
+use App\Http\Controllers\ReporteKpiController;
+use App\Http\Controllers\ReporteKpiDesarrolloController;
 use App\Http\Controllers\ReporteKpiGpsController;
+use App\Http\Controllers\TicketConfig\ModuloSistemaController;
+use App\Http\Controllers\TicketConfig\SistemasController;
+use App\Http\Controllers\TicketConfig\SubModuloSistemaController;
+use App\Http\Controllers\TicketConfig\TipoDesarrolloController;
+use App\Http\Controllers\TicketConfig\TipoEquipoTicketController;
+use App\Http\Controllers\TicketConfig\TipoSoporteController;
+use App\Http\Controllers\TicketController;
+use App\Http\Controllers\TipoEmpleadoController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('login'));
 
 Route::get('/login', [LoginController::class, 'showLogin'])->name('login');
-    Route::post('/login', [LoginController::class, 'login'])->name('login.post');
-    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
-    Route::post('/recuperar-password', [LoginController::class, 'recuperarPassword'])->name('login.recuperarPassword');
+Route::post('/login', [LoginController::class, 'login'])->name('login.post');
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+Route::post('/recuperar-password', [LoginController::class, 'recuperarPassword'])->name('login.recuperarPassword');
 
 Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -95,20 +98,38 @@ Route::middleware('auth')->group(function () {
             Route::post('/equipo/toggle/{id}', [EquipoController::class, 'toggleActivo'])->name('equipo.toggle');
         });
 
+        // Catálogo de campos dinámicos (definir antes de asignar)
+        Route::middleware('permiso:tipo-equipo')->group(function () {
+            Route::get('/campos', [InventoryFieldController::class, 'index'])->name('campos.index');
+            Route::post('/campos', [InventoryFieldController::class, 'store'])->name('campos.store');
+            Route::put('/campos/{id}', [InventoryFieldController::class, 'update'])->name('campos.update');
+            Route::post('/campos/toggle/{id}', [InventoryFieldController::class, 'toggle'])->name('campos.toggle');
+            Route::delete('/campos/{id}', [InventoryFieldController::class, 'destroy'])->name('campos.destroy');
+        });
+
         // Tipos de equipo
         Route::middleware('permiso:tipo-equipo')->group(function () {
             Route::get('/tipo-equipo', [TipoEquipoController::class, 'index'])->name('tipoEquipo.index');
             Route::post('/tipo-equipo', [TipoEquipoController::class, 'store'])->name('tipoEquipo.store');
             Route::put('/tipo-equipo/{id}', [TipoEquipoController::class, 'update'])->name('tipoEquipo.update');
             Route::post('/tipo-equipo/toggle/{id}', [TipoEquipoController::class, 'toggleActivo'])->name('tipoEquipo.toggle');
+            Route::get('/tipo-equipo/{id}/campos', [TipoEquipoController::class, 'personalizarCampos'])->name('tipoEquipo.campos');
+            Route::post('/tipo-equipo/{id}/campos', [TipoEquipoController::class, 'guardarCampos'])->name('tipoEquipo.guardarCampos');
         });
 
-        // Vehículos (unidades GPS)
         Route::middleware('permiso:vehiculos')->group(function () {
-            Route::get('/vehiculos', [VehiculoController::class, 'index'])->name('vehiculo.index');
-            Route::post('/vehiculos', [VehiculoController::class, 'store'])->name('vehiculo.store');
-            Route::put('/vehiculos/{id}', [VehiculoController::class, 'update'])->name('vehiculo.update');
-            Route::post('/vehiculos/toggle/{id}', [VehiculoController::class, 'toggleActivo'])->name('vehiculo.toggle');
+            Route::prefix('vehiculos')->name('vehiculo.')->group(function () {
+                Route::get('/', [VehiculoController::class, 'index'])->name('index');
+                Route::post('/', [VehiculoController::class, 'store'])->name('store');
+                Route::put('/{id}', [VehiculoController::class, 'update'])->name('update');
+                Route::delete('/{id}', [VehiculoController::class, 'destroy'])->name('destroy');
+            });
+        });
+        Route::middleware('permiso:vehiculos')->group(function () {
+            Route::get('/instalaciones-gps', [InstalacionGPSController::class, 'index'])->name('instalacionGps.index');
+            Route::post('/instalaciones-gps', [InstalacionGPSController::class, 'store'])->name('instalacionGps.store');
+            Route::put('/instalaciones-gps/{id}', [InstalacionGPSController::class, 'update'])->name('instalacionGps.update');
+            Route::post('/instalaciones-gps/toggle/{id}', [InstalacionGPSController::class, 'toggleActivo'])->name('instalacionGps.toggle');
         });
 
         // Tipos de relación
@@ -161,6 +182,24 @@ Route::middleware('auth')->group(function () {
         });
     });
 
+    // ISO 9001 - Generador de documentos FO-IT. Las acciones por formato
+    // delegan en el controlador propio de cada uno (ver FormatoIsoController).
+    Route::prefix('iso9001')->name('iso9001.')->middleware('permiso:iso9001')->group(function () {
+        Route::get('/', [FormatoIsoController::class, 'index'])->name('index');
+
+        Route::get('/{clave}/nuevo', [FormatoIsoController::class, 'create'])->name('create');
+        Route::post('/{clave}', [FormatoIsoController::class, 'store'])->name('store');
+        Route::get('/{clave}/{id}/pdf', [FormatoIsoController::class, 'pdf'])->name('pdf');
+        Route::post('/{clave}/{id}/firmar', [FormatoIsoController::class, 'firmar'])->name('firmar');
+        Route::delete('/{clave}/{id}', [FormatoIsoController::class, 'destroy'])->name('destroy');
+
+        // Verificación de huella: debe ir ANTES de /{clave} para no ser
+        // capturada como la clave de un formato.
+        Route::get('/verificar', [FormatoIsoController::class, 'verificar'])->name('verificar');
+
+        Route::get('/{clave}', [FormatoIsoController::class, 'documentos'])->name('documentos');
+    });
+
     // Configuración
     Route::prefix('configuracion')->name('configuracion.')->group(function () {
         // Roles
@@ -183,10 +222,12 @@ Route::middleware('auth')->group(function () {
             Route::post('/config-general', [ConfiguracionGeneralController::class, 'store'])->name('configGeneral.store');
             Route::put('/config-general/{id}', [ConfiguracionGeneralController::class, 'update'])->name('configGeneral.update');
             Route::post('/config-general/toggle/{id}', [ConfiguracionGeneralController::class, 'toggleActivo'])->name('configGeneral.toggle');
+            // Encendido/apagado de los correos que dispara el propio sistema
+            Route::post('/config-general/correos-automaticos', [ConfiguracionGeneralController::class, 'toggleCorreosAutomaticos'])->name('configGeneral.correosAutomaticos');
 
             // Conmutador de base de datos (local MySQL <-> productivo SQL Server)
-            Route::post('/base-datos/cambiar', [\App\Http\Controllers\Configuracion\BaseDatosController::class, 'cambiar'])->name('baseDatos.cambiar');
-            Route::post('/base-datos/probar', [\App\Http\Controllers\Configuracion\BaseDatosController::class, 'probar'])->name('baseDatos.probar');
+            Route::post('/base-datos/cambiar', [BaseDatosController::class, 'cambiar'])->name('baseDatos.cambiar');
+            Route::post('/base-datos/probar', [BaseDatosController::class, 'probar'])->name('baseDatos.probar');
         });
 
         // Estatus

@@ -20,6 +20,8 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /**
@@ -59,18 +61,18 @@ class ReporteKpiDesarrolloController extends Controller
         [
             'especifico' => 'Cumplir con la funcionalidad de la solicitud de desarrollo de software requerida',
             'acciones' => "*Realizar un analisis del desarrollo solicitado\n"
-                . "*Realizar el desarrollo solicitado\n"
-                . "*Realizar pruebas del desarrollo solicitado\n"
-                . "*Implementar el desarrollo solicitado\n"
-                . "*Capacitar al usuario ",
+                ."*Realizar el desarrollo solicitado\n"
+                ."*Realizar pruebas del desarrollo solicitado\n"
+                ."*Implementar el desarrollo solicitado\n"
+                .'*Capacitar al usuario ',
         ],
         [
             'especifico' => 'Corregir errores de los desarrollos de software solicitados',
             'acciones' => "*Revisar con usuario el error reportado\n"
-                . "*Analizar el error reportado\n"
-                . "*Corregir el error reportado\n"
-                . "* Implementar la solicion del error reportado\n"
-                . "* Notificar al usuario la correccion del error",
+                ."*Analizar el error reportado\n"
+                ."*Corregir el error reportado\n"
+                ."* Implementar la solicion del error reportado\n"
+                .'* Notificar al usuario la correccion del error',
         ],
         [
             'especifico' => 'Entregar en tiempo que se asigna una solicitud de desarrollo de software',
@@ -78,21 +80,18 @@ class ReporteKpiDesarrolloController extends Controller
         ],
     ];
 
-    public function __construct(private PermisosService $permisosService)
-    {
-    }
+    public function __construct(private PermisosService $permisosService) {}
 
     public function exportar(Request $request)
     {
         $idUsuario = (int) auth()->id();
-        if (!$this->permisosService->puedeDescargarKpiDesarrollo($idUsuario)) {
-            $areas = implode(' / ', (array) config('kpi.areas_desarrollo', ['Desarrollo de Software']));
-            abort(403, "El reporte KPI Desarrollo es exclusivo del área: {$areas}.");
+        if (! $this->permisosService->puedeDescargarKpiDesarrollo($idUsuario)) {
+            abort(403, 'El reporte KPI Desarrollo es exclusivo de los roles Administrador y Root.');
         }
 
         $datos = $request->validate([
             'mes' => ['nullable', 'integer', 'between:1,12'],
-            'anio' => ['nullable', 'integer', 'between:2020,' . now()->year],
+            'anio' => ['nullable', 'integer', 'between:2020,'.now()->year],
         ]);
         $mes = (int) ($datos['mes'] ?? now()->month);
         $anio = (int) ($datos['anio'] ?? now()->year);
@@ -100,7 +99,7 @@ class ReporteKpiDesarrolloController extends Controller
 
         $tickets = $this->ticketsDelMes($anio, $mes);
 
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $spreadsheet->getProperties()
             ->setCreator(auth()->user()?->nombreCompleto() ?? 'HelpDesk')
             ->setTitle("KPI Desarrollo - {$mesNombre} {$anio}")
@@ -205,14 +204,15 @@ class ReporteKpiDesarrolloController extends Controller
     {
         $meses = [];
         if ($mes === 12) {
-            for ($m = 1; $m <= 12; ++$m) {
+            for ($m = 1; $m <= 12; $m++) {
                 $meses[] = ['anio' => $anio, 'mes' => $m];
             }
+
             return $meses;
         }
 
         $meses[] = ['anio' => $anio - 1, 'mes' => 12];
-        for ($m = 1; $m <= $mes; ++$m) {
+        for ($m = 1; $m <= $mes; $m++) {
             $meses[] = ['anio' => $anio, 'mes' => $m];
         }
 
@@ -221,7 +221,7 @@ class ReporteKpiDesarrolloController extends Controller
 
     // ─────────────────────────── Hoja del mes ───────────────────────────
 
-    private function hojaMes(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, string $mesNombre, int $anio, $tickets): void
+    private function hojaMes(Worksheet $sheet, string $mesNombre, int $anio, $tickets): void
     {
         $sheet->setTitle("{$mesNombre} {$anio}");
         $sheet->getSheetView()->setZoomScale(100);
@@ -276,14 +276,14 @@ class ReporteKpiDesarrolloController extends Controller
     }
 
     /** Título de bloque: franja naranja fusionada A:F. */
-    private function tituloBloque(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, int $fila, string $texto): void
+    private function tituloBloque(Worksheet $sheet, int $fila, string $texto): void
     {
         $sheet->mergeCells("A{$fila}:F{$fila}");
         $sheet->setCellValue("A{$fila}", $texto);
         $this->aplicarEstiloTitulo($sheet, "A{$fila}:F{$fila}");
     }
 
-    private function aplicarEstiloTitulo(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, string $rango): void
+    private function aplicarEstiloTitulo(Worksheet $sheet, string $rango): void
     {
         $sheet->getStyle($rango)->applyFromArray([
             'font' => ['name' => 'Calibri', 'size' => 11, 'bold' => true],
@@ -296,7 +296,7 @@ class ReporteKpiDesarrolloController extends Controller
     }
 
     /** Fila de encabezados No / Tarea / Modulo / Submodulo / Fecha inicio / Fecha Termino. */
-    private function encabezadosColumnas(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, int $fila): void
+    private function encabezadosColumnas(Worksheet $sheet, int $fila): void
     {
         $cabeceras = [
             'A' => 'No', 'B' => 'Tarea', 'C' => 'Modulo', 'D' => 'Submodulo',
@@ -317,7 +317,7 @@ class ReporteKpiDesarrolloController extends Controller
      * Escribe las secciones por módulo (encabezado fusionado A:F, azul claro)
      * y sus tareas. Devuelve la fila siguiente a la última escrita.
      */
-    private function secciones(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, int $fila, $tickets): int
+    private function secciones(Worksheet $sheet, int $fila, $tickets): int
     {
         if ($tickets->isEmpty()) {
             return $fila;
@@ -338,11 +338,11 @@ class ReporteKpiDesarrolloController extends Controller
             ]);
 
             $filaEncabezado = $fila;
-            ++$fila;
+            $fila++;
 
             foreach ($grupo as $t) {
                 // Numeración por fórmula, como el original (=ROW()-encabezado).
-                $sheet->setCellValue("A{$fila}", '=ROW()-' . $filaEncabezado);
+                $sheet->setCellValue("A{$fila}", '=ROW()-'.$filaEncabezado);
                 $sheet->setCellValue("B{$fila}", (string) $t->asunto);
                 $sheet->setCellValue("C{$fila}", (string) ($t->modulo ?? ''));
                 $sheet->setCellValue("D{$fila}", (string) ($t->submodulo ?? ''));
@@ -364,7 +364,7 @@ class ReporteKpiDesarrolloController extends Controller
                 $sheet->getStyle("E{$fila}:F{$fila}")->getAlignment()->setWrapText(true);
                 $sheet->getStyle("E{$fila}:F{$fila}")->getNumberFormat()->setFormatCode('m/d/yyyy');
 
-                ++$fila;
+                $fila++;
             }
         }
 
@@ -374,26 +374,26 @@ class ReporteKpiDesarrolloController extends Controller
     // ─────────────────────────── Paneles H/I ───────────────────────────
 
     /** Encabezado azul de panel (H:I en dos filas). Devuelve la fila del cuadro. */
-    private function encabezadoPanel(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, int $fila, string $texto): int
+    private function encabezadoPanel(Worksheet $sheet, int $fila, string $texto): int
     {
-        $sheet->mergeCells("H{$fila}:H" . ($fila + 1));
-        $sheet->mergeCells("I{$fila}:I" . ($fila + 1));
+        $sheet->mergeCells("H{$fila}:H".($fila + 1));
+        $sheet->mergeCells("I{$fila}:I".($fila + 1));
         $sheet->setCellValue("H{$fila}", $texto);
         $sheet->setCellValue("I{$fila}", 'Cantidad');
-        $sheet->getStyle("H{$fila}:I" . ($fila + 1))->applyFromArray([
+        $sheet->getStyle("H{$fila}:I".($fila + 1))->applyFromArray([
             'font' => ['name' => 'Arial', 'size' => 8, 'bold' => true],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FF90C6F7']],
             'alignment' => ['vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
         ]);
         $sheet->getStyle("H{$fila}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
         $sheet->getStyle("I{$fila}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $this->bordePanel($sheet, "H{$fila}:I" . ($fila + 1));
+        $this->bordePanel($sheet, "H{$fila}:I".($fila + 1));
 
         return $fila + 2;
     }
 
     /** Cuadro de 4 filas (etiqueta / valor) con bordes y fuente Arial 8. */
-    private function cuadroPanel(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, int $fila, array $filas): void
+    private function cuadroPanel(Worksheet $sheet, int $fila, array $filas): void
     {
         foreach ($filas as $i => [$etiqueta, $valor, $formato]) {
             $r = $fila + $i;
@@ -404,18 +404,18 @@ class ReporteKpiDesarrolloController extends Controller
             }
         }
 
-        $rango = "H{$fila}:I" . ($fila + count($filas) - 1);
+        $rango = "H{$fila}:I".($fila + count($filas) - 1);
         $sheet->getStyle($rango)->applyFromArray([
             'font' => ['name' => 'Arial', 'size' => 8],
             'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
         ]);
-        $sheet->getStyle("H{$fila}:H" . ($fila + count($filas) - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-        $sheet->getStyle("I{$fila}:I" . ($fila + count($filas) - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("H{$fila}:H".($fila + count($filas) - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        $sheet->getStyle("I{$fila}:I".($fila + count($filas) - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $this->bordePanel($sheet, $rango);
     }
 
     /** Bordes finos con contorno medio, como el original. */
-    private function bordePanel(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, string $rango): void
+    private function bordePanel(Worksheet $sheet, string $rango): void
     {
         $sheet->getStyle($rango)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
 
@@ -432,7 +432,7 @@ class ReporteKpiDesarrolloController extends Controller
     }
 
     /** Panel 1 (solicitudes). Devuelve filas de sus celdas para el panel 3. */
-    private function panelSolicitudes(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, $solicitudes, string $mesNombre): array
+    private function panelSolicitudes(Worksheet $sheet, $solicitudes, string $mesNombre): array
     {
         $total = $solicitudes->count();
         $pendientes = $solicitudes->reject(
@@ -452,7 +452,7 @@ class ReporteKpiDesarrolloController extends Controller
     }
 
     /** Panel 2 (errores). Se coloca 6 filas después del título del bloque. */
-    private function panelErrores(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, $errores, string $mesNombre, int $filaEncabezado): array
+    private function panelErrores(Worksheet $sheet, $errores, string $mesNombre, int $filaEncabezado): array
     {
         $total = $errores->count();
         $pendientes = $errores->reject(
@@ -463,9 +463,9 @@ class ReporteKpiDesarrolloController extends Controller
 
         $this->cuadroPanel($sheet, $cuadro, [
             ['Errores reportados', $total, null],
-            ['Errores terminadas:', '=I' . $cuadro . '-I' . ($cuadro + 2), null],
+            ['Errores terminadas:', '=I'.$cuadro.'-I'.($cuadro + 2), null],
             ['Errores pendientes:', $pendientes, null],
-            ['Porcentaje de cumplimiento:', $total > 0 ? '=I' . ($cuadro + 1) . '/I' . $cuadro : 0, '0%'],
+            ['Porcentaje de cumplimiento:', $total > 0 ? '=I'.($cuadro + 1).'/I'.$cuadro : 0, '0%'],
         ]);
 
         return [
@@ -480,7 +480,7 @@ class ReporteKpiDesarrolloController extends Controller
     }
 
     /** Panel 3 (tiempo de entrega): suma de los paneles 1 y 2, como el original. */
-    private function panelTiempo(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, array $p1, array $p2, string $mesNombre, int $filaEncabezado): array
+    private function panelTiempo(Worksheet $sheet, array $p1, array $p2, string $mesNombre, int $filaEncabezado): array
     {
         $total = $p1['total_valor'] + $p2['total_valor'];
 
@@ -493,10 +493,10 @@ class ReporteKpiDesarrolloController extends Controller
         $pctFila = $cuadro + 3;
 
         $this->cuadroPanel($sheet, $cuadro, [
-            ['Tiempo de entrega total', '=I' . $p1['total'] . '+I' . $p2['total'], null],
-            ['Entregado a tiempo', '=I' . $p1['terminadas'] . '+I' . $p2['terminadas'], null],
-            ['No entregado  a tiempo', '=I' . $p1['pendientes'] . '+I' . $p2['pendientes'], null],
-            ['Porcentaje de cumplimiento:', $total > 0 ? '=I' . $aTiempoFila . '/I' . $totalFila : 0, '0%'],
+            ['Tiempo de entrega total', '=I'.$p1['total'].'+I'.$p2['total'], null],
+            ['Entregado a tiempo', '=I'.$p1['terminadas'].'+I'.$p2['terminadas'], null],
+            ['No entregado  a tiempo', '=I'.$p1['pendientes'].'+I'.$p2['pendientes'], null],
+            ['Porcentaje de cumplimiento:', $total > 0 ? '=I'.$aTiempoFila.'/I'.$totalFila : 0, '0%'],
         ]);
 
         return [
@@ -517,14 +517,14 @@ class ReporteKpiDesarrolloController extends Controller
      * 8 filas debajo del encabezado del panel y mide 12 filas de alto.
      * Las series son las mismas celdas del panel (terminadas / pendientes).
      */
-    private function grafica(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, int $indice, string $titulo, array $panel): void
+    private function grafica(Worksheet $sheet, int $indice, string $titulo, array $panel): void
     {
         $hoja = $sheet->getTitle();
         $etiquetas = "'{$hoja}'!\$H\${$panel['terminadas']}:\$H\${$panel['pendientes']}";
         $valores = "'{$hoja}'!\$I\${$panel['terminadas']}:\$I\${$panel['pendientes']}";
 
         // Porcentaje dentro de cada rebanada, como el original.
-        $etiquetasDatos = new Layout();
+        $etiquetasDatos = new Layout;
         $etiquetasDatos->setShowPercent(true);
         $etiquetasDatos->setShowVal(false);
         $etiquetasDatos->setShowCatName(false);
@@ -555,7 +555,7 @@ class ReporteKpiDesarrolloController extends Controller
 
         $top = $panel['inicio'] + 8;
         $chart->setTopLeftPosition("G{$top}");
-        $chart->setBottomRightPosition('J' . ($top + 11));
+        $chart->setBottomRightPosition('J'.($top + 11));
 
         $sheet->addChart($chart);
     }
@@ -568,7 +568,7 @@ class ReporteKpiDesarrolloController extends Controller
 
     // ─────────────────────────── Tablero de Control ───────────────────────────
 
-    private function hojaTablero(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $tab, int $anio, int $mes, string $mesNombre): void
+    private function hojaTablero(Worksheet $tab, int $anio, int $mes, string $mesNombre): void
     {
         $tab->setTitle('TABLERO DE CONTROL ');
         $tab->setShowGridlines(false);
@@ -599,7 +599,7 @@ class ReporteKpiDesarrolloController extends Controller
         // fila 3 (misma caja que el dibujo del archivo de referencia).
         $rutaLogo = resource_path('images/kpi-desarrollo-logo.png');
         if (is_file($rutaLogo)) {
-            $logo = new Drawing();
+            $logo = new Drawing;
             $logo->setName('Logo');
             $logo->setDescription('Logo');
             $logo->setPath($rutaLogo);
@@ -655,7 +655,7 @@ class ReporteKpiDesarrolloController extends Controller
             $tab->setCellValue("G{$fila}", 'Mensual ');
             $tab->setCellValue("H{$fila}", 'Jefe de TI');
             $tab->setCellValue("I{$fila}", 'Equipo de computo, internet, IDE, lenguajes de programacion');
-            ++$fila;
+            $fila++;
         }
 
         // Resultados y metas por mes.
@@ -723,7 +723,7 @@ class ReporteKpiDesarrolloController extends Controller
         }
 
         // Impresión vertical, como el original.
-        $tab->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_PORTRAIT);
+        $tab->getPageSetup()->setOrientation(PageSetup::ORIENTATION_PORTRAIT);
     }
 
     /**
@@ -736,8 +736,8 @@ class ReporteKpiDesarrolloController extends Controller
         $errTotal = $r['err_total'];
         $total = $solTotal + $errTotal;
 
-        $v7 = !$r['tiene'] || $solTotal === 0 ? null : ($solTotal - $r['sol_pend']) / $solTotal;
-        $v8 = !$r['tiene'] ? null : ($errTotal === 0 ? 0 : ($errTotal - $r['err_pend']) / $errTotal);
+        $v7 = ! $r['tiene'] || $solTotal === 0 ? null : ($solTotal - $r['sol_pend']) / $solTotal;
+        $v8 = ! $r['tiene'] ? null : ($errTotal === 0 ? 0 : ($errTotal - $r['err_pend']) / $errTotal);
         $v9 = $total === 0 ? null : (($solTotal - $r['sol_pend']) + ($errTotal - $r['err_pend'])) / $total;
 
         return [$v7, $v8, $v9];

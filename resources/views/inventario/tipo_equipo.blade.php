@@ -2,9 +2,17 @@
 @section('title', 'Tipos de Equipo - HelpDesk')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0"><i class="fas fa-tags me-2"></i>Tipos de Equipo</h4>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal"><i class="fas fa-plus me-1"></i>Nuevo Tipo</button>
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <h4 class="mb-0"><i class="fas fa-tags me-2"></i>Tipos de Equipo</h4>
+        <span class="text-muted small">Define los campos en el <a href="{{ route('inventario.campos.index') }}">Catálogo de Campos</a> y luego asígnalos a cada tipo.</span>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ route('inventario.campos.index') }}" class="btn btn-outline-primary">
+            <i class="fas fa-list-check me-1"></i>Catálogo de Campos
+        </a>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal"><i class="fas fa-plus me-1"></i>Nuevo Tipo</button>
+    </div>
 </div>
 
 <div class="card">
@@ -25,22 +33,29 @@
             </div>
             <div class="table-responsive">
                 <table class="table table-hover">
-                    <thead><tr><th>ID</th><th>Descripción</th><th>Estatus</th><th>Acciones</th></tr></thead>
+                    <thead><tr><th>ID</th><th>Descripción</th><th>Campos Asignados</th><th>Estatus</th><th>Acciones</th></tr></thead>
                     <tbody data-table-body>
                         @forelse($tipos as $t)
                         <tr data-row>
                             <td data-field="id">{{ $t->id_TipoEquipo }}</td>
-                            <td data-field="descripcion">{{ $t->descripcion }}</td>
+                            <td data-field="descripcion"><strong>{{ $t->descripcion }}</strong></td>
+                            <td>
+                                <a href="{{ route('inventario.tipoEquipo.campos', $t->id_TipoEquipo) }}" class="btn btn-sm btn-outline-info" title="Personalizar campos para este tipo">
+                                    <i class="fas fa-sliders-h me-1"></i>Personalizar campos
+                                    <span class="badge bg-info text-dark ms-1">{{ $t->camposConfig->where('activo', true)->count() }}</span>
+                                </a>
+                            </td>
                             <td data-field="estatus"><span class="badge bg-{{ $t->activo ? 'success' : 'danger' }}">{{ $t->activo ? 'Activo' : 'Inactivo' }}</span></td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-primary btn-edit" data-id="{{ $t->id_TipoEquipo }}" data-desc="{{ $t->descripcion }}"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-outline-{{ $t->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $t->id_TipoEquipo }}"><i class="fas fa-{{ $t->activo ? 'ban' : 'check' }}"></i></button>
+                                    <a href="{{ route('inventario.tipoEquipo.campos', $t->id_TipoEquipo) }}" class="btn btn-outline-info" title="Configurar campos"><i class="fas fa-sliders-h"></i></a>
+                                    <button class="btn btn-outline-primary btn-edit" data-id="{{ $t->id_TipoEquipo }}" data-desc="{{ $t->descripcion }}" title="Editar"><i class="fas fa-edit"></i></button>
+                                    <button class="btn btn-outline-{{ $t->activo ? 'danger' : 'success' }} btn-toggle" data-id="{{ $t->id_TipoEquipo }}" title="Cambiar estatus"><i class="fas fa-{{ $t->activo ? 'ban' : 'check' }}"></i></button>
                                 </div>
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="4" class="text-center text-muted">No hay tipos</td></tr>
+                        <tr><td colspan="5" class="text-center text-muted">No hay tipos</td></tr>
                         @endforelse
                     </tbody>
                 </table>

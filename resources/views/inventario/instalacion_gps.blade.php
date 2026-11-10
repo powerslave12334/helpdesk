@@ -151,7 +151,7 @@
     document.querySelectorAll('.btn-edit').forEach(btn => {
         btn.addEventListener('click', function () {
             const form = document.getElementById('formInstalacionGPS');
-            form.action = '/inventario/vehiculos/' + this.dataset.id;
+            form.action = '/inventario/instalaciones-gps/' + this.dataset.id;
             document.getElementById('formMethod').value = 'PUT';
             document.getElementById('modalTitle').textContent = 'Editar Instalación GPS';
             form.unidad.value = this.dataset.unidad;
@@ -172,7 +172,7 @@
     document.querySelectorAll('.btn-toggle').forEach(btn => {
         btn.addEventListener('click', function () {
             if (confirm('¿Cambiar estatus?')) {
-                fetch(`/inventario/vehiculos/toggle/${this.dataset.id}`, {
+                fetch(`/inventario/instalaciones-gps/toggle/${this.dataset.id}`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}'

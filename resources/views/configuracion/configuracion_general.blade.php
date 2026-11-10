@@ -60,6 +60,80 @@
     </div>
 </div>
 
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div style="max-width: 640px;">
+                <h6 class="mb-1"><i class="fas fa-envelope-open-text me-2"></i>Correos automáticos</h6>
+                <small class="text-muted">
+                    Correos que el propio sistema dispara sin intervención de nadie: tickets asignados o
+                    reasignados al técnico y mantenimientos programados al dueño del equipo.
+                    No afecta a los correos que solicita el usuario, como la recuperación de contraseña.
+                </small>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge {{ $correosAutomaticos ? 'bg-success' : 'bg-secondary' }}" id="badgeCorreos" style="font-size:13px;">
+                    {{ $correosAutomaticos ? 'Activados' : 'Desactivados' }}
+                </span>
+                <div class="form-check form-switch m-0">
+                    <input class="form-check-input" type="checkbox" role="switch" id="switchCorreos"
+                        style="width:2.6em; height:1.4em; cursor:pointer;" {{ $correosAutomaticos ? 'checked' : '' }}>
+                    <label class="form-check-label visually-hidden" for="switchCorreos">Enviar correos automáticos</label>
+                </div>
+            </div>
+        </div>
+        <hr class="my-3">
+        <div class="d-flex flex-wrap gap-4 small">
+            <span class="text-muted">
+                <i class="fas fa-server me-1"></i>SMTP:
+                @if($smtp['completo'])
+                    <span class="text-success">{{ $smtp['servidor'] }}:{{ $smtp['puerto'] }} → {{ $smtp['remitente'] }}</span>
+                @else
+                    <span class="text-danger">incompleto (falta {{ implode(', ', $smtp['faltantes']) }})</span>
+                @endif
+            </span>
+            <span class="text-muted">
+                <i class="fas fa-bell me-1"></i>Notificaciones in-app: <span class="text-success">siempre activas</span>
+            </span>
+        </div>
+        <script>
+            document.getElementById('switchCorreos').addEventListener('change', function () {
+                const activar = this.checked;
+                const sw = this;
+
+                Swal.fire({
+                    title: activar ? '¿Activar correos automáticos?' : '¿Desactivar correos automáticos?',
+                    text: activar
+                        ? 'El sistema volverá a enviar notificaciones por correo de tickets y mantenimientos.'
+                        : 'El sistema dejará de enviar correos de tickets y mantenimientos. Las notificaciones in-app seguirán funcionando.',
+                    icon: activar ? 'question' : 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: activar ? 'Sí, activar' : 'Sí, desactivar',
+                    cancelButtonText: 'Cancelar'
+                }).then((r) => {
+                    if (!r.isConfirmed) {
+                        sw.checked = !activar;
+                        return;
+                    }
+
+                    fetch('{{ route('configuracion.configGeneral.correosAutomaticos') }}', {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
+                    })
+                    .then((res) => {
+                        if (!res.ok) throw new Error('No se pudo actualizar la configuración.');
+                        location.reload();
+                    })
+                    .catch((err) => {
+                        sw.checked = !activar;
+                        Swal.fire('Error', err.message, 'error');
+                    });
+                });
+            });
+        </script>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-body">
         <div data-table>

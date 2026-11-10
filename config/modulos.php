@@ -38,6 +38,15 @@ return [
             ],
         ],
         [
+            'id' => 8,
+            'nombre' => 'ISO 9001',
+            'orden' => 3,
+            'icono' => 'fas fa-certificate',
+            'patrones' => [
+                'iso9001.*',
+            ],
+        ],
+        [
             'id' => 2,
             'nombre' => 'Inventario',
             'orden' => 4,
@@ -83,11 +92,15 @@ return [
         ['clave' => 'tipo-equipo', 'id_Modulos' => 2, 'nombre' => 'Tipo Inventario', 'icono' => 'fas fa-tags', 'ruta' => 'inventario.tipoEquipo.index', 'activa' => 'inventario.tipoEquipo.*', 'orden' => 1],
         ['clave' => 'equipo', 'id_Modulos' => 2, 'nombre' => 'Equipo', 'icono' => 'fas fa-laptop', 'ruta' => 'inventario.equipo.index', 'activa' => 'inventario.equipo.*', 'orden' => 2],
         ['clave' => 'asignacion-equipo', 'id_Modulos' => 2, 'nombre' => 'Asignación de Equipo', 'icono' => 'fas fa-user-tag', 'ruta' => 'inventario.asignacion.index', 'activa' => 'inventario.asignacion.*', 'orden' => 3],
-        ['clave' => 'vehiculos', 'id_Modulos' => 2, 'nombre' => 'Vehículos', 'icono' => 'fas fa-truck', 'ruta' => 'inventario.vehiculo.index', 'activa' => 'inventario.vehiculo.*', 'orden' => 4],
+        ['clave' => 'vehiculos', 'id_Modulos' => 2, 'nombre' => 'Vehículos', 'icono' => 'fas fa-truck', 'ruta' => 'inventario.vehiculo.index', 'activa' => 'inventario.vehiculo.*', 'orden' => 5],
+        ['clave' => 'instalaciones-gps', 'id_Modulos' => 2, 'nombre' => 'Instalaciones GPS', 'icono' => 'fas fa-satellite-dish', 'ruta' => 'inventario.instalacionGps.index', 'activa' => 'inventario.instalacionGps.*', 'orden' => 6],
         ['clave' => 'tipo-relacion-equipo', 'id_Modulos' => 2, 'nombre' => 'Tipo Relación Equipo', 'icono' => 'fas fa-link', 'ruta' => 'inventario.tipoRelacion.index', 'activa' => 'inventario.tipoRelacion.*', 'orden' => 6],
         ['clave' => 'relacion-equipo', 'id_Modulos' => 2, 'nombre' => 'Relación Equipo', 'icono' => 'fas fa-project-diagram', 'ruta' => 'inventario.relacion.index', 'activa' => 'inventario.relacion.*', 'orden' => 7],
         ['clave' => 'historial-asignacion', 'id_Modulos' => 2, 'nombre' => 'Historial de Asignación', 'icono' => 'fas fa-history', 'ruta' => 'inventario.historial.index', 'activa' => 'inventario.historial.*', 'orden' => 8],
         ['clave' => 'mantenimientos', 'id_Modulos' => 2, 'nombre' => 'Mantenimientos', 'icono' => 'fas fa-calendar-alt', 'ruta' => 'inventario.mantenimientos.index', 'activa' => 'inventario.mantenimientos.*', 'orden' => 0],
+
+        // --- ISO 9001 (módulo 8) ---
+        ['clave' => 'iso9001', 'id_Modulos' => 8, 'nombre' => 'Generador de Documentos', 'icono' => 'fas fa-file-contract', 'ruta' => 'iso9001.index', 'activa' => 'iso9001.*', 'orden' => 1],
 
         // --- Empleados (módulo 3) ---
         ['clave' => 'ver-empleados', 'id_Modulos' => 3, 'nombre' => 'Ver Empleados', 'icono' => 'fas fa-eye', 'ruta' => 'empleados.index', 'activa' => 'empleados.index', 'orden' => 2],

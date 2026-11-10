@@ -6,13 +6,12 @@ use App\Models\EquipoUsuario;
 use App\Models\Mantenimiento;
 use App\Models\Notificacion;
 use App\Models\Usuario;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 class MantenimientoNotificacionService
 {
-    public function __construct(private CorreoService $correoService)
-    {
-    }
+    public function __construct(private CorreoService $correoService) {}
 
     /**
      * Notifica al usuario dueño del equipo por campana in-app y correo.
@@ -29,8 +28,9 @@ class MantenimientoNotificacionService
             ->first();
 
         $usuario = $asignacion?->usuario;
-        if (!$usuario) {
+        if (! $usuario) {
             Log::info("No se notificó el mantenimiento #{$mantenimiento->id_Mantenimiento}: el equipo {$mantenimiento->id_Equipo} no tiene usuario asignado activo.");
+
             return;
         }
 
@@ -46,34 +46,34 @@ class MantenimientoNotificacionService
                 'FechaCreacion' => now(),
             ]);
         } catch (\Throwable $e) {
-            Log::warning('No se pudo crear la notificación in-app del mantenimiento #' . $mantenimiento->id_Mantenimiento . ': ' . $e->getMessage());
+            Log::warning('No se pudo crear la notificación in-app del mantenimiento #'.$mantenimiento->id_Mantenimiento.': '.$e->getMessage());
         }
 
         try {
             if (empty($usuario->correo)) {
                 return;
             }
-            $resultado = $this->correoService->enviarCorreo(
+            $resultado = $this->correoService->enviarCorreoAutomatica(
                 $usuario->correo,
-                'Help Desk - Mantenimiento programado #' . $mantenimiento->id_Mantenimiento,
+                'Help Desk - Mantenimiento programado #'.$mantenimiento->id_Mantenimiento,
                 $this->htmlCorreo($mantenimiento, $usuario)
             );
-            if (!$resultado['ok']) {
-                Log::warning('No se envió el correo del mantenimiento #' . $mantenimiento->id_Mantenimiento . ': ' . $resultado['mensaje']);
+            if (! $resultado['ok']) {
+                Log::warning('No se envió el correo del mantenimiento #'.$mantenimiento->id_Mantenimiento.': '.$resultado['mensaje']);
             }
         } catch (\Throwable $e) {
-            Log::warning('Error al enviar el correo del mantenimiento #' . $mantenimiento->id_Mantenimiento . ': ' . $e->getMessage());
+            Log::warning('Error al enviar el correo del mantenimiento #'.$mantenimiento->id_Mantenimiento.': '.$e->getMessage());
         }
     }
 
     private function htmlCorreo(Mantenimiento $mantenimiento, Usuario $usuario): string
     {
-        $fecha = $mantenimiento->fechaProgramada instanceof \Carbon\Carbon
+        $fecha = $mantenimiento->fechaProgramada instanceof Carbon
             ? $mantenimiento->fechaProgramada->format('d/m/Y H:i')
             : $mantenimiento->fechaProgramada;
         $tipo = mb_strtolower($mantenimiento->tipoMantenimiento);
 
-        $intro = 'Como parte del programa de mantenimiento ' . e($tipo) . ' de la empresa, te confirmo que la revisión de tu equipo está agendada para el día <strong>' . e($fecha) . '</strong>.';
+        $intro = 'Como parte del programa de mantenimiento '.e($tipo).' de la empresa, te confirmo que la revisión de tu equipo está agendada para el día <strong>'.e($fecha).'</strong>.';
 
         $bloque = '
             <p style="margin:0 0 8px;"><strong>Detalles de la atención:</strong></p>
@@ -90,7 +90,7 @@ class MantenimientoNotificacionService
 
         return CorreoHtml::plantilla([
             'etiqueta' => 'Mantenimiento programado',
-            'folio' => '#' . $mantenimiento->id_Mantenimiento,
+            'folio' => '#'.$mantenimiento->id_Mantenimiento,
             'saludoPrefijo' => 'Estimado/a',
             'saludo' => $usuario->nombreCompleto(),
             'intro' => $intro,
@@ -107,12 +107,12 @@ class MantenimientoNotificacionService
     private function nombreEquipo(Mantenimiento $mantenimiento): string
     {
         $equipo = $mantenimiento->equipo;
-        if (!$equipo) {
-            return 'Equipo #' . $mantenimiento->id_Equipo;
+        if (! $equipo) {
+            return 'Equipo #'.$mantenimiento->id_Equipo;
         }
 
-        $nombre = trim(($equipo->nombreEquipo ?? '') . ' ' . ($equipo->marca ?? '') . ' ' . ($equipo->modelo ?? ''));
+        $nombre = trim(($equipo->nombreEquipo ?? '').' '.($equipo->marca ?? '').' '.($equipo->modelo ?? ''));
 
-        return $nombre !== '' ? $nombre : 'Equipo #' . $mantenimiento->id_Equipo;
+        return $nombre !== '' ? $nombre : 'Equipo #'.$mantenimiento->id_Equipo;
     }
 }

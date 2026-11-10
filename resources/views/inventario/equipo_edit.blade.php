@@ -409,6 +409,81 @@
                 </div>
                 <div class="col-md-3 mb-3"><label class="form-label">Fecha Fin Garantía</label><input type="date" name="fechaFinGarantia" class="form-control" value="{{ $equipo->fechaFinGarantia ? $equipo->fechaFinGarantia->format('Y-m-d') : '' }}"></div>
                 <div class="col-md-12 mb-3"><label class="form-label">Especificaciones adicionales</label><textarea name="especificaciones" class="form-control" rows="2">{{ $equipo->especificaciones }}</textarea></div>
+
+                {{-- Campos personalizados del catálogo (definidos en inventario/campos) --}}
+                @foreach($camposCustom as $custom)
+                @php $valorCustom = old('attributes.' . $custom->name, $equipo->attributes[$custom->name] ?? null); @endphp
+                <div class="col-md-3 mb-3 d-none" data-campo="{{ $custom->name }}">
+                    <label class="form-label">{{ $custom->label }}</label>
+
+                    @switch($custom->type)
+                    @case('textarea')
+                    <textarea name="attributes[{{ $custom->name }}]" class="form-control" rows="2"
+                        placeholder="{{ $custom->help }}">{{ $valorCustom }}</textarea>
+                    @break
+
+                    @case('number')
+                    @case('decimal')
+                    <input type="number" name="attributes[{{ $custom->name }}]" class="form-control"
+                        step="{{ $custom->type === 'decimal' ? '0.01' : '1' }}" value="{{ $valorCustom }}"
+                        placeholder="{{ $custom->help }}">
+                    @break
+
+                    @case('date')
+                    <input type="date" name="attributes[{{ $custom->name }}]" class="form-control"
+                        value="{{ $valorCustom }}">
+                    @break
+
+                    @case('datetime')
+                    <input type="datetime-local" name="attributes[{{ $custom->name }}]" class="form-control"
+                        value="{{ $valorCustom }}">
+                    @break
+
+                    @case('boolean')
+                    <select name="attributes[{{ $custom->name }}]" class="form-select">
+                        <option value="">Seleccionar...</option>
+                        <option value="1" {{ $valorCustom == '1' ? 'selected' : '' }}>Sí</option>
+                        <option value="0" {{ $valorCustom == '0' ? 'selected' : '' }}>No</option>
+                    </select>
+                    @break
+
+                    @case('select')
+                    <select name="attributes[{{ $custom->name }}]" class="form-select">
+                        <option value="">Seleccionar...</option>
+                        @foreach(($custom->validation_rules['opciones'] ?? []) as $op)
+                        <option value="{{ $op }}" {{ $valorCustom === $op ? 'selected' : '' }}>{{ $op }}</option>
+                        @endforeach
+                    </select>
+                    @break
+
+                    @case('tags')
+                    @php
+                    $seleccionados = is_array($valorCustom) ? $valorCustom : [];
+                    if (is_string($seleccionados)) $seleccionados = array_filter(array_map('trim', explode(',', $seleccionados)));
+                    @endphp
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach(($custom->validation_rules['opciones'] ?? []) as $i => $op)
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox"
+                                name="attributes[{{ $custom->name }}][]" value="{{ $op }}"
+                                id="editchk_{{ $custom->name }}_{{ $i }}"
+                                {{ in_array($op, $seleccionados, true) ? 'checked' : '' }}>
+                            <label class="form-check-label small" for="editchk_{{ $custom->name }}_{{ $i }}">{{ $op }}</label>
+                        </div>
+                        @endforeach
+                    </div>
+                    @break
+
+                    @default
+                    <input type="text" name="attributes[{{ $custom->name }}]" class="form-control"
+                        value="{{ $valorCustom }}" placeholder="{{ $custom->help }}">
+                    @endswitch
+
+                    @if($custom->help)
+                    <div class="form-text">{{ $custom->help }}</div>
+                    @endif
+                </div>
+                @endforeach
             </div>
 
             <div class="mt-4">
@@ -424,6 +499,7 @@
 <script>
 const PC_ESCRITORIO = '1';
 const TIPOS_CATALOGO = @json(array_map('strval', config('equipo_perfiles.con_dropdown')));
+const MAPA_CAMPOS_BD = @json($camposPorTipo ?? []);
 const selTipo = document.getElementById('selTipoEquipo');
 const pares = [
     ['inpMarcaLibre', 'selMarcaPc'],
@@ -487,6 +563,45 @@ function aplicarTipo() {
         el.classList.toggle('d-none', !visible);
         el.querySelectorAll('input, select, textarea').forEach(i => i.disabled = !visible);
     });
+
+    // Capa 3: Si existe configuración dinámica en BD para este tipo, tiene prioridad
+    if (MAPA_CAMPOS_BD && MAPA_CAMPOS_BD[tipo]) {
+        const camposPermitidos = MAPA_CAMPOS_BD[tipo];
+        document.querySelectorAll('form .col-md-3, form .col-md-4, form .col-md-6, form .col-md-12').forEach(container => {
+            const inputs = container.querySelectorAll('input[name], select[name], textarea[name]');
+            if (!inputs.length) return;
+
+            let nombreCampo = null;
+            inputs.forEach(inp => {
+                const n = inp.name.replace('[]', '');
+                if (n && n !== 'id_TipoEquipo' && n !== '_token' && n !== '_method') {
+                    nombreCampo = n;
+                }
+            });
+
+            if (!nombreCampo) return;
+
+            if (nombreCampo === 'puertosOtros') nombreCampo = 'puertos';
+
+            // Campos personalizados: attributes[nombre] -> nombre
+            const attrMatch = typeof nombreCampo === 'string' ? nombreCampo.match(/^attributes\[(.+)\]$/) : null;
+            if (attrMatch) nombreCampo = attrMatch[1];
+
+            if (!camposPermitidos.includes(nombreCampo)) {
+                container.classList.add('d-none');
+                inputs.forEach(i => i.disabled = true);
+            } else {
+                if (container.classList.contains('campo-pc') && !esPc) {
+                    // mantener oculto si no es pc
+                } else if (container.classList.contains('campo-libre') && esPc) {
+                    // mantener oculto si es pc
+                } else {
+                    container.classList.remove('d-none');
+                    inputs.forEach(i => i.disabled = false);
+                }
+            }
+        });
+    }
 
     // Sincronización de pares: cada tipo copia el valor hacia el campo visible
     const usaCatalogo = TIPOS_CATALOGO.includes(tipo);

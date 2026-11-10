@@ -1,6 +1,6 @@
 # HELPDESK — Esquema Completo de Base de Datos
 
-> **Total:** 38 tablas | **Migraciones Laravel existentes:** 33 tablas | **Sin migración:** 5 tablas
+> **Total:** 39 tablas | **Migraciones Laravel existentes:** 34 tablas | **Sin migración:** 5 tablas
 > **Convenciones:** PKs auto-increment bigint | Sin timestamps Laravel (usan `fechaAlta`) | Soft deletes manuales (`boolean activo`)
 
 ---
@@ -723,7 +723,7 @@ CREATE TABLE tblTipoEquipo (
 ### tblVehiculo — Catálogo de Vehículos / Unidades GPS
 
 > Nueva (`2026_10_05_000001_crear_tblvehiculo_y_tipo_ticket_tblticket.php`). CRUD en
-> **Inventario → Vehículos** (`inventario.vehiculo.*`, permiso `vehiculos`). Las unidades se vinculan a
+> **Inventario → Instalaciones GPS** (`inventario.instalacionGps.*`, permiso `vehiculos`). Las unidades se vinculan a
 > tickets de tipo `instalacion_gps` / `revision_gps` vía la columna `tblTicket.vehiculos`.
 
 ```sql
@@ -1348,6 +1348,71 @@ CREATE TABLE tblTipoEquipoTicket (
 
 ---
 
+## Módulo 8: ISO 9001 (Generador de Documentos FO-IT)
+
+### tblIsoResponsivaErp — Documentos FO-IT-01 (Responsiva ERP)
+
+> **MIGRACIÓN LARAVEL** — `2026_11_09_163439_crear_tbl_iso_responsiva_erp.php`
+> (+ `2026_11_10_141814_add_firmas_to_tbl_iso_responsiva_erp.php` para las
+> firmas y la huella; en productivo: scripts de `database/sqlsrv/`).
+> Modelo: `IsoResponsivaErp` (cast `contrasenaErp` → `encrypted`). Folio de
+> presentación `FO-IT-01-0001` se calcula del ID (accessor `folio`).
+> Cada formato ISO 9001 tendrá su propia tabla (patrón del módulo).
+> El PDF se regenera bajo demanda desde estos datos (no se archiva en disco).
+> Borrado lógico: `activo = false` (la fila se conserva para auditoría).
+
+```sql
+CREATE TABLE tblIsoResponsivaErp (
+    id_ResponsivaErp BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    fecha DATE NOT NULL,
+    nombreEmpleado VARCHAR(150) NOT NULL,
+    puesto VARCHAR(100) NOT NULL,
+    correo VARCHAR(150) NOT NULL,
+    usuarioErp VARCHAR(100) NOT NULL,
+    contrasenaErp VARCHAR(500) NOT NULL,
+    id_Usuario BIGINT UNSIGNED NOT NULL,
+    fechaCreacion DATETIME NOT NULL,
+    activo TINYINT(1) NOT NULL DEFAULT 1,
+    firmaEmpleado LONGTEXT NULL,
+    fechaFirmaEmpleado DATETIME NULL,
+    firmaTi LONGTEXT NULL,
+    fechaFirmaTi DATETIME NULL,
+    huella VARCHAR(64) NULL,
+    PRIMARY KEY (id_ResponsivaErp),
+    INDEX idx_ResponsivaErp_id_Usuario (id_Usuario)
+);
+```
+
+| Columna | Tipo | Nullable | Default | FK |
+|---------|------|----------|---------|-----|
+| id_ResponsivaErp | bigint PK | No | auto_increment | — |
+| fecha | date | No | — | — |
+| nombreEmpleado | varchar(150) | No | — | — |
+| puesto | varchar(100) | No | — | — |
+| correo | varchar(150) | No | — | — |
+| usuarioErp | varchar(100) | No | — | — |
+| contrasenaErp | varchar(500) | No | — | — (cifrada, cast `encrypted`) |
+| id_Usuario | bigint FK | No | — | → tblUsuario.id_Usuario (lógica) |
+| fechaCreacion | datetime | No | — | — |
+| activo | boolean | No | true | — |
+| firmaEmpleado | longText | Si | — | — (PNG en data-URI, firma del empleado) |
+| fechaFirmaEmpleado | datetime | Si | — | — |
+| firmaTi | longText | Si | — | — (PNG en data-URI, firma de TI) |
+| fechaFirmaTi | datetime | Si | — | — |
+| huella | varchar(64) | Si | — | — (SHA-256 en hex de datos + firmas) |
+
+**Nota:** `id_Usuario` no tiene constraint FK porque en productivo el PK de
+`tblUsuario` es `int` y en local `bigint` (tipos distintos entre entornos).
+
+**Firma digital (fase 1):** visual + hash verificable. Las firmas se capturan
+en un lienzo (`signature_pad`) y se guardan como data-URI PNG; la huella
+SHA-256 se recalcula en el hook `saved` del modelo `IsoResponsivaErp` y se
+imprime al pie del PDF. Verificación en `GET /iso9001/verificar?folio=...`
+(compara la huella registrada contra la recalculada). Un documento firmado no
+puede eliminarse (borrado lógico bloqueado en `ResponsivaErpController::destroy`).
+
+---
+
 ## Diagrama de Relaciones (Texto)
 
 ```
@@ -1490,3 +1555,5 @@ Estas tablas existen en la BD pero NO tienen archivo de migración en `database/
 | `2026_10_05_000002_crear_catalogo_tipo_impresora_y_campos_impresora.php` | crea `tblCatTipoImpresora` con semilla y agrega `tblEquipo.tipoImpresora`, `colorImpresion`, `multifuncion` y `funciones` (en producción: `database/sqlsrv/alter_tblequipo_impresora.sql`) |
 | `2026_10_05_000003_crear_catalogo_tipo_camara_y_campos_camara.php` | crea `tblCatTipoCamara` con semilla y agrega `tblEquipo.tipoCamara`, `resolucion` y `conexion` (en producción: `database/sqlsrv/alter_tblequipo_camara.sql`) |
 | `2026_10_06_000001_crear_catalogo_tipo_gps_y_campos_gps.php` | crea `tblCatTipoGps` con semilla y agrega `tblEquipo.tipoGps`, `imei`, `operador` y `lineaSim` (en producción: `database/sqlsrv/alter_tblequipo_gps.sql`) |
+| `2026_11_09_163439_crear_tbl_iso_responsiva_erp.php` | tblIsoResponsivaErp (documentos FO-IT-01 del módulo ISO 9001) |
+| `2026_11_10_141814_add_firmas_to_tbl_iso_responsiva_erp.php` | agrega firmas (empleado/TI), fechas de firma y huella SHA-256 a tblIsoResponsivaErp |

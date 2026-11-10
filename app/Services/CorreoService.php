@@ -15,7 +15,7 @@ class CorreoService
         }
 
         $config = $this->obtenerConfiguracion();
-        if (!$config['activo']) {
+        if (! $config['activo']) {
             return ['ok' => false, 'mensaje' => 'El envío de correos está desactivado.'];
         }
 
@@ -45,8 +45,8 @@ class CorreoService
             $htmlConPlaceholders = $htmlCuerpo;
             foreach ($imagenesFirma as $i => $img) {
                 $htmlConPlaceholders = str_replace(
-                    'src="' . $img['src'] . '"',
-                    'src="cid:FIRMA_PLACEHOLDER_' . $i . '"',
+                    'src="'.$img['src'].'"',
+                    'src="cid:FIRMA_PLACEHOLDER_'.$i.'"',
                     $htmlConPlaceholders
                 );
             }
@@ -61,7 +61,7 @@ class CorreoService
                 $htmlFinal = $htmlConPlaceholders;
                 foreach ($imagenesFirma as $i => $img) {
                     $cid = $message->embed($img['absoluta']);
-                    $htmlFinal = str_replace('cid:FIRMA_PLACEHOLDER_' . $i, $cid, $htmlFinal);
+                    $htmlFinal = str_replace('cid:FIRMA_PLACEHOLDER_'.$i, $cid, $htmlFinal);
                 }
 
                 if ($htmlFinal !== $htmlConPlaceholders) {
@@ -73,6 +73,46 @@ class CorreoService
         } catch (\Exception $e) {
             return ['ok' => false, 'mensaje' => $e->getMessage()];
         }
+    }
+
+    /**
+     * Envía un correo disparado automáticamente por el sistema
+     * (notificación de tickets asignados/reasignados y de mantenimientos
+     * programados).
+     *
+     * Respeta la llave `CorreoAutomaticosActivo`, que se administra desde el
+     * módulo de Configuración General. Los correos que solicita el usuario
+     * (p. ej. recuperación de contraseña) no pasan por aquí y siguen
+     * amparados por `CorreoNotificacionesActivo`.
+     */
+    public function enviarCorreoAutomatica(string $destinatario, string $asunto, string $htmlCuerpo): array
+    {
+        if (! $this->automaticosActivos()) {
+            return ['ok' => false, 'mensaje' => 'El envío de correos automáticos está desactivado.'];
+        }
+
+        return $this->enviarCorreo($destinatario, $asunto, $htmlCuerpo);
+    }
+
+    /**
+     * Estado de la llave que gobierna los correos automáticos.
+     *
+     * Si la llave aún no existe se asume activada, para no silenciar
+     * notificaciones que ya estaban funcionando.
+     */
+    public function automaticosActivos(): bool
+    {
+        $fila = DB::table('tblConfiguracionSistema')
+            ->where('clave', 'CorreoAutomaticosActivo')
+            ->first();
+
+        if (! $fila) {
+            return true;
+        }
+
+        $valor = strtolower(trim((string) $fila->valor));
+
+        return (bool) $fila->activo && in_array($valor, ['1', 'true', 'si'], true);
     }
 
     private function obtenerConfiguracion(): array
@@ -181,7 +221,7 @@ class CorreoService
         $imagenes = [];
         foreach ($matches[1] as $rutaRelativa) {
             $nombreArchivo = basename($rutaRelativa);
-            $pathAbsoluta = base_path($rutaBase . DIRECTORY_SEPARATOR . $nombreArchivo);
+            $pathAbsoluta = base_path($rutaBase.DIRECTORY_SEPARATOR.$nombreArchivo);
             if (file_exists($pathAbsoluta)) {
                 $imagenes[] = ['src' => $rutaRelativa, 'absoluta' => $pathAbsoluta];
             }
@@ -198,7 +238,10 @@ class CorreoService
     private function obtenerBool(array $valores, string $clave, bool $default): bool
     {
         $valor = $valores[$clave] ?? '';
-        if (empty($valor)) return $default;
+        if (empty($valor)) {
+            return $default;
+        }
+
         return $valor === '1' || strtolower($valor) === 'true' || strtolower($valor) === 'si';
     }
 }

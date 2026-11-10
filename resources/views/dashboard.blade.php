@@ -100,7 +100,7 @@
             · {{ now()->format('d/m/Y') }}
         </div>
     </div>
-    {{-- Descarga de reportes KPI: cada área ve el suyo (ver config/kpi.php). --}}
+    {{-- Descarga de reportes KPI: solo roles Administrador y Root (ver PermisosService). --}}
     @if($puedeDescargarKpi || $puedeDescargarKpiDesarrollo || $puedeDescargarKpiGps)
         <div class="d-flex align-items-end gap-3 flex-wrap">
         @if($puedeDescargarKpi)

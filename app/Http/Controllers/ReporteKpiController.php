@@ -18,6 +18,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /**
@@ -67,24 +68,21 @@ class ReporteKpiController extends Controller
         ],
     ];
 
-    public function __construct(private PermisosService $permisosService)
-    {
-    }
+    public function __construct(private PermisosService $permisosService) {}
 
     public function exportar(Request $request)
     {
-        // Reporte exclusivo del área habilitada en config/kpi.php (Soporte TI).
-        // El rol no otorga acceso: Root y Administrador quedan fuera si su
-        // área no está en la lista.
+        // Reporte exclusivo de los roles Administrador y Root (ver
+        // esAdministrador() en PermisosService). Los empleados reciben 403
+        // aunque abran la URL directamente.
         $idUsuario = (int) auth()->id();
-        if (!$this->permisosService->puedeDescargarKpi($idUsuario)) {
-            $areas = implode(' / ', (array) config('kpi.areas_permitidas', ['Soporte TI']));
-            abort(403, "El reporte KPI es exclusivo del área: {$areas}.");
+        if (! $this->permisosService->puedeDescargarKpi($idUsuario)) {
+            abort(403, 'El reporte KPI es exclusivo de los roles Administrador y Root.');
         }
 
         $datos = $request->validate([
             'mes' => ['nullable', 'integer', 'between:1,12'],
-            'anio' => ['nullable', 'integer', 'between:2020,' . now()->year],
+            'anio' => ['nullable', 'integer', 'between:2020,'.now()->year],
         ]);
         $mes = (int) ($datos['mes'] ?? now()->month);
         $anio = (int) ($datos['anio'] ?? now()->year);
@@ -104,11 +102,11 @@ class ReporteKpiController extends Controller
         $tiempoPromedio = $tiemposMinutos->count() ? (float) $tiemposMinutos->avg() : 0;
 
         $porUsuario = $tickets
-            ->groupBy(fn ($t) => trim($t->nombre . ' ' . $t->app . ' ' . $t->apm))
+            ->groupBy(fn ($t) => trim($t->nombre.' '.$t->app.' '.$t->apm))
             ->map(fn ($g) => $g->count())
             ->sortBy([['value', 'desc'], ['key', 'asc']]);
 
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $spreadsheet->getProperties()
             ->setCreator(auth()->user()?->nombreCompleto() ?? 'HelpDesk')
             ->setTitle("KPI Tickets - {$mesNombre} {$anio}")
@@ -175,7 +173,7 @@ class ReporteKpiController extends Controller
             ->whereBetween('t.fechaAlta', [$inicio, $fin])
             ->selectRaw(
                 'MONTH(t.fechaAlta) as mes, COUNT(*) as total,'
-                . " SUM(CASE WHEN e.descripcion IN ('Cerrado', 'Resuelto') THEN 1 ELSE 0 END) as cerrados"
+                ." SUM(CASE WHEN e.descripcion IN ('Cerrado', 'Resuelto') THEN 1 ELSE 0 END) as cerrados"
             )
             ->groupByRaw('MONTH(t.fechaAlta)')
             ->get();
@@ -190,7 +188,7 @@ class ReporteKpiController extends Controller
 
     // ─────────────────────────── Hoja del mes ───────────────────────────
 
-    private function hojaMes(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, string $mesNombre, int $anio, $tickets, array $kpi): void
+    private function hojaMes(Worksheet $sheet, string $mesNombre, int $anio, $tickets, array $kpi): void
     {
         $sheet->setTitle($mesNombre);
 
@@ -211,7 +209,7 @@ class ReporteKpiController extends Controller
         foreach ($kpi['porUsuario'] as $nombre => $cantidad) {
             $sheet->setCellValue("A{$fila}", (string) $nombre);
             $sheet->setCellValue("B{$fila}", $cantidad);
-            ++$fila;
+            $fila++;
         }
         $ultimaFilaUsuario = $fila - 1;
         $this->estiloEncabezado($sheet, 'A10:B10');
@@ -233,9 +231,9 @@ class ReporteKpiController extends Controller
 
         $indice = 0;
         foreach ($tickets as $t) {
-            ++$indice;
+            $indice++;
             $r = $filaDetalle + $indice;
-            $nombre = trim($t->nombre . ' ' . $t->app . ' ' . $t->apm);
+            $nombre = trim($t->nombre.' '.$t->app.' '.$t->apm);
             $sheet->setCellValue("B{$r}", $indice);
             $sheet->setCellValue("C{$r}", $nombre);
             $sheet->setCellValue("D{$r}", Carbon::parse($t->fechaAlta));
@@ -272,21 +270,21 @@ class ReporteKpiController extends Controller
     }
 
     /** Pastel "Tickets por Estatus" y barras "Tickets por Usuario" (rangos del libro original). */
-    private function graficosMes(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, string $mesNombre, array $kpi, int $ultimaFilaUsuario): void
+    private function graficosMes(Worksheet $sheet, string $mesNombre, array $kpi, int $ultimaFilaUsuario): void
     {
-        $ref = "'" . $mesNombre . "'!";
+        $ref = "'".$mesNombre."'!";
 
         if ($kpi['total'] > 0) {
             $categorias = new DataSeriesValues(
                 DataSeriesValues::DATASERIES_TYPE_STRING,
-                $ref . '$A$4:$A$5',
+                $ref.'$A$4:$A$5',
                 null,
                 2,
                 ['Tickets Cerrados', 'Tickets en Proceso']
             );
             $valores = new DataSeriesValues(
                 DataSeriesValues::DATASERIES_TYPE_NUMBER,
-                $ref . '$B$4:$B$5',
+                $ref.'$B$4:$B$5',
                 null,
                 2,
                 [$kpi['cerrados'], $kpi['enProceso']],
@@ -316,14 +314,14 @@ class ReporteKpiController extends Controller
         if ($cantidadUsuarios > 0) {
             $categorias = new DataSeriesValues(
                 DataSeriesValues::DATASERIES_TYPE_STRING,
-                $ref . '$A$11:$A$' . $ultimaFilaUsuario,
+                $ref.'$A$11:$A$'.$ultimaFilaUsuario,
                 null,
                 $cantidadUsuarios,
                 array_keys($kpi['porUsuario']->all())
             );
             $valores = new DataSeriesValues(
                 DataSeriesValues::DATASERIES_TYPE_NUMBER,
-                $ref . '$B$11:$B$' . $ultimaFilaUsuario,
+                $ref.'$B$11:$B$'.$ultimaFilaUsuario,
                 null,
                 $cantidadUsuarios,
                 array_values($kpi['porUsuario']->all()),
@@ -376,7 +374,7 @@ class ReporteKpiController extends Controller
             $tab->setCellValue("{$col}5", $texto);
         }
 
-        for ($m = 1; $m <= 12; ++$m) {
+        for ($m = 1; $m <= 12; $m++) {
             $colResultado = Coordinate::stringFromColumnIndex(10 + (($m - 1) * 2));
             $colMeta = Coordinate::stringFromColumnIndex(11 + (($m - 1) * 2));
             $tab->mergeCells("{$colResultado}5:{$colMeta}5");
@@ -398,11 +396,11 @@ class ReporteKpiController extends Controller
             $tab->getStyle("B{$fila}:E{$fila}")->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
             $tab->getStyle("A{$fila}:I{$fila}")->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
             $tab->getRowDimension($fila)->setRowHeight(80);
-            ++$fila;
+            $fila++;
         }
 
         // RESULTADO (cumplimiento del mes) y META 100% hasta el mes descargado.
-        for ($m = 1; $m <= $mes; ++$m) {
+        for ($m = 1; $m <= $mes; $m++) {
             $colResultado = Coordinate::stringFromColumnIndex(10 + (($m - 1) * 2));
             $colMeta = Coordinate::stringFromColumnIndex(11 + (($m - 1) * 2));
             foreach ([7, 8, 9] as $r) {
@@ -420,12 +418,12 @@ class ReporteKpiController extends Controller
         foreach (['A' => 6, 'B' => 38, 'C' => 34, 'D' => 48, 'E' => 12, 'F' => 10, 'G' => 12, 'H' => 14, 'I' => 24] as $col => $ancho) {
             $tab->getColumnDimension($col)->setWidth($ancho);
         }
-        for ($i = 10; $i <= 33; ++$i) {
+        for ($i = 10; $i <= 33; $i++) {
             $tab->getColumnDimension(Coordinate::stringFromColumnIndex($i))->setWidth(9);
         }
     }
 
-    private function estiloEncabezado(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, string $rango): void
+    private function estiloEncabezado(Worksheet $sheet, string $rango): void
     {
         $sheet->getStyle($rango)->applyFromArray([
             'font' => ['bold' => true],

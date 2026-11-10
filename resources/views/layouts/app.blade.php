@@ -53,7 +53,7 @@
         h1, h2, h3, h4, h5, h6 { font-weight: 600; letter-spacing: -0.01em; }
 
         /* Sidebar */
-        .sidebar { width: 260px; min-height: 100vh; background: #0f172a; position: fixed; top: 0; left: 0; z-index: 100; overflow-y: auto; overflow-x: hidden; }
+        .sidebar { width: 260px; min-height: 100vh; background: #0f172a; position: fixed; top: 0; left: 0; z-index: 100; overflow-y: auto; overflow-x: hidden; transition: width 0.2s ease; }
         .sidebar .brand { padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 12px; }
         .sidebar .brand-icon { width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--primary); display: grid; place-items: center; color: #fff; font-size: 16px; flex-shrink: 0; }
         .sidebar .brand h5 { color: #f8fafc; margin: 0; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
@@ -71,7 +71,7 @@
         .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
 
         /* Main content */
-        .main-content { margin-left: 260px; background: var(--bg); min-height: 100vh; transition: background 0.2s; }
+        .main-content { margin-left: 260px; background: var(--bg); min-height: 100vh; transition: background 0.2s, margin-left 0.2s ease; }
         .top-bar { background: var(--surface); padding: 10px 28px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; }
         .content-area { padding: 28px; }
 
@@ -175,15 +175,66 @@
         }
         @media (min-width: 992px) { .sidebar-backdrop { display: none; } }
         @media (max-width: 576px) { .content-area { padding: 16px; } .top-bar { padding: 10px 16px; } }
-        @media (prefers-reduced-motion: reduce) { .sidebar, .sidebar-backdrop { transition: none; } }
+
+        /* Sidebar colapsable (solo escritorio) */
+        .btn-sidebar-collapse { display: none; background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: var(--radius-sm); padding: 6px 10px; cursor: pointer; transition: all 0.15s ease; align-items: center; }
+        .btn-sidebar-collapse:hover { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); }
+        .sidebar .brand-text { min-width: 0; }
+        .sidebar .nav-label { white-space: nowrap; }
+
+        @media (min-width: 992px) {
+            .btn-sidebar-collapse { display: inline-flex; }
+
+            body.sidebar-collapsed .sidebar { width: 72px; }
+            body.sidebar-collapsed .main-content { margin-left: 72px; }
+
+            body.sidebar-collapsed .sidebar .brand { justify-content: center; padding: 20px 12px 16px; }
+            body.sidebar-collapsed .sidebar .brand-text { display: none; }
+            body.sidebar-collapsed .sidebar .nav-section { display: none; }
+            body.sidebar-collapsed .sidebar .nav-group { margin-top: 4px; }
+            body.sidebar-collapsed .sidebar .nav-label,
+            body.sidebar-collapsed .sidebar .nav-chevron { display: none; }
+            body.sidebar-collapsed .sidebar .nav-link { justify-content: center; padding: 10px 0; margin: 2px 8px; gap: 0; }
+            body.sidebar-collapsed .sidebar .nav-link i { width: auto; }
+
+            /* Submenús: se despliegan como flyout al pasar el cursor */
+            body.sidebar-collapsed .sidebar .collapse { display: none; }
+            body.sidebar-collapsed .sidebar .collapse.show {
+                display: block;
+                position: fixed;
+                left: 72px;
+                min-width: 220px;
+                width: max-content;
+                background: #0f172a;
+                border: 1px solid rgba(255,255,255,0.08);
+                border-left: none;
+                border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+                padding: 6px 0;
+                margin: 0;
+                box-shadow: 12px 0 32px rgba(0,0,0,0.35);
+                z-index: 130;
+            }
+            body.sidebar-collapsed .sidebar .collapse.show .nav-link { justify-content: flex-start; padding: 9px 16px; margin: 0 8px; gap: 10px; }
+            body.sidebar-collapsed .sidebar .collapse.show .nav-label { display: inline; }
+            body.sidebar-collapsed .sidebar .collapse.show .nav-link i { width: 20px; text-align: center; }
+        }
+        @media (prefers-reduced-motion: reduce) { .sidebar, .sidebar-backdrop, .main-content { transition: none; } }
     </style>
     @yield('styles')
 </head>
 <body>
+    <script>
+        // Aplica el estado colapsado antes de pintar para evitar parpadeos.
+        try {
+            if (localStorage.getItem('helpdesk-sidebar') === 'collapsed') {
+                document.body.classList.add('sidebar-collapsed');
+            }
+        } catch (e) {}
+    </script>
     <div class="sidebar" id="appSidebar">
         <div class="brand">
             <div class="brand-icon"><i class="fas fa-headset"></i></div>
-            <div>
+            <div class="brand-text">
                 <h5>HelpDesk</h5>
                 <small>Sistema de Soporte</small>
             </div>
@@ -202,25 +253,27 @@
             @foreach($modulosCatalogo as $m)
                 @if(isset($m['enlace']))
                 <a href="{{ route($m['enlace']) }}" class="nav-link {{ request()->routeIs($m['enlace']) ? 'active' : '' }}">
-                    <i class="{{ $m['icono'] }}"></i> {{ $m['nombre'] }}
+                    <i class="{{ $m['icono'] }}"></i> <span class="nav-label">{{ $m['nombre'] }}</span>
                 </a>
                 @elseif(in_array((int) $m['id'], $modulosActivosIds, true))
                 @php
                     $seccionAbierta = collect($m['patrones'] ?? [])->contains(fn ($patron) => request()->routeIs($patron));
                 @endphp
-                <div class="nav-section">{{ $m['nombre'] }}</div>
-                <a href="#menuMod{{ $m['id'] }}" class="nav-link {{ $seccionAbierta ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="{{ $seccionAbierta ? 'true' : 'false' }}">
-                    <i class="{{ $m['icono'] }}"></i> {{ $m['nombre'] }}
-                    <span class="ms-auto"><i class="fas fa-chevron-down fa-xs"></i></span>
-                </a>
-                <div class="collapse {{ $seccionAbierta ? 'show' : '' }}" id="menuMod{{ $m['id'] }}">
-                    @foreach($submodulosCatalogo as $s)
-                        @if((int) $s['id_Modulos'] === (int) $m['id'] && in_array($s['clave'], $submodulosActivos, true))
-                        <a href="{{ route($s['ruta']) }}" class="nav-link {{ request()->routeIs($s['activa'] ?? $s['ruta']) ? 'active' : '' }}">
-                            <i class="{{ $s['icono'] }}"></i> {{ $s['nombre'] }}
-                        </a>
-                        @endif
-                    @endforeach
+                <div class="nav-group">
+                    <div class="nav-section"><span class="nav-label">{{ $m['nombre'] }}</span></div>
+                    <a href="#menuMod{{ $m['id'] }}" class="nav-link {{ $seccionAbierta ? 'active' : '' }}" data-bs-toggle="collapse" role="button" aria-expanded="{{ $seccionAbierta ? 'true' : 'false' }}">
+                        <i class="{{ $m['icono'] }}"></i> <span class="nav-label">{{ $m['nombre'] }}</span>
+                        <span class="ms-auto nav-chevron"><i class="fas fa-chevron-down fa-xs"></i></span>
+                    </a>
+                    <div class="collapse {{ $seccionAbierta ? 'show' : '' }}" id="menuMod{{ $m['id'] }}">
+                        @foreach($submodulosCatalogo as $s)
+                            @if((int) $s['id_Modulos'] === (int) $m['id'] && in_array($s['clave'], $submodulosActivos, true))
+                            <a href="{{ route($s['ruta']) }}" class="nav-link {{ request()->routeIs($s['activa'] ?? $s['ruta']) ? 'active' : '' }}">
+                                <i class="{{ $s['icono'] }}"></i> <span class="nav-label">{{ $s['nombre'] }}</span>
+                            </a>
+                            @endif
+                        @endforeach
+                    </div>
                 </div>
                 @endif
             @endforeach
@@ -234,6 +287,9 @@
             <div class="d-flex align-items-center gap-2">
                 <button class="btn-sidebar-toggle" id="btnSidebarToggle" title="Menú" aria-label="Abrir menú" aria-controls="appSidebar" aria-expanded="false">
                     <i class="fas fa-bars" aria-hidden="true"></i>
+                </button>
+                <button class="btn-sidebar-collapse" id="btnSidebarCollapse" title="Colapsar menú" aria-label="Colapsar menú" aria-controls="appSidebar" aria-expanded="true">
+                    <i class="fas fa-angles-left" aria-hidden="true"></i>
                 </button>
                 <div>
                     <span class="text-muted" style="font-size:13px">Bienvenido,</span>
@@ -498,6 +554,96 @@
         sidebar.querySelectorAll('a.nav-link').forEach(function(a) {
             if (!a.hasAttribute('data-bs-toggle')) a.addEventListener('click', close);
         });
+    })();
+    </script>
+    <script>
+    (function() {
+        const body = document.body;
+        const sidebar = document.getElementById('appSidebar');
+        const btn = document.getElementById('btnSidebarCollapse');
+        if (!sidebar) return;
+
+        const KEY = 'helpdesk-sidebar';
+        const esEscritorio = () => window.matchMedia('(min-width: 992px)').matches;
+        const colapsado = () => body.classList.contains('sidebar-collapsed');
+
+        const grupos = Array.from(sidebar.querySelectorAll('.nav-group'))
+            .map(g => ({
+                grupo: g,
+                gatillo: g.querySelector('a[data-bs-toggle="collapse"]'),
+                menu: g.querySelector('.collapse')
+            }))
+            .filter(x => x.gatillo && x.menu);
+
+        function ocultarFlyouts() {
+            grupos.forEach(x => x.menu.classList.remove('show'));
+        }
+
+        function abrirFlyout(x) {
+            x.menu.classList.add('show');
+            const top = x.gatillo.getBoundingClientRect().top;
+            const alto = x.menu.offsetHeight;
+            const min = 8;
+            const max = Math.max(min, window.innerHeight - alto - 8);
+            x.menu.style.top = Math.min(Math.max(top, min), max) + 'px';
+        }
+
+        function aplicar(colapsar, guardar) {
+            body.classList.toggle('sidebar-collapsed', colapsar);
+
+            if (btn) {
+                const icono = btn.querySelector('i');
+                btn.title = colapsar ? 'Expandir menú' : 'Colapsar menú';
+                btn.setAttribute('aria-label', btn.title);
+                btn.setAttribute('aria-expanded', colapsar ? 'false' : 'true');
+                if (icono) icono.className = colapsar ? 'fas fa-angles-right' : 'fas fa-angles-left';
+            }
+
+            if (colapsar) {
+                ocultarFlyouts();
+            } else {
+                // Al expandir, reabre la sección activa y limpia posiciones.
+                grupos.forEach(x => {
+                    const activa = x.gatillo.classList.contains('active');
+                    x.menu.classList.toggle('show', activa);
+                    x.menu.style.top = '';
+                    x.gatillo.setAttribute('aria-expanded', activa ? 'true' : 'false');
+                });
+            }
+
+            if (guardar) {
+                try { localStorage.setItem(KEY, colapsar ? 'collapsed' : 'expanded'); } catch (e) {}
+            }
+        }
+
+        if (btn) {
+            btn.addEventListener('click', () => aplicar(!colapsado(), true));
+        }
+
+        grupos.forEach(x => {
+            x.grupo.addEventListener('mouseenter', () => {
+                if (colapsado() && esEscritorio()) abrirFlyout(x);
+            });
+            x.grupo.addEventListener('mouseleave', () => {
+                if (colapsado()) x.menu.classList.remove('show');
+            });
+            x.gatillo.addEventListener('click', e => {
+                if (colapsado() && esEscritorio()) {
+                    // En modo riel el clic no altera el acordeón: abre el flyout.
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    abrirFlyout(x);
+                }
+            });
+        });
+
+        window.addEventListener('resize', () => {
+            if (!esEscritorio()) ocultarFlyouts();
+        });
+
+        // Sincroniza con el estado aplicado antes de pintar.
+        aplicar(colapsado(), false);
     })();
     </script>
     @yield('scripts')

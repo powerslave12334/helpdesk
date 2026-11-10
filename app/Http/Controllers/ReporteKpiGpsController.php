@@ -6,13 +6,14 @@ use App\Services\PermisosService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ReporteKpiGpsController extends Controller
 {
@@ -54,13 +55,13 @@ class ReporteKpiGpsController extends Controller
     {
         $idUsuario = (int) auth()->id();
 
-        if (!app(PermisosService::class)->puedeDescargarKpiGps($idUsuario)) {
-            abort(403, 'El reporte KPI GPS es exclusivo del área: ' . (config('kpi.areas_gps')[0] ?? 'Soporte TI'));
+        if (! app(PermisosService::class)->puedeDescargarKpiGps($idUsuario)) {
+            abort(403, 'El reporte KPI GPS es exclusivo de los roles Administrador y Root.');
         }
 
         $datos = $request->validate([
             'mes' => ['nullable', 'integer', 'between:1,12'],
-            'anio' => ['nullable', 'integer', 'between:2020,' . now()->year],
+            'anio' => ['nullable', 'integer', 'between:2020,'.now()->year],
         ]);
         $mes = (int) ($datos['mes'] ?? now()->month);
         $anio = (int) ($datos['anio'] ?? now()->year);
@@ -90,7 +91,7 @@ class ReporteKpiGpsController extends Controller
             ]);
 
         /** Crear Spreadsheet. */
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $spreadsheet->getProperties()
             ->setCreator(auth()->user()?->nombreCompleto() ?? 'HelpDesk')
             ->setTitle("KPI GPS - {$mesNombre} {$anio}")
@@ -180,7 +181,7 @@ class ReporteKpiGpsController extends Controller
 
         // Logo GPS (anclado en A1, como el original)
         if (file_exists(self::LOGO_PATH)) {
-            $logo = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+            $logo = new Drawing;
             $logo->setName('Logo GPS');
             $logo->setDescription('Logo GPS');
             $logo->setPath(self::LOGO_PATH);
@@ -282,18 +283,18 @@ class ReporteKpiGpsController extends Controller
         $indicadores = [
             7 => [
                 'especifico' => 'Instalacion de GPS en Unidades ',
-                'acciones'   => 'Revisión de Stock de GPS y Chips(SIM), acceso a consola del vehiculo, busqueda de corriente eléctrica, instalación del GPS, configuración, verificación de funcionamiento, acomodo de GPS, cierre de consola del vehiculo, confirmación del funcionamiento.',
-                'recursos'   => 'GPS, Celular y Equipo de cómputo',
+                'acciones' => 'Revisión de Stock de GPS y Chips(SIM), acceso a consola del vehiculo, busqueda de corriente eléctrica, instalación del GPS, configuración, verificación de funcionamiento, acomodo de GPS, cierre de consola del vehiculo, confirmación del funcionamiento.',
+                'recursos' => 'GPS, Celular y Equipo de cómputo',
             ],
             8 => [
                 'especifico' => 'Cumplimiento de problemas solucionados por usuarios ',
-                'acciones'   => 'Levantamiento, seguimiento y monitoreo de reportes debido a fallas a los equipos e ofimatica y redes generados por los ususarios/departamentos garantizando su correcto funcionamiento ',
-                'recursos'   => 'Equipo de computo, internet.',
+                'acciones' => 'Levantamiento, seguimiento y monitoreo de reportes debido a fallas a los equipos e ofimatica y redes generados por los ususarios/departamentos garantizando su correcto funcionamiento ',
+                'recursos' => 'Equipo de computo, internet.',
             ],
             9 => [
                 'especifico' => 'Verificar que los equipos de ofimática mantengan un funcionamiento estable después de recibir mantenimiento preventivo.',
-                'acciones'   => '',
-                'recursos'   => 'Equipo de computo, internet.',
+                'acciones' => '',
+                'recursos' => 'Equipo de computo, internet.',
             ],
         ];
 
@@ -521,10 +522,10 @@ class ReporteKpiGpsController extends Controller
      */
     private function tipoRequerimiento(object $i): string
     {
-        if (!empty($i->fecha_reinstalacion)) {
+        if (! empty($i->fecha_reinstalacion)) {
             return 'Reinstalacion';
         }
-        if (!empty($i->fecha_cambio_sim)) {
+        if (! empty($i->fecha_cambio_sim)) {
             return 'Cambio de SIM';
         }
 

@@ -9,17 +9,15 @@ use Illuminate\Support\Facades\Log;
 
 class TicketNotificacionService
 {
-    public function __construct(private CorreoService $correoService)
-    {
-    }
+    public function __construct(private CorreoService $correoService) {}
 
     /**
      * Notifica al técnico asignado por campana in-app y correo.
      * Nunca lanza excepciones: cualquier fallo se registra en log
      * para no interrumpir la creación/gestión del ticket.
      *
-     * @param string $motivo 'creado' | 'reasignado'
-     * @param array<string, string> $datosExtra datos del form no persistidos (sistema, módulo, tipo desarrollo)
+     * @param  string  $motivo  'creado' | 'reasignado'
+     * @param  array<string, string>  $datosExtra  datos del form no persistidos (sistema, módulo, tipo desarrollo)
      */
     public function notificar(Ticket $ticket, Usuario $tecnico, string $motivo, array $datosExtra = []): void
     {
@@ -27,28 +25,28 @@ class TicketNotificacionService
         // Tipo en snake_case minúscula, consistente con el vocabulario legado
         // de tblNotificaciones (ticket_asignado, comentario).
         $tipo = $creado ? 'ticket_asignado' : 'ticket_reasignado';
-        $asunto = 'Ticket #' . $ticket->id_Ticket . ($creado ? ' creado: ' : ' reasignado: ') . $ticket->asunto;
+        $asunto = 'Ticket #'.$ticket->id_Ticket.($creado ? ' creado: ' : ' reasignado: ').$ticket->asunto;
 
         try {
             $this->crearNotificacionApp($ticket, $tecnico, $tipo, $asunto);
         } catch (\Throwable $e) {
-            Log::warning('No se pudo crear la notificación in-app del ' . $asunto . ': ' . $e->getMessage());
+            Log::warning('No se pudo crear la notificación in-app del '.$asunto.': '.$e->getMessage());
         }
 
         try {
             if (empty($tecnico->correo)) {
                 return;
             }
-            $resultado = $this->correoService->enviarCorreo(
+            $resultado = $this->correoService->enviarCorreoAutomatica(
                 $tecnico->correo,
-                'Help Desk - ' . ($creado ? 'Nuevo ticket asignado' : 'Ticket reasignado') . ' #' . $ticket->id_Ticket,
+                'Help Desk - '.($creado ? 'Nuevo ticket asignado' : 'Ticket reasignado').' #'.$ticket->id_Ticket,
                 $this->htmlCorreo($ticket, $tecnico, $motivo, $datosExtra)
             );
-            if (!$resultado['ok']) {
-                Log::warning('No se envió el correo del ' . $asunto . ': ' . $resultado['mensaje']);
+            if (! $resultado['ok']) {
+                Log::warning('No se envió el correo del '.$asunto.': '.$resultado['mensaje']);
             }
         } catch (\Throwable $e) {
-            Log::warning('Error al enviar el correo del ' . $asunto . ': ' . $e->getMessage());
+            Log::warning('Error al enviar el correo del '.$asunto.': '.$e->getMessage());
         }
     }
 
@@ -69,7 +67,7 @@ class TicketNotificacionService
      * solicitante y al técnico. No envía correo.
      * Nunca lanza excepciones.
      *
-     * @param string $responsable 'usuario' | 'tecnico' de quién fue la inactividad
+     * @param  string  $responsable  'usuario' | 'tecnico' de quién fue la inactividad
      */
     public function notificarCierreAutomatico(Ticket $ticket, string $responsable, int $dias): void
     {
@@ -78,7 +76,7 @@ class TicketNotificacionService
 
         $destinatarios = [];
         foreach ([$ticket->usuario, $ticket->tecnico] as $destinatario) {
-            if ($destinatario && !isset($destinatarios[$destinatario->id_Usuario])) {
+            if ($destinatario && ! isset($destinatarios[$destinatario->id_Usuario])) {
                 $destinatarios[$destinatario->id_Usuario] = $destinatario;
             }
         }
@@ -96,7 +94,7 @@ class TicketNotificacionService
                     'FechaCreacion' => now(),
                 ]);
             } catch (\Throwable $e) {
-                Log::warning('No se pudo crear la notificación in-app del cierre del Ticket #' . $ticket->id_Ticket . ': ' . $e->getMessage());
+                Log::warning('No se pudo crear la notificación in-app del cierre del Ticket #'.$ticket->id_Ticket.': '.$e->getMessage());
             }
         }
     }
@@ -116,21 +114,21 @@ class TicketNotificacionService
             'Tipo de ticket' => $ticket->etiquetaTipoTicket(),
             'Tipo de soporte' => trim(
                 ($ticket->tipoSoporte?->descripcion ?? '')
-                . ($ticket->tipoSoporte?->area && $ticket->tipoSoporte->area->nombre !== $ticket->tipoSoporte->descripcion
-                    ? ' (' . $ticket->tipoSoporte->area->nombre . ')'
+                .($ticket->tipoSoporte?->area && $ticket->tipoSoporte->area->nombre !== $ticket->tipoSoporte->descripcion
+                    ? ' ('.$ticket->tipoSoporte->area->nombre.')'
                     : '')
             ),
             'Solicitante' => $ticket->usuario?->nombreCompleto() ?? '—',
             'Equipo' => $ticket->equipo
                 ? (implode(' - ', array_filter([
                     trim($ticket->equipo->nombreEquipo ?? ''),
-                    trim(($ticket->equipo->marca ?? '') . ' ' . ($ticket->equipo->modelo ?? '')),
+                    trim(($ticket->equipo->marca ?? '').' '.($ticket->equipo->modelo ?? '')),
                 ])) ?: 'Sin equipo')
                 : 'Sin equipo',
             'Unidades GPS' => $ticket->vehiculosDelTicket()->isEmpty()
                 ? null
                 : $ticket->vehiculosDelTicket()
-                    ->map(fn ($v) => $v->numeroUnidad . ' (' . $v->tipoVehiculo . ')')
+                    ->map(fn ($v) => $v->numeroUnidad.' ('.$v->tipoVehiculo.')')
                     ->implode(', '),
             'Problema GPS' => $ticket->problemaGps ?: null,
             'Fecha de alta' => $ticket->fechaAlta?->format('d/m/Y H:i') ?? '—',
@@ -148,7 +146,7 @@ class TicketNotificacionService
 
         return CorreoHtml::plantilla([
             'etiqueta' => $creado ? 'Ticket asignado' : 'Ticket reasignado',
-            'folio' => '#' . $ticket->id_Ticket,
+            'folio' => '#'.$ticket->id_Ticket,
             'saludo' => $nombreTecnico,
             'intro' => e($titular),
             'filas' => $filas,

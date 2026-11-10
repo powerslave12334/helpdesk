@@ -16,7 +16,7 @@ class PermisosService
             ->where('r.activo', true)
             ->where(function ($q) {
                 $q->whereRaw("LOWER(r.nombre) LIKE '%admin%'")
-                  ->orWhereRaw("LOWER(r.nombre) = 'root'");
+                    ->orWhereRaw("LOWER(r.nombre) = 'root'");
             })
             ->exists();
     }
@@ -45,7 +45,7 @@ class PermisosService
             ->where('ru.activo', true)
             ->where('rm.activo', true)
             ->pluck('rm.id_Modulos')
-            ->map(fn($v) => (int) $v)
+            ->map(fn ($v) => (int) $v)
             ->all();
 
         return array_values(array_intersect($idsRol, Modulos::ids()));
@@ -82,53 +82,26 @@ class PermisosService
     }
 
     /**
-     * Descarga del reporte KPI Tickets (FO-SGC-08).
+     * Descarga de los reportes KPI (FO-SGC-08): Tickets, Desarrollo y GPS.
      *
-     * El acceso lo da el ÁREA del usuario (config kpi.areas_permitidas, por
-     * defecto "Soporte TI"), no su rol: ni Root ni Administrador lo obtienen
-     * por sí solos. La autenticación ya garantiza que el usuario esté activo
-     * (HelpdeskUserProvider filtra por activo), por eso no se repite aquí.
+     * El acceso lo da el ROL del usuario: solo Administrador y Root
+     * (ver esAdministrador()). Los empleados, aunque pertenezcan a un área
+     * habilitada anteriormente, no ven ni pueden descargar los reportes.
      */
     public function puedeDescargarKpi(int $idUsuario): bool
     {
-        // El valor por defecto protege por si existe una caché de configuración
-        // anterior que no conoce config/kpi.php.
-        return $this->usuarioEnAreas($idUsuario, config('kpi.areas_permitidas', ['Soporte TI']));
+        return $this->esAdministrador($idUsuario);
     }
 
-    /**
-     * Descarga del reporte KPI Desarrollo (mismo FO-SGC-08, área de
-     * Desarrollo de Software). Mismo criterio por área que
-     * puedeDescargarKpi(), con su propia lista en config/kpi.php.
-     */
+    /** Mismo criterio de rol que puedeDescargarKpi(). */
     public function puedeDescargarKpiDesarrollo(int $idUsuario): bool
     {
-        return $this->usuarioEnAreas($idUsuario, config('kpi.areas_desarrollo', ['Desarrollo de Software']));
+        return $this->esAdministrador($idUsuario);
     }
 
+    /** Mismo criterio de rol que puedeDescargarKpi(). */
     public function puedeDescargarKpiGps(int $idUsuario): bool
     {
-        return $this->usuarioEnAreas($idUsuario, config('kpi.areas_gps', ['Soporte TI']));
-    }
-
-    /** ¿El usuario pertenece a alguna de las áreas indicadas (por nombre)? */
-    private function usuarioEnAreas(int $idUsuario, mixed $areas): bool
-    {
-        $areas = array_values(array_filter((array) $areas));
-
-        if ($areas === []) {
-            return false;
-        }
-
-        $idsAreas = DB::table('tblArea')->whereIn('nombre', $areas)->pluck('id_Area');
-
-        if ($idsAreas->isEmpty()) {
-            return false;
-        }
-
-        return DB::table('tblUsuario')
-            ->where('id_Usuario', $idUsuario)
-            ->whereIn('id_Area', $idsAreas)
-            ->exists();
+        return $this->esAdministrador($idUsuario);
     }
 }

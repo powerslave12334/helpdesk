@@ -112,9 +112,9 @@ class FormatoIsoTest extends TestCase
     public function test_formato_sin_controlador_muestra_el_marcador_de_construccion(): void
     {
         $this->comoUsuario($this->administrador())
-            ->get('/iso9001/FO-IT-02')
+            ->get('/iso9001/FO-IT-03')
             ->assertOk()
-            ->assertSee('Acta de entrega')
+            ->assertSee('Recepción de equipo')
             ->assertSee('Formato en construcción');
     }
 
@@ -128,7 +128,7 @@ class FormatoIsoTest extends TestCase
     public function test_guardar_en_formato_aun_no_habilitado_devuelve_404(): void
     {
         $this->comoUsuario($this->administrador())
-            ->post('/iso9001/FO-IT-02')
+            ->post('/iso9001/FO-IT-03')
             ->assertNotFound();
     }
 }

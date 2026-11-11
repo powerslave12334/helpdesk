@@ -110,8 +110,8 @@ class ResponsivaErpController extends Controller
      * Compara la huella registrada con la recalculada desde los datos
      * actuales del documento.
      *
-     * @return array{resultado: string, documento: IsoResponsivaErp}|null
-     *                                                                    null si el folio no corresponde a un documento activo.
+     * @return array{resultado: string, documento: IsoResponsivaErp, resumen: array<int, array<string, string|bool>>}|null
+     *                                                                                                                     null si el folio no corresponde a un documento activo.
      */
     public function verificar(string $id): ?array
     {
@@ -132,6 +132,30 @@ class ResponsivaErpController extends Controller
         return [
             'resultado' => $documento->huella === $documento->calcularHuella() ? 'vigente' : 'alterado',
             'documento' => $documento,
+            'resumen' => $this->resumen($documento),
+        ];
+    }
+
+    /**
+     * Campos del documento que muestra la página de verificación.
+     *
+     * @return array<int, array{etiqueta: string, valor: string, ok?: bool}>
+     */
+    private function resumen(IsoResponsivaErp $documento): array
+    {
+        return [
+            ['etiqueta' => 'Empleado responsable', 'valor' => $documento->nombreEmpleado],
+            ['etiqueta' => 'Correo', 'valor' => $documento->correo],
+            [
+                'etiqueta' => 'Firma empleado',
+                'valor' => $documento->fechaFirmaEmpleado?->format('d/m/Y H:i') ?? 'Sin firmar',
+                'ok' => $documento->fechaFirmaEmpleado !== null,
+            ],
+            [
+                'etiqueta' => 'Firma de TI',
+                'valor' => $documento->fechaFirmaTi?->format('d/m/Y H:i') ?? 'Sin firmar',
+                'ok' => $documento->fechaFirmaTi !== null,
+            ],
         ];
     }
 

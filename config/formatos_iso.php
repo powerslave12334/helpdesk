@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Iso9001\ActaEntregaController;
 use App\Http\Controllers\Iso9001\ResponsivaErpController;
 
 /*
@@ -27,7 +28,13 @@ return [
             'orden' => 1,
             'controlador' => ResponsivaErpController::class,
         ],
-        ['clave' => 'FO-IT-02', 'nombre' => 'Acta de entrega', 'icono' => 'fas fa-hand-holding', 'orden' => 2],
+        [
+            'clave' => 'FO-IT-02',
+            'nombre' => 'Acta de entrega',
+            'icono' => 'fas fa-hand-holding',
+            'orden' => 2,
+            'controlador' => ActaEntregaController::class,
+        ],
         ['clave' => 'FO-IT-03', 'nombre' => 'Recepción de equipo', 'icono' => 'fas fa-clipboard-check', 'orden' => 3],
         ['clave' => 'FO-IT-04', 'nombre' => 'Inventario de herramienta', 'icono' => 'fas fa-tools', 'orden' => 4],
         ['clave' => 'FO-IT-05', 'nombre' => 'Inventario de TI', 'icono' => 'fas fa-laptop', 'orden' => 5],

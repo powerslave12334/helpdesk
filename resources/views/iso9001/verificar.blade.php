@@ -66,30 +66,21 @@
                 <small class="text-muted d-block">Fecha del documento</small>
                 {{ $documento->fecha->format('d/m/Y') }}
             </div>
+            {{-- Campos propios de cada formato (los aporta su controlador
+                 en verificar(); sin "ok" son texto simple, con "ok" son el
+                 estado de una firma). --}}
+            @foreach($resumen as $campo)
             <div class="col-md-4">
-                <small class="text-muted d-block">Empleado responsable</small>
-                {{ $documento->nombreEmpleado }}
-            </div>
-            <div class="col-md-4">
-                <small class="text-muted d-block">Correo</small>
-                {{ $documento->correo }}
-            </div>
-            <div class="col-md-4">
-                <small class="text-muted d-block">Firma empleado</small>
-                @if($documento->fechaFirmaEmpleado)
-                <i class="fas fa-check text-success me-1"></i>{{ $documento->fechaFirmaEmpleado->format('d/m/Y H:i') }}
+                <small class="text-muted d-block">{{ $campo['etiqueta'] }}</small>
+                @if(!array_key_exists('ok', $campo))
+                {{ $campo['valor'] }}
+                @elseif($campo['ok'])
+                <i class="fas fa-check text-success me-1"></i>{{ $campo['valor'] }}
                 @else
-                <span class="text-muted">Sin firmar</span>
+                <span class="text-muted">{{ $campo['valor'] }}</span>
                 @endif
             </div>
-            <div class="col-md-4">
-                <small class="text-muted d-block">Firma de TI</small>
-                @if($documento->fechaFirmaTi)
-                <i class="fas fa-check text-success me-1"></i>{{ $documento->fechaFirmaTi->format('d/m/Y H:i') }}
-                @else
-                <span class="text-muted">Sin firmar</span>
-                @endif
-            </div>
+            @endforeach
             <div class="col-md-4">
                 <small class="text-muted d-block">Creado por</small>
                 {{ $documento->creador?->nombreCompleto() ?? '—' }}

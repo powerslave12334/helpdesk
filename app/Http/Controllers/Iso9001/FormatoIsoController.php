@@ -102,6 +102,7 @@ class FormatoIsoController extends Controller
         $folio = trim((string) $request->query('folio'));
         $resultado = null;
         $documento = null;
+        $resumen = [];
 
         if (preg_match('/^(FO-IT-\d+)-(\d+)$/', $folio, $partes) === 1) {
             $formato = $this->formatoHabilitado($partes[1]);
@@ -117,6 +118,7 @@ class FormatoIsoController extends Controller
                 } else {
                     $resultado = $verificacion['resultado'];
                     $documento = $verificacion['documento'];
+                    $resumen = $verificacion['resumen'] ?? [];
                 }
             } else {
                 $resultado = 'no_encontrado';
@@ -129,6 +131,7 @@ class FormatoIsoController extends Controller
             'folio' => $folio,
             'resultado' => $resultado,
             'documento' => $documento,
+            'resumen' => $resumen,
         ]);
     }
 

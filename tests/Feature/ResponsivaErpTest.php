@@ -187,6 +187,50 @@ class ResponsivaErpTest extends TestCase
         $this->assertDatabaseCount('tblIsoResponsivaErp', 0);
     }
 
+    public function test_alta_y_firmado_no_incluyen_la_columna_identidad_en_el_update(): void
+    {
+        // SQL Server rechaza escribir columnas identidad (MySQL las tolera):
+        // el UPDATE de la huella generado tras el alta NO debe incluir
+        // id_ResponsivaErp en su cláusula SET.
+        $consultas = [];
+        DB::listen(function ($consulta) use (&$consultas): void {
+            $consultas[] = $consulta->sql;
+        });
+
+        $admin = $this->administrador();
+
+        $this->comoUsuario($admin)
+            ->post('/iso9001/FO-IT-01', $this->datosValidos())
+            ->assertRedirect();
+
+        $documento = IsoResponsivaErp::query()->sole();
+
+        $this->comoUsuario($admin)
+            ->post('/iso9001/FO-IT-01/'.$documento->id_ResponsivaErp.'/firmar', [
+                'firmaEmpleado' => $this->firmaEjemplo(),
+            ])
+            ->assertRedirect();
+
+        $actualizaciones = array_values(array_filter(
+            $consultas,
+            fn (string $sql): bool => str_starts_with(strtolower($sql), 'update ')
+        ));
+
+        $this->assertNotSame([], $actualizaciones, 'El alta/firmado debe generar el UPDATE de la huella.');
+
+        foreach ($actualizaciones as $sql) {
+            $set = explode(' where ', strtolower($sql))[0];
+
+            $this->assertStringNotContainsString(
+                'id_responsivaerp',
+                $set,
+                "El UPDATE no debe incluir la columna identidad en el SET: {$sql}"
+            );
+        }
+
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', (string) $documento->fresh()->huella);
+    }
+
     public function test_contrasena_se_guarda_cifrada_y_se_lee_desencriptada(): void
     {
         $admin = $this->administrador();

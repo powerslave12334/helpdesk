@@ -51,9 +51,17 @@ class IsoResponsivaErp extends Model
         static::saved(function (self $documento): void {
             $huella = $documento->calcularHuella();
 
-            if ($documento->huella !== $huella) {
-                $documento->updateQuietly(['huella' => $huella]);
+            if ($documento->huella === $huella) {
+                return;
             }
+
+            // Tras insertGetId la columna identidad (y lo recién persistido)
+            // sigue "dirty": sin sincronizar, el UPDATE la incluiría en el
+            // SET y SQL Server rechaza escribir columnas identidad (MySQL lo
+            // tolera). Se sincroniza el estado ya guardado y solo se escribe
+            // la huella.
+            $documento->syncOriginal();
+            $documento->updateQuietly(['huella' => $huella]);
         });
     }
 

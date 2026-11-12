@@ -118,6 +118,17 @@
 @endsection
 
 @section('content')
+@if($errors->any())
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i><strong>No se pudo guardar:</strong>
+        <ul class="mb-0 ps-3">
+            @foreach($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+@endif
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="mb-0"><i class="fas fa-ticket me-2"></i>Seguimiento de Tickets</h4>
     <div class="d-flex gap-2">
@@ -544,6 +555,72 @@
 @section('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // ---------- Notificaciones (SweetAlert2) ----------
+    function escaparHtml(texto) {
+        const div = document.createElement('div');
+        div.textContent = texto ?? '';
+        return div.innerHTML;
+    }
+
+    // Toast efímero: no interrumpe al usuario y se cierra solo.
+    function notificarExito(titulo, texto) {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: titulo,
+            text: texto || '',
+            showConfirmButton: false,
+            timer: 2500,
+            timerProgressBar: true
+        });
+    }
+
+    // Modal de error: `html` permite listas de mensajes de validación.
+    function notificarError(titulo, html) {
+        Swal.fire({
+            icon: 'error',
+            title: titulo,
+            html: html,
+            confirmButtonText: 'Entendido'
+        });
+    }
+
+    // Confirmación que devuelve una promesa booleana.
+    function confirmarAccion(titulo, texto) {
+        return Swal.fire({
+            icon: 'question',
+            title: titulo,
+            text: texto,
+            showCancelButton: true,
+            confirmButtonText: 'Sí, continuar',
+            cancelButtonText: 'Cancelar'
+        }).then(resultado => resultado.isConfirmed);
+    }
+
+    // Errores de validación del redirect (store / storeDesarrollo).
+    // El banner HTML se conserva como respaldo; el success lo muestra el layout.
+    const flashErrores = @json($errors->all());
+    if (flashErrores.length) {
+        notificarError('No se pudo guardar', '<ul class="text-start mb-0 ps-3">' +
+            flashErrores.map(e => '<li>' + escaparHtml(e) + '</li>').join('') +
+            '</ul>');
+    }
+
+    // Alta de tickets (Soporte y Desarrollo): el botón se bloquea al primer
+    // click para evitar dobles envíos. Al fallar la validación Laravel
+    // redirige y la página se recarga, lo que lo vuelve a habilitar.
+    ['#createTicketModal form', '#developmentTicketModal form'].forEach(selector => {
+        const formulario = document.querySelector(selector);
+        formulario?.addEventListener('submit', function() {
+            const boton = this.querySelector('button[type="submit"]');
+            if (boton) {
+                boton.disabled = true;
+                boton.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Creando...';
+            }
+        });
+    });
+
     // Custom tabs
     document.querySelectorAll('.ticket-tab').forEach(tab => {
         tab.addEventListener('click', function() {
@@ -762,60 +839,77 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Envío genérico de los formularios del modal: maneja errores de
+    // validación (422) y fallos de red, que antes quedaban silenciosos porque
+    // r.json() reventaba contra una respuesta HTML de error.
+    function enviarFormulario(url, form) {
+        const formData = new FormData(form);
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            },
+            body: formData
+        }).then(async r => {
+            const data = await r.json().catch(() => null);
+            if (!data) {
+                notificarError('Error', 'No se pudo completar la operación (error ' + r.status + ').');
+                return;
+            }
+            if (data.success) {
+                notificarExito('Guardado', data.message);
+                setTimeout(() => location.reload(), 1200);
+                return;
+            }
+            const mensajes = data.errors
+                ? '<ul class="text-start mb-0 ps-3">' +
+                    Object.values(data.errors).flat().map(m => '<li>' + escaparHtml(m) + '</li>').join('') +
+                  '</ul>'
+                : escaparHtml(data.error || data.message || 'No se pudo completar la operación.');
+            notificarError('No se pudo guardar', mensajes);
+        }).catch(() => {
+            notificarError('Sin conexión', 'No se pudo conectar con el servidor.');
+        });
+    }
+
     // Comment form
     document.getElementById('formComment')?.addEventListener('submit', function(e) {
         e.preventDefault();
-        const formData = new FormData(this);
-        fetch('/tickets/comentario', {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-            body: formData
-        }).then(r => r.json()).then(data => {
-            if (data.success) location.reload();
-            else alert(data.error || 'Error');
-        });
+        enviarFormulario('/tickets/comentario', this);
     });
 
     // Evidence form
     document.getElementById('formEvidence')?.addEventListener('submit', function(e) {
         e.preventDefault();
-        const formData = new FormData(this);
-        fetch('/tickets/evidencia', {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-            body: formData
-        }).then(r => r.json()).then(data => {
-            if (data.success) location.reload();
-            else alert(data.error || 'Error');
-        });
+        enviarFormulario('/tickets/evidencia', this);
     });
 
     // Management form
     document.getElementById('formManagement')?.addEventListener('submit', function(e) {
         e.preventDefault();
-        const formData = new FormData(this);
-        fetch('/tickets/gestion', {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-            body: formData
-        }).then(r => r.json()).then(data => {
-            if (data.success) location.reload();
-            else alert(data.error || 'Error');
-        });
+        enviarFormulario('/tickets/gestion', this);
     });
 
     // Close ticket
     document.getElementById('btnClose')?.addEventListener('click', function() {
         const id = document.getElementById('mgmtTicketId').value;
-        if (confirm('¿Dar visto bueno y cerrar este ticket?')) {
+        confirmarAccion('Cerrar ticket', '¿Dar visto bueno y cerrar este ticket?').then(confirmado => {
+            if (!confirmado) return;
             fetch(`/tickets/cerrar/${id}`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }
             }).then(r => r.json()).then(data => {
-                if (data.success) location.reload();
-                else alert(data.error || 'Error');
+                if (data.success) {
+                    notificarExito('Cerrado', data.message);
+                    setTimeout(() => location.reload(), 1200);
+                } else {
+                    notificarError('Error', escaparHtml(data.error || 'No se pudo cerrar el ticket.'));
+                }
+            }).catch(() => {
+                notificarError('Sin conexión', 'No se pudo conectar con el servidor.');
             });
-        }
+        });
     });
 });
 </script>

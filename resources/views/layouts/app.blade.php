@@ -333,18 +333,6 @@
             </div>
         </div>
         <div class="content-area">
-            @if(session('success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            @endif
-            @if(session('error'))
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            @endif
             @if(!$tieneRolActivo)
                 <div class="alert alert-warning" role="alert">
                     <i class="fas fa-user-slash me-2"></i>Su usuario no tiene un rol asignado. Contacte al administrador para habilitar sus módulos.
@@ -356,6 +344,35 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    // Flash de sesión (success/error) mostrado con SweetAlert2 en lugar
+    // de las alertas Bootstrap que había en content-area.
+    (function() {
+        const flashExito = @json(session('success'));
+        const flashError = @json(session('error'));
+
+        if (flashExito) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: flashExito,
+                showConfirmButton: false,
+                timer: 2500,
+                timerProgressBar: true
+            });
+        }
+
+        if (flashError) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: flashError,
+                confirmButtonText: 'Entendido'
+            });
+        }
+    })();
+    </script>
     <script>
     (function() {
         const body = document.body;

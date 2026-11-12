@@ -2,34 +2,32 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Equipo;
+use App\Models\Estatus;
+use App\Models\ModuloSistema;
+use App\Models\Sistema;
 use App\Models\Ticket;
 use App\Models\TicketComentario;
 use App\Models\TicketDesarrolloDetalle;
 use App\Models\TicketEvidencia;
-use App\Models\TipoSoporte;
-use App\Models\Estatus;
-use App\Models\Equipo;
-use App\Models\TipoEquipo;
 use App\Models\TipoDesarrollo;
-use App\Models\Sistema;
-use App\Models\ModuloSistema;
+use App\Models\TipoEquipo;
+use App\Models\TipoSoporte;
 use App\Models\Usuario;
 use App\Models\Vehiculo;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use App\Services\PermisosService;
 use App\Services\TicketNotificacionService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 
 class TicketController extends Controller
 {
     public function __construct(
         private PermisosService $permisosService,
         private TicketNotificacionService $notificaciones,
-    ) {
-    }
+    ) {}
+
     public function index()
     {
         $idUsuario = session('IdUsuario');
@@ -64,9 +62,10 @@ class TicketController extends Controller
         $tipoTicket = $request->input('tipoTicket', 'falla_tecnica');
 
         $reglas = [
-            'tipoTicket' => 'required|in:' . implode(',', array_keys(Ticket::tiposTicket())),
+            'tipoTicket' => 'required|in:'.implode(',', array_keys(Ticket::tiposTicket())),
             'asunto' => 'required|string|max:200',
             'id_TipoSoporte' => 'required|integer',
+            'evidencia' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx|max:10240',
         ];
 
         match ($tipoTicket) {
@@ -76,7 +75,7 @@ class TicketController extends Controller
             ],
             'revision_gps' => $reglas += [
                 'vehiculo' => 'required|integer|exists:tblVehiculo,id_Vehiculo',
-                'problemaGps' => 'required|in:' . implode(',', Ticket::PROBLEMAS_GPS),
+                'problemaGps' => 'required|in:'.implode(',', Ticket::PROBLEMAS_GPS),
                 'problemaGpsOtro' => 'required_if:problemaGps,__otro|nullable|string|max:190',
                 'problema' => 'required|string',
             ],
@@ -97,7 +96,7 @@ class TicketController extends Controller
             ->where('activo', true)
             ->first();
 
-        $ticket = new Ticket();
+        $ticket = new Ticket;
         $ticket->id_Usuario = $idUsuario;
         $ticket->id_TipoSoporte = $request->id_TipoSoporte;
         $ticket->tipoTicket = $tipoTicket;
@@ -114,11 +113,11 @@ class TicketController extends Controller
                 ->orderBy('numeroUnidad')
                 ->get();
             $ticket->vehiculos = $ids->pluck('id_Vehiculo')->implode(',');
-            $ticket->problema = 'Instalación de GPS — unidades: ' . $ids->pluck('numeroUnidad')->implode(', ');
+            $ticket->problema = 'Instalación de GPS — unidades: '.$ids->pluck('numeroUnidad')->implode(', ');
         } elseif ($tipoTicket === 'revision_gps') {
             $ticket->vehiculos = (string) (int) $request->vehiculo;
             $ticket->problemaGps = $request->problemaGps === '__otro'
-                ? 'Otro: ' . trim($request->problemaGpsOtro)
+                ? 'Otro: '.trim($request->problemaGpsOtro)
                 : $request->problemaGps;
             $ticket->problema = $request->problema;
         } else {
@@ -129,18 +128,26 @@ class TicketController extends Controller
 
         if ($request->hasFile('evidencia')) {
             $file = $request->file('evidencia');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $path = public_path('evidencias/tickets/' . $ticket->id_Ticket);
-            if (!is_dir($path)) mkdir($path, 0755, true);
+            // MIME y tamaño se leen ANTES de mover: File::move() no actualiza la
+            // ruta temporal del UploadedFile, así que getMimeType()/getSize()
+            // después del movimiento lanzan "file does not exist" (HTTP 500).
+            $mime = $file->getMimeType();
+            $tamanio = $file->getSize();
+            $extension = $file->getClientOriginalExtension();
+            $filename = time().'_'.$file->getClientOriginalName();
+            $path = public_path('evidencias/tickets/'.$ticket->id_Ticket);
+            if (! is_dir($path)) {
+                mkdir($path, 0755, true);
+            }
             $file->move($path, $filename);
 
             TicketEvidencia::create([
                 'id_Ticket' => $ticket->id_Ticket,
                 'nombreArchivo' => $filename,
-                'rutaArchivo' => 'evidencias/tickets/' . $ticket->id_Ticket . '/' . $filename,
-                'extension' => $file->getClientOriginalExtension(),
-                'tipoContenido' => $file->getMimeType(),
-                'tamanioBytes' => $file->getSize(),
+                'rutaArchivo' => 'evidencias/tickets/'.$ticket->id_Ticket.'/'.$filename,
+                'extension' => $extension,
+                'tipoContenido' => $mime,
+                'tamanioBytes' => $tamanio,
                 'id_UsuarioAlta' => $idUsuario,
                 'fechaAlta' => now(),
                 'activo' => true,
@@ -151,7 +158,7 @@ class TicketController extends Controller
             $this->notificaciones->notificar($ticket, $tecnico, 'creado');
         }
 
-        return redirect()->route('tickets.index')->with('success', 'Ticket #' . $ticket->id_Ticket . ' creado correctamente');
+        return redirect()->route('tickets.index')->with('success', 'Ticket #'.$ticket->id_Ticket.' creado correctamente');
     }
 
     public function storeDesarrollo(Request $request)
@@ -172,7 +179,7 @@ class TicketController extends Controller
         $idUsuario = session('IdUsuario');
         $estatusAbierto = Estatus::where('descripcion', 'Abierto')->where('id_Modulos', 1)->first();
 
-        $ticket = new Ticket();
+        $ticket = new Ticket;
         $ticket->id_Usuario = $idUsuario;
         $ticket->id_TipoSoporte = $request->id_TipoSoporte;
         $ticket->id_Tecnico = $request->id_Tecnico;
@@ -204,7 +211,7 @@ class TicketController extends Controller
             ]);
         }
 
-        return redirect()->route('tickets.index')->with('success', 'Ticket de desarrollo #' . $ticket->id_Ticket . ' creado correctamente');
+        return redirect()->route('tickets.index')->with('success', 'Ticket de desarrollo #'.$ticket->id_Ticket.' creado correctamente');
     }
 
     public function show($id)
@@ -239,7 +246,7 @@ class TicketController extends Controller
         $idUsuario = session('IdUsuario');
         $ticket = Ticket::find($request->id_Ticket);
 
-        if (!$ticket || $ticket->estatus->descripcion == 'Cerrado') {
+        if (! $ticket || $ticket->estatus->descripcion == 'Cerrado') {
             return response()->json(['error' => 'Ticket cerrado o no encontrado'], 400);
         }
 
@@ -260,23 +267,31 @@ class TicketController extends Controller
     {
         $request->validate([
             'id_Ticket' => 'required|integer',
-            'evidencia' => 'required|file|max:10240',
+            'evidencia' => 'required|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx|max:10240',
         ]);
 
         $idUsuario = session('IdUsuario');
         $file = $request->file('evidencia');
-        $filename = time() . '_' . $file->getClientOriginalName();
-        $path = public_path('evidencias/tickets/' . $request->id_Ticket);
-        if (!is_dir($path)) mkdir($path, 0755, true);
+        // MIME y tamaño se leen ANTES de mover: File::move() no actualiza la
+        // ruta temporal del UploadedFile, así que getMimeType()/getSize()
+        // después del movimiento lanzan "file does not exist" (HTTP 500).
+        $mime = $file->getMimeType();
+        $tamanio = $file->getSize();
+        $extension = $file->getClientOriginalExtension();
+        $filename = time().'_'.$file->getClientOriginalName();
+        $path = public_path('evidencias/tickets/'.$request->id_Ticket);
+        if (! is_dir($path)) {
+            mkdir($path, 0755, true);
+        }
         $file->move($path, $filename);
 
         TicketEvidencia::create([
             'id_Ticket' => $request->id_Ticket,
             'nombreArchivo' => $filename,
-            'rutaArchivo' => 'evidencias/tickets/' . $request->id_Ticket . '/' . $filename,
-            'extension' => $file->getClientOriginalExtension(),
-            'tipoContenido' => $file->getMimeType(),
-            'tamanioBytes' => $file->getSize(),
+            'rutaArchivo' => 'evidencias/tickets/'.$request->id_Ticket.'/'.$filename,
+            'extension' => $extension,
+            'tipoContenido' => $mime,
+            'tamanioBytes' => $tamanio,
             'id_UsuarioAlta' => $idUsuario,
             'fechaAlta' => now(),
             'activo' => true,
@@ -289,13 +304,13 @@ class TicketController extends Controller
     {
         $evidencia = TicketEvidencia::find($idEvidencia);
 
-        if (!$evidencia) {
+        if (! $evidencia) {
             abort(404);
         }
 
         $filePath = public_path($evidencia->rutaArchivo);
 
-        if (!File::exists($filePath)) {
+        if (! File::exists($filePath)) {
             abort(404);
         }
 
@@ -303,7 +318,7 @@ class TicketController extends Controller
 
         return response()->file($filePath, [
             'Content-Type' => $mimeType,
-            'Content-Disposition' => 'inline; filename="' . $evidencia->nombreArchivo . '"',
+            'Content-Disposition' => 'inline; filename="'.$evidencia->nombreArchivo.'"',
         ]);
     }
 
@@ -318,7 +333,7 @@ class TicketController extends Controller
         $idUsuario = session('IdUsuario');
         $ticket = Ticket::find($request->id_Ticket);
 
-        if (!$ticket) {
+        if (! $ticket) {
             return response()->json(['error' => 'Ticket no encontrado'], 404);
         }
 
@@ -326,7 +341,7 @@ class TicketController extends Controller
         $tecnicoNuevo = null;
         if ($ticket->id_Estatus != $request->id_Estatus) {
             $estatus = Estatus::find($request->id_Estatus);
-            $cambios[] = 'Estatus: ' . $estatus->descripcion;
+            $cambios[] = 'Estatus: '.$estatus->descripcion;
             $ticket->id_Estatus = $request->id_Estatus;
 
             if ($estatus->descripcion == 'Resuelto') {
@@ -336,16 +351,16 @@ class TicketController extends Controller
 
         if ($request->id_Tecnico && $ticket->id_Tecnico != $request->id_Tecnico) {
             $tecnicoNuevo = Usuario::find($request->id_Tecnico);
-            $cambios[] = 'Técnico: ' . $tecnicoNuevo->nombre . ' ' . $tecnicoNuevo->app;
+            $cambios[] = 'Técnico: '.$tecnicoNuevo->nombre.' '.$tecnicoNuevo->app;
             $ticket->id_Tecnico = $request->id_Tecnico;
         }
 
         $ticket->save();
 
-        if (!empty($cambios)) {
+        if (! empty($cambios)) {
             TicketComentario::create([
                 'id_Ticket' => $ticket->id_Ticket,
-                'comentario' => 'Gestión actualizada: ' . implode(', ', $cambios),
+                'comentario' => 'Gestión actualizada: '.implode(', ', $cambios),
                 'fechaComentario' => now(),
                 'id_Usuario' => $idUsuario,
                 'id_Estatus' => $ticket->id_Estatus,
@@ -398,6 +413,7 @@ class TicketController extends Controller
             ->where('id_sistemas', $idSistema)
             ->where('enabled', true)
             ->get();
+
         return response()->json($modulos);
     }
 
@@ -407,6 +423,7 @@ class TicketController extends Controller
             ->where('id_ModulosSistemas', $idModulo)
             ->where('enabled', true)
             ->get();
+
         return response()->json($submodulos);
     }
 

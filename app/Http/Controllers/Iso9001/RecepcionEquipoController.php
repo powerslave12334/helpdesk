@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Iso9001;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RecepcionEquipoFirmarRequest;
 use App\Http\Requests\RecepcionEquipoRequest;
+use App\Models\Equipo;
 use App\Models\IsoRecepcionEquipo;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 /**
@@ -45,6 +47,8 @@ class RecepcionEquipoController extends Controller
     /** Formulario de nuevo documento (fecha por defecto: hoy). */
     public function create(): View
     {
+        $equipos = $this->equiposAsignados();
+
         return view('iso9001.formatos.recepcion_equipo_form', [
             'formato' => $this->formato(),
             'fechaDefault' => now()->toDateString(),
@@ -53,7 +57,53 @@ class RecepcionEquipoController extends Controller
             'accesorios' => IsoRecepcionEquipo::ACCESORIOS,
             'aplicacionesGastos' => IsoRecepcionEquipo::APLICACION_GASTOS,
             'descripcionDefault' => IsoRecepcionEquipo::DESCRIPCION_DEFECTO,
+            'equipos' => $equipos,
         ]);
+    }
+
+    /**
+     * Equipos con asignación activa en tblEquipoUsuario, para autocompletar
+     * la identificación del activo en el formulario FO-IT-03.
+     *
+     * @return array<int, array{id_Equipo: int, nombreEquipo: string, marca: string, modelo: string, numeroSerie: string, imei: string|null, lineaSim: string|null, usuario: string}>
+     */
+    private function equiposAsignados(): array
+    {
+        $filas = DB::table('tblEquipo as e')
+            ->join('tblEquipoUsuario as eu', 'eu.id_Equipo', '=', 'e.id_Equipo')
+            ->join('tblUsuario as u', 'u.id_Usuario', '=', 'eu.id_Usuario')
+            ->where('e.activo', 1)
+            ->where('eu.activo', 1)
+            ->whereNull('eu.fechaBaja')
+            ->select(
+                'e.id_Equipo',
+                'e.nombreEquipo',
+                'e.marca',
+                'e.modelo',
+                'e.numeroSerie',
+                'e.imei',
+                'e.lineaSim',
+                'u.nombre',
+                'u.app',
+                'u.apm',
+            )
+            ->distinct()
+            ->orderBy('e.marca')
+            ->orderBy('e.modelo')
+            ->get();
+
+        return $filas->map(function ($fila): array {
+            return [
+                'id_Equipo' => (int) $fila->id_Equipo,
+                'nombreEquipo' => (string) $fila->nombreEquipo,
+                'marca' => (string) $fila->marca,
+                'modelo' => (string) $fila->modelo,
+                'numeroSerie' => (string) $fila->numeroSerie,
+                'imei' => $fila->imei,
+                'lineaSim' => $fila->lineaSim,
+                'usuario' => trim("{$fila->nombre} {$fila->app} {$fila->apm}"),
+            ];
+        })->toArray();
     }
 
     /** Valida y guarda el documento. */
@@ -61,7 +111,25 @@ class RecepcionEquipoController extends Controller
     {
         $datos = $request->validated();
 
+        // Si se seleccionó un equipo asignado, se copian sus datos de
+        // identificación y se guarda la FK. Si no, se usa texto libre.
+        $idEquipo = $datos['id_equipo'] ?? null;
+        unset($datos['id_equipo']);
+
+        if ($idEquipo) {
+            $equipo = Equipo::find($idEquipo);
+            if ($equipo) {
+                $datos['marca'] = $equipo->marca;
+                $datos['modelo'] = $equipo->modelo;
+                $datos['noSerie'] = $equipo->numeroSerie;
+                $datos['imei'] = $equipo->imei;
+                $datos['numeroTelefonico'] = $equipo->lineaSim;
+            }
+            $datos['id_Equipo'] = $idEquipo;
+        }
+
         $documento = IsoRecepcionEquipo::create([
+            'id_Equipo' => $datos['id_Equipo'] ?? null,
             'fecha' => $datos['fecha'],
             'motivoEntrega' => $datos['motivoEntrega'],
             'tipoActivo' => implode(', ', $datos['tipoActivo']),

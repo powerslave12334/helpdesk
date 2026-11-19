@@ -65,6 +65,7 @@ class IsoRecepcionEquipo extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'id_Equipo',
         'fecha', 'motivoEntrega', 'tipoActivo',
         'marca', 'modelo', 'noSerie', 'imei', 'numeroTelefonico',
         'accesorios', 'descripcionEntrega',
@@ -100,6 +101,44 @@ class IsoRecepcionEquipo extends Model
     public function creador()
     {
         return $this->belongsTo(User::class, 'id_Usuario');
+    }
+
+    /** Equipo asignado del que se copian los datos de identificación. */
+    public function equipo()
+    {
+        return $this->belongsTo(Equipo::class, 'id_Equipo');
+    }
+
+    /**
+     * Datos de identificación del activo para el PDF.
+     *
+     * Si el documento tiene un equipo asignado, se toman los datos de
+     * tblEquipo (marca, modelo, numeroSerie, imei, lineaSim). Si no, se
+     * usan los campos de texto libre del propio documento.
+     *
+     * @return array{marca: string, modelo: string, noSerie: string, imei: string|null, numeroTelefonico: string|null}
+     */
+    public function datosEquipo(): array
+    {
+        $equipo = $this->equipo;
+
+        if ($equipo !== null) {
+            return [
+                'marca' => (string) $equipo->marca,
+                'modelo' => (string) $equipo->modelo,
+                'noSerie' => (string) $equipo->numeroSerie,
+                'imei' => $equipo->imei ?? null,
+                'numeroTelefonico' => $equipo->lineaSim ?? null,
+            ];
+        }
+
+        return [
+            'marca' => (string) $this->marca,
+            'modelo' => (string) $this->modelo,
+            'noSerie' => (string) $this->noSerie,
+            'imei' => $this->imei,
+            'numeroTelefonico' => $this->numeroTelefonico,
+        ];
     }
 
     /** Folio de presentación: FO-IT-03-0001. */
@@ -183,6 +222,7 @@ class IsoRecepcionEquipo extends Model
     {
         $campos = [
             $this->folio,
+            (string) $this->id_Equipo,
             $this->fecha?->format('Y-m-d') ?? '',
             (string) $this->motivoEntrega,
             (string) $this->tipoActivo,

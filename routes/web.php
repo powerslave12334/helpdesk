@@ -23,6 +23,7 @@ use App\Http\Controllers\Inventario\TipoRelacionEquipoController;
 use App\Http\Controllers\Inventario\VehiculoController;
 use App\Http\Controllers\Iso9001\FormatoIsoController;
 use App\Http\Controllers\LoginController;
+use App\Http\Controllers\Monitoreo\MonitoreoController;
 use App\Http\Controllers\NotificacionesController;
 use App\Http\Controllers\ReporteKpiController;
 use App\Http\Controllers\ReporteKpiDesarrolloController;
@@ -175,10 +176,23 @@ Route::middleware('auth')->group(function () {
             Route::delete('/mantenimientos/{id}', [MantenimientoController::class, 'destroy'])->name('mantenimientos.destroy');
             Route::get('/mantenimientos/buscar', [MantenimientoController::class, 'buscar'])->name('mantenimientos.buscar');
             Route::get('/mantenimientos/buscar-equipo', [MantenimientoController::class, 'buscarEquipo'])->name('mantenimientos.buscar-equipo');
+            Route::get('/mantenimientos/reporte-general', [MantenimientoController::class, 'reporteGeneral'])->name('mantenimientos.reporte-general');
             Route::get('/mantenimientos/{id}/editar-reporte', [MantenimientoController::class, 'editarReporte'])->name('mantenimientos.editar-reporte');
             Route::post('/mantenimientos/{id}/guardar-reporte', [MantenimientoController::class, 'guardarReporte'])->name('mantenimientos.guardar-reporte');
             Route::post('/mantenimientos/{id}/cerrar-reporte', [MantenimientoController::class, 'cerrarReporte'])->name('mantenimientos.cerrar-reporte');
             Route::get('/mantenimientos/{id}/reporte', [MantenimientoController::class, 'generarReporte'])->name('mantenimientos.reporte');
+        });
+    });
+
+    // Monitoreo (Nagios)
+    Route::prefix('monitoreo')->name('monitoreo.')->group(function () {
+        Route::middleware('permiso:monitoreo')->group(function () {
+            Route::get('/', [MonitoreoController::class, 'index'])->name('index');
+            Route::post('/', [MonitoreoController::class, 'store'])->name('store');
+            Route::put('/{id}', [MonitoreoController::class, 'update'])->name('update');
+            Route::delete('/{id}', [MonitoreoController::class, 'destroy'])->name('destroy');
+            Route::post('/{id}/toggle', [MonitoreoController::class, 'toggle'])->name('toggle');
+            Route::post('/sincronizar-nagios', [MonitoreoController::class, 'sincronizarNagios'])->name('sincronizar-nagios');
         });
     });
 

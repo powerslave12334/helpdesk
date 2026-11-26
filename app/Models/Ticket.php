@@ -7,13 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 class Ticket extends Model
 {
     protected $table = 'tblTicket';
+
     protected $primaryKey = 'id_Ticket';
+
     public $timestamps = false;
+
     protected $fillable = [
         'id_Usuario', 'id_TipoSoporte', 'id_Tecnico', 'asunto', 'problema',
         'img', 'fechaAlta', 'activo', 'id_Estatus', 'id_Equipo', 'fechaCierre',
         'tipoTicket', 'vehiculos', 'problemaGps',
     ];
+
     protected $casts = [
         'activo' => 'boolean',
         'fechaAlta' => 'datetime',
@@ -24,6 +28,7 @@ class Ticket extends Model
         'falla_tecnica' => 'Falla técnica',
         'instalacion_gps' => 'Instalación de GPS',
         'revision_gps' => 'Revisión de GPS',
+        'desarrollo' => 'Desarrollo',
     ];
 
     /** Catálogo de problemas GPS para tickets de revisión ('__otro' = texto libre). */

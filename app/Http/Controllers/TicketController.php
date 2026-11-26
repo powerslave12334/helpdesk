@@ -18,8 +18,11 @@ use App\Models\Vehiculo;
 use App\Services\PermisosService;
 use App\Services\TicketNotificacionService;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
+use RuntimeException;
 
 class TicketController extends Controller
 {
@@ -84,7 +87,17 @@ class TicketController extends Controller
             ],
         };
 
-        $request->validate($reglas);
+        // PHP rechaza el archivo por los límites de php.ini antes de que
+        // Laravel lo valide: se responde con el detalle (código y límites
+        // que PHP está leyendo) en lugar del genérico "failed to upload".
+        $archivo = $request->file('evidencia');
+        if ($archivo instanceof UploadedFile && ! $archivo->isValid()) {
+            return back()->withErrors([
+                'evidencia' => $this->mensajeDeSubidaFallida($archivo->getError()),
+            ]);
+        }
+
+        $request->validate($reglas, $this->mensajesDeEvidencia());
 
         $idUsuario = session('IdUsuario');
 
@@ -126,36 +139,27 @@ class TicketController extends Controller
 
         $ticket->save();
 
+        $errorEvidencia = null;
         if ($request->hasFile('evidencia')) {
-            $file = $request->file('evidencia');
-            // MIME y tamaño se leen ANTES de mover: File::move() no actualiza la
-            // ruta temporal del UploadedFile, así que getMimeType()/getSize()
-            // después del movimiento lanzan "file does not exist" (HTTP 500).
-            $mime = $file->getMimeType();
-            $tamanio = $file->getSize();
-            $extension = $file->getClientOriginalExtension();
-            $filename = time().'_'.$file->getClientOriginalName();
-            $path = public_path('evidencias/tickets/'.$ticket->id_Ticket);
-            if (! is_dir($path)) {
-                mkdir($path, 0755, true);
+            try {
+                $this->registrarEvidencia(
+                    $request->file('evidencia'),
+                    (int) $ticket->id_Ticket,
+                    (int) $idUsuario,
+                );
+            } catch (RuntimeException $e) {
+                // El ticket ya quedó guardado: se conserva y se avisa que la
+                // evidencia no se guardó (el alta no se revierte).
+                $errorEvidencia = 'El ticket fue creado, pero la evidencia no se pudo guardar: '.$e->getMessage();
             }
-            $file->move($path, $filename);
-
-            TicketEvidencia::create([
-                'id_Ticket' => $ticket->id_Ticket,
-                'nombreArchivo' => $filename,
-                'rutaArchivo' => 'evidencias/tickets/'.$ticket->id_Ticket.'/'.$filename,
-                'extension' => $extension,
-                'tipoContenido' => $mime,
-                'tamanioBytes' => $tamanio,
-                'id_UsuarioAlta' => $idUsuario,
-                'fechaAlta' => now(),
-                'activo' => true,
-            ]);
         }
 
         if ($tecnico) {
             $this->notificaciones->notificar($ticket, $tecnico, 'creado');
+        }
+
+        if ($errorEvidencia !== null) {
+            return redirect()->route('tickets.index')->with('error', $errorEvidencia);
         }
 
         return redirect()->route('tickets.index')->with('success', 'Ticket #'.$ticket->id_Ticket.' creado correctamente');
@@ -186,6 +190,7 @@ class TicketController extends Controller
         $ticket->id_Estatus = $estatusAbierto?->id_Estatus;
         $ticket->asunto = $request->asunto;
         $ticket->problema = $request->descripcionTicket;
+        $ticket->tipoTicket = 'desarrollo';
         $ticket->fechaAlta = now();
         $ticket->activo = true;
         $ticket->save();
@@ -265,37 +270,29 @@ class TicketController extends Controller
 
     public function addEvidence(Request $request)
     {
+        // PHP rechaza el archivo por los límites de php.ini antes de que
+        // Laravel lo valide: sin este aviso el usuario solo ve el genérico
+        // "The evidencia failed to upload." (HTTP 422).
+        $archivo = $request->file('evidencia');
+        if ($archivo instanceof UploadedFile && ! $archivo->isValid()) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['evidencia' => [$this->mensajeDeSubidaFallida($archivo->getError())]],
+            ], 422);
+        }
+
         $request->validate([
             'id_Ticket' => 'required|integer',
             'evidencia' => 'required|file|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx|max:10240',
-        ]);
+        ], $this->mensajesDeEvidencia());
 
         $idUsuario = session('IdUsuario');
-        $file = $request->file('evidencia');
-        // MIME y tamaño se leen ANTES de mover: File::move() no actualiza la
-        // ruta temporal del UploadedFile, así que getMimeType()/getSize()
-        // después del movimiento lanzan "file does not exist" (HTTP 500).
-        $mime = $file->getMimeType();
-        $tamanio = $file->getSize();
-        $extension = $file->getClientOriginalExtension();
-        $filename = time().'_'.$file->getClientOriginalName();
-        $path = public_path('evidencias/tickets/'.$request->id_Ticket);
-        if (! is_dir($path)) {
-            mkdir($path, 0755, true);
-        }
-        $file->move($path, $filename);
 
-        TicketEvidencia::create([
-            'id_Ticket' => $request->id_Ticket,
-            'nombreArchivo' => $filename,
-            'rutaArchivo' => 'evidencias/tickets/'.$request->id_Ticket.'/'.$filename,
-            'extension' => $extension,
-            'tipoContenido' => $mime,
-            'tamanioBytes' => $tamanio,
-            'id_UsuarioAlta' => $idUsuario,
-            'fechaAlta' => now(),
-            'activo' => true,
-        ]);
+        try {
+            $this->registrarEvidencia($archivo, (int) $request->id_Ticket, (int) $idUsuario);
+        } catch (RuntimeException $e) {
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
 
         return response()->json(['success' => true, 'message' => 'Evidencia agregada']);
     }
@@ -306,6 +303,12 @@ class TicketController extends Controller
 
         if (! $evidencia) {
             abort(404);
+        }
+
+        // Registros que quedaron con fileId (época de Drive) se redirigen a
+        // su enlace; el resto se sirve en local desde public/.
+        if ($evidencia->driveFileId) {
+            return redirect()->away($evidencia->url);
         }
 
         $filePath = public_path($evidencia->rutaArchivo);
@@ -469,5 +472,87 @@ class TicketController extends Controller
     private function esAdmin($idUsuario)
     {
         return $this->permisosService->esAdministrador($idUsuario);
+    }
+
+    /**
+     * Guarda la evidencia en public/evidencias/tickets/{id}/ y la registra
+     * en tblTicketEvidencia con la ruta relativa (sin driveFileId).
+     *
+     * @throws RuntimeException si la carpeta no se puede crear o escribir
+     *                          (permisos del sitio web en public/evidencias).
+     */
+    private function registrarEvidencia(UploadedFile $archivo, int $idTicket, int $idUsuario): TicketEvidencia
+    {
+        // MIME y tamaño se leen ANTES de mover: el UploadedFile no actualiza
+        // su ruta temporal al moverse, así que getMimeType()/getSize() después
+        // del movimiento lanzan "file does not exist" (HTTP 500).
+        $mime = $archivo->getMimeType();
+        $tamanio = $archivo->getSize();
+        $extension = $archivo->getClientOriginalExtension();
+        $base = Str::slug(pathinfo($archivo->getClientOriginalName(), PATHINFO_FILENAME)) ?: 'evidencia';
+        $filename = time().'_'.$base.'.'.$extension;
+
+        $rutaDestino = public_path('evidencias/tickets/'.$idTicket);
+        if (! is_dir($rutaDestino) && ! @mkdir($rutaDestino, 0755, true) && ! is_dir($rutaDestino)) {
+            throw new RuntimeException('no se pudo crear la carpeta public/evidencias/tickets/'.$idTicket.'. Revisa los permisos de la carpeta public/evidencias/ en el servidor.');
+        }
+
+        try {
+            $archivo->move($rutaDestino, $filename);
+        } catch (\Throwable $e) {
+            throw new RuntimeException('no se pudo escribir el archivo en public/evidencias/. Revisa los permisos de la carpeta en el servidor.', 0, $e);
+        }
+
+        return TicketEvidencia::create([
+            'id_Ticket' => $idTicket,
+            'nombreArchivo' => $filename,
+            'rutaArchivo' => 'evidencias/tickets/'.$idTicket.'/'.$filename,
+            'extension' => $extension,
+            'tipoContenido' => $mime,
+            'tamanioBytes' => $tamanio,
+            'id_UsuarioAlta' => $idUsuario,
+            'fechaAlta' => now(),
+            'activo' => true,
+        ]);
+    }
+
+    /**
+     * Traduce un error de subida de PHP (UPLOAD_ERR_*) a un mensaje
+     * accionable: PHP rechaza el archivo antes de que Laravel lo valide.
+     * Para el caso más común se incluyen los límites reales que el sitio
+     * web está leyendo, así se distingue de inmediato un php.ini mal
+     * apuntado o sin reiniciar de un archivo que simplemente es muy grande.
+     */
+    private function mensajeDeSubidaFallida(int $error): string
+    {
+        return match ($error) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => sprintf(
+                'El archivo supera el límite de PHP (error %d): upload_max_filesize = %s y post_max_size = %s en el php.ini que usa el sitio web. Edita ese php.ini (verifícalo con phpinfo), pon 10M / 12M y reinicia el servicio web.',
+                $error,
+                ini_get('upload_max_filesize') ?: 'sin valor',
+                ini_get('post_max_size') ?: 'sin valor',
+            ),
+            UPLOAD_ERR_PARTIAL => 'La subida se interrumpió a mitad de archivo: vuelve a intentarlo.',
+            UPLOAD_ERR_NO_TMP_DIR => 'El servidor no tiene directorio temporal (tmp) configurado en php.ini.',
+            UPLOAD_ERR_CANT_WRITE => 'El servidor no pudo escribir el archivo temporal: revisa permisos y espacio en disco.',
+            UPLOAD_ERR_EXTENSION => 'Una extensión de PHP bloqueó la subida del archivo.',
+            default => 'No se pudo subir el archivo (error de PHP '.$error.'): vuelve a intentarlo.',
+        };
+    }
+
+    /**
+     * Mensajes en español de las reglas de evidencia (modal SweetAlert y
+     * banner de errores del alta de ticket).
+     *
+     * @return array<string, string>
+     */
+    private function mensajesDeEvidencia(): array
+    {
+        return [
+            'evidencia.required' => 'Selecciona un archivo de evidencia.',
+            'evidencia.uploaded' => 'El archivo fue rechazado por el servidor: revisa upload_max_filesize / post_max_size en php.ini.',
+            'evidencia.mimes' => 'Formato no permitido: usa JPG, JPEG, PNG, GIF, WEBP, PDF, DOC o DOCX.',
+            'evidencia.max' => 'La evidencia no puede pesar más de 10 MB.',
+        ];
     }
 }

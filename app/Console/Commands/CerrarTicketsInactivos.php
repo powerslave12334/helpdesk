@@ -2,15 +2,18 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
+use App\Models\Estatus;
 use App\Models\Ticket;
 use App\Models\TicketComentario;
-use App\Models\Estatus;
+use App\Services\TicketNotificacionService;
 use Carbon\Carbon;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class CerrarTicketsInactivos extends Command
 {
     protected $signature = 'tickets:cerrar-inactivos {--dias=4 : Días sin comentarios para cerrar}';
+
     protected $description = 'Cierra automáticamente tickets inactivos, identificando de quién es la inactividad (usuario o técnico)';
 
     public function handle()
@@ -18,7 +21,7 @@ class CerrarTicketsInactivos extends Command
         $dias = (int) $this->option('dias');
         $fechaLimite = Carbon::now()->subDays($dias);
 
-        $this->line("=== CIERRE AUTOMÁTICO DE TICKETS INACTIVOS ===");
+        $this->line('=== CIERRE AUTOMÁTICO DE TICKETS INACTIVOS ===');
         $this->line("Buscando tickets sin comentarios desde: {$fechaLimite->format('d/m/Y H:i')}");
         $this->newLine();
 
@@ -27,22 +30,34 @@ class CerrarTicketsInactivos extends Command
             ->where('id_Modulos', 1)
             ->first();
 
-        if (!$estatusCerrado) {
+        // Obtener estatus "Resuelto": solo los tickets en este estatus pueden
+        // cerrarse automáticamente por inactividad.
+        $estatusResuelto = Estatus::where('descripcion', 'Resuelto')
+            ->where('id_Modulos', 1)
+            ->first();
+
+        if (! $estatusCerrado) {
             $this->error('No se encontró el estatus "Cerrado" para tickets (id_Modulos=1)');
+
             return 1;
         }
 
-        // Obtener tickets que NO están cerrados y están activos. Los tickets de
+        if (! $estatusResuelto) {
+            $this->error('No se encontró el estatus "Resuelto" para tickets (id_Modulos=1)');
+
+            return 1;
+        }
+
+        // Obtener tickets activos en estatus "Resuelto". Los tickets de
         // desarrollo no se cierran por inactividad: su ciclo lo controla el
         // responsable y el KPI Desarrollo depende de su estatus.
         $tickets = Ticket::with('estatus')
             ->where('activo', true)
             ->where('tipoTicket', '!=', 'desarrollo')
-            ->where('id_Estatus', '!=', $estatusCerrado->id_Estatus)
-            ->whereNotNull('id_Estatus')
+            ->where('id_Estatus', $estatusResuelto->id_Estatus)
             ->get();
 
-        $this->info("Tickets activos (no cerrados): " . count($tickets));
+        $this->info('Tickets activos (no cerrados): '.count($tickets));
         $this->newLine();
 
         $cerrados = 0;
@@ -88,10 +103,10 @@ class CerrarTicketsInactivos extends Command
                 $this->line("      Inactividad del {$etiqueta} — última actividad: {$fechaUltimaActividad->format('d/m/Y H:i')} ({$diasInactivo} días)");
 
                 try {
-                    app(\App\Services\TicketNotificacionService::class)
+                    app(TicketNotificacionService::class)
                         ->notificarCierreAutomatico($ticket, $responsable, $diasInactivo);
                 } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::warning('No se notificó el cierre del Ticket #' . $ticket->id_Ticket . ': ' . $e->getMessage());
+                    Log::warning('No se notificó el cierre del Ticket #'.$ticket->id_Ticket.': '.$e->getMessage());
                 }
 
                 $cerrados++;
@@ -104,7 +119,7 @@ class CerrarTicketsInactivos extends Command
         }
 
         $this->newLine();
-        $this->info("=== PROCESO COMPLETADO ===");
+        $this->info('=== PROCESO COMPLETADO ===');
         $this->info("Tickets cerrados: {$cerrados} ({$porUsuario} por inactividad del usuario, {$porTecnico} por inactividad del técnico)");
 
         return 0;
@@ -127,9 +142,9 @@ class CerrarTicketsInactivos extends Command
             ->where('activo', true)
             ->orderByDesc('fechaComentario')
             ->get()
-            ->first(fn ($c) => !$this->esComentarioAutomatico($c->comentario));
+            ->first(fn ($c) => ! $this->esComentarioAutomatico($c->comentario));
 
-        if (!$ultimoSustantivo) {
+        if (! $ultimoSustantivo) {
             return 'usuario';
         }
 

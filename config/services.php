@@ -35,4 +35,35 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Google Drive (evidencias de tickets)
+    |--------------------------------------------------------------------------
+    |
+    | Se obtiene el refresh token con "php artisan drive:auth". El scope es
+    | drive.file: la app solo ve los archivos que ella misma sube.
+    |
+    */
+
+    'google_drive' => [
+        'client_id' => env('GOOGLE_DRIVE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_DRIVE_CLIENT_SECRET'),
+        'refresh_token' => env('GOOGLE_DRIVE_REFRESH_TOKEN'),
+        'folder_id' => env('GOOGLE_DRIVE_FOLDER_ID'),
+        'redirect_uri' => env('GOOGLE_DRIVE_REDIRECT_URI', 'http://localhost:8000/oauth/drive/callback'),
+        'scope' => env('GOOGLE_DRIVE_SCOPE', 'https://www.googleapis.com/auth/drive.file'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Nagios Core (estado.php)
+    |--------------------------------------------------------------------------
+    */
+
+    'nagios' => [
+        'url' => env('NAGIOS_URL'),
+        'user' => env('NAGIOS_USER'),
+        'pass' => env('NAGIOS_PASS'),
+    ],
+
 ];

@@ -78,6 +78,15 @@ return [
                 'ticketconfig.submodulossistemas.*',
             ],
         ],
+        [
+            'id' => 9,
+            'nombre' => 'Monitoreo',
+            'orden' => 7,
+            'icono' => 'fas fa-heart-pulse',
+            'patrones' => [
+                'monitoreo.*',
+            ],
+        ],
     ],
 
     'submodulos' => [
@@ -117,6 +126,9 @@ return [
         ['clave' => 'catalogo-equipo', 'id_Modulos' => 5, 'nombre' => 'Catálogos de Equipo', 'icono' => 'fas fa-database', 'ruta' => 'configuracion.catalogoEquipo.index', 'activa' => 'configuracion.catalogoEquipo.*', 'orden' => 9],
         ['clave' => 'modulos-sistemas', 'id_Modulos' => 5, 'nombre' => 'Módulos Sistemas', 'icono' => 'fas fa-cubes', 'ruta' => 'ticketconfig.modulossistemas.index', 'activa' => 'ticketconfig.modulossistemas.*', 'orden' => 10],
         ['clave' => 'submodulos-sistemas', 'id_Modulos' => 5, 'nombre' => 'Submódulos Sistemas', 'icono' => 'fas fa-cube', 'ruta' => 'ticketconfig.submodulossistemas.index', 'activa' => 'ticketconfig.submodulossistemas.*', 'orden' => 11],
+
+        // --- Monitoreo (módulo 9) ---
+        ['clave' => 'monitoreo', 'id_Modulos' => 9, 'nombre' => 'Monitoreo de Sistemas', 'icono' => 'fas fa-heart-pulse', 'ruta' => 'monitoreo.index', 'activa' => 'monitoreo.*', 'orden' => 1],
     ],
 
 ];

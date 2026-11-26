@@ -151,6 +151,18 @@
     font-size: 12px;
 }
 
+/*
+ * La vista de paginación por defecto de Laravel emite clases Tailwind
+ * (w-5 h-5) que no existen en esta app (usa Bootstrap), por lo que los SVG
+ * de flecha «anterior/siguiente» se estiran hasta llenar su contenedor y
+ * quedan gigantes. Se les fija el tamaño real de 20px.
+ */
+nav[aria-label="Pagination Navigation"] svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
 .table-empty {
     text-align: center;
     padding: 40px 16px;

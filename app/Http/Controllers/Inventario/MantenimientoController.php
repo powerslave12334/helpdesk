@@ -3,15 +3,16 @@
 namespace App\Http\Controllers\Inventario;
 
 use App\Http\Controllers\Controller;
-use App\Models\Mantenimiento;
 use App\Models\Equipo;
 use App\Models\EquipoUsuario;
-use App\Models\Usuario;
 use App\Models\Estatus;
+use App\Models\Mantenimiento;
+use App\Models\PeriodoMantenimiento;
+use App\Models\Usuario;
 use App\Services\MantenimientoNotificacionService;
-use Illuminate\Http\Request;
-use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 
 class MantenimientoController extends Controller
 {
@@ -62,7 +63,7 @@ class MantenimientoController extends Controller
         $events = $mantenimientos->map(function ($m) {
             $estado = $m->fechaEjecucion ? 'Completado' : ($m->fechaProgramada->isPast() ? 'Vencido' : 'Pendiente');
 
-            $color = match($estado) {
+            $color = match ($estado) {
                 'Completado' => '#059669',
                 'Vencido' => '#dc2626',
                 'Pendiente' => '#d97706',
@@ -75,21 +76,21 @@ class MantenimientoController extends Controller
                 ->first();
 
             $usuarioAsignado = $asignacion && $asignacion->usuario
-                ? $asignacion->usuario->nombre . ' ' . $asignacion->usuario->app
+                ? $asignacion->usuario->nombre.' '.$asignacion->usuario->app
                 : 'Sin usuario';
 
             $reportePendiente = $estado === 'Completado' && empty($m->estadoInicial);
 
             return [
                 'id' => $m->id_Mantenimiento,
-                'title' => ($m->equipo->nombreEquipo ?? $m->equipo->marca ?? 'Equipo #' . $m->id_Equipo) . ' - ' . $usuarioAsignado,
+                'title' => ($m->equipo->nombreEquipo ?? $m->equipo->marca ?? 'Equipo #'.$m->id_Equipo).' - '.$usuarioAsignado,
                 'start' => $m->fechaProgramada->format('Y-m-d\TH:i:s'),
                 'end' => $m->fechaProgramada->copy()->addHours(2)->format('Y-m-d\TH:i:s'),
                 'color' => $color,
                 'extendedProps' => [
                     'equipo' => $m->equipo->nombreEquipo ?? $m->equipo->marca ?? 'N/A',
                     'usuarioAsignado' => $usuarioAsignado,
-                    'tecnico' => $m->tecnico ? $m->tecnico->nombre . ' ' . $m->tecnico->app : 'Sin asignar',
+                    'tecnico' => $m->tecnico ? $m->tecnico->nombre.' '.$m->tecnico->app : 'Sin asignar',
                     'tipo' => $m->tipoMantenimiento,
                     'estado' => $estado,
                     'observaciones' => $m->observaciones ?? '',
@@ -138,7 +139,7 @@ class MantenimientoController extends Controller
 
         $equipo = Equipo::find($request->id_Equipo);
         if ($equipo && $equipo->id_PeriodoMantenimiento) {
-            $periodo = \App\Models\PeriodoMantenimiento::find($equipo->id_PeriodoMantenimiento);
+            $periodo = PeriodoMantenimiento::find($equipo->id_PeriodoMantenimiento);
             if ($periodo && $periodo->meses > 0) {
                 $fechaBase = Carbon::parse($request->fechaProgramada);
                 $limite = $fechaBase->copy()->addYears(2);
@@ -146,14 +147,16 @@ class MantenimientoController extends Controller
 
                 while (true) {
                     $siguienteFecha = $fechaComparacion->copy()->addMonths($periodo->meses);
-                    if ($siguienteFecha->gt($limite)) break;
+                    if ($siguienteFecha->gt($limite)) {
+                        break;
+                    }
 
                     $existe = Mantenimiento::where('id_Equipo', $equipo->id_Equipo)
                         ->whereDate('fechaProgramada', $siguienteFecha->format('Y-m-d'))
                         ->where('activo', true)
                         ->exists();
 
-                    if (!$existe) {
+                    if (! $existe) {
                         Mantenimiento::create([
                             'id_Equipo' => $equipo->id_Equipo,
                             'id_UsuarioTecnico' => $request->id_UsuarioTecnico,
@@ -247,7 +250,7 @@ class MantenimientoController extends Controller
         $equipoIds = EquipoUsuario::where('activo', true)
             ->whereHas('usuario', function ($q) use ($termino) {
                 $q->where('nombre', 'LIKE', "%{$termino}%")
-                  ->orWhere('app', 'LIKE', "%{$termino}%");
+                    ->orWhere('app', 'LIKE', "%{$termino}%");
             })
             ->pluck('id_Equipo')
             ->toArray();
@@ -258,22 +261,22 @@ class MantenimientoController extends Controller
             ->where(function ($q) use ($termino, $equipoIds) {
                 $q->whereHas('equipo', function ($q2) use ($termino) {
                     $q2->where('nombreEquipo', 'LIKE', "%{$termino}%")
-                       ->orWhere('marca', 'LIKE', "%{$termino}%")
-                       ->orWhere('modelo', 'LIKE', "%{$termino}%");
+                        ->orWhere('marca', 'LIKE', "%{$termino}%")
+                        ->orWhere('modelo', 'LIKE', "%{$termino}%");
                 })
-                ->orWhereHas('tecnico', function ($q2) use ($termino) {
-                    $q2->where('nombre', 'LIKE', "%{$termino}%")
-                       ->orWhere('app', 'LIKE', "%{$termino}%");
-                })
-                ->orWhereIn('id_Equipo', $equipoIds);
+                    ->orWhereHas('tecnico', function ($q2) use ($termino) {
+                        $q2->where('nombre', 'LIKE', "%{$termino}%")
+                            ->orWhere('app', 'LIKE', "%{$termino}%");
+                    })
+                    ->orWhereIn('id_Equipo', $equipoIds);
             })
             ->orderBy('fechaProgramada')
             ->limit(10)
             ->get();
 
         $results = $mantenimientos->map(function ($m) {
-            $nombreEquipo = $m->equipo->nombreEquipo ?? $m->equipo->marca ?? 'Equipo #' . $m->id_Equipo;
-            $tecnicoNombre = $m->tecnico ? $m->tecnico->nombre . ' ' . $m->tecnico->app : 'Sin técnico';
+            $nombreEquipo = $m->equipo->nombreEquipo ?? $m->equipo->marca ?? 'Equipo #'.$m->id_Equipo;
+            $tecnicoNombre = $m->tecnico ? $m->tecnico->nombre.' '.$m->tecnico->app : 'Sin técnico';
 
             return [
                 'id' => $m->id_Mantenimiento,
@@ -299,18 +302,18 @@ class MantenimientoController extends Controller
         $equipos = Equipo::where('activo', true)
             ->where(function ($q) use ($termino) {
                 $q->where('nombreEquipo', 'LIKE', "%{$termino}%")
-                   ->orWhere('marca', 'LIKE', "%{$termino}%")
-                   ->orWhere('modelo', 'LIKE', "%{$termino}%")
-                   ->orWhereHas('asignaciones', function ($q2) use ($termino) {
-                       $q2->where('activo', true)
-                          ->whereHas('usuario', function ($q3) use ($termino) {
-                              $q3->where('nombre', 'LIKE', "%{$termino}%")
-                                 ->orWhere('app', 'LIKE', "%{$termino}%");
-                          })
-                          ->orWhereHas('area', function ($q3) use ($termino) {
-                              $q3->where('nombre', 'LIKE', "%{$termino}%");
-                          });
-                   });
+                    ->orWhere('marca', 'LIKE', "%{$termino}%")
+                    ->orWhere('modelo', 'LIKE', "%{$termino}%")
+                    ->orWhereHas('asignaciones', function ($q2) use ($termino) {
+                        $q2->where('activo', true)
+                            ->whereHas('usuario', function ($q3) use ($termino) {
+                                $q3->where('nombre', 'LIKE', "%{$termino}%")
+                                    ->orWhere('app', 'LIKE', "%{$termino}%");
+                            })
+                            ->orWhereHas('area', function ($q3) use ($termino) {
+                                $q3->where('nombre', 'LIKE', "%{$termino}%");
+                            });
+                    });
             })
             ->with(['asignaciones.usuario', 'asignaciones.area', 'oficina'])
             ->limit(15)
@@ -318,13 +321,13 @@ class MantenimientoController extends Controller
 
         $results = $equipos->map(function ($eq) {
             $asignacion = $eq->asignaciones->where('activo', true)->first();
-            $usuario = $asignacion && $asignacion->usuario ? $asignacion->usuario->nombre . ' ' . $asignacion->usuario->app : 'Sin usuario';
+            $usuario = $asignacion && $asignacion->usuario ? $asignacion->usuario->nombre.' '.$asignacion->usuario->app : 'Sin usuario';
             $area = $asignacion && $asignacion->area ? $asignacion->area->nombre : 'Sin área';
 
             return [
                 'id' => $eq->id_Equipo,
                 'nombre' => $eq->nombreEquipo ?? $eq->marca,
-                'marca_modelo' => $eq->marca . ' ' . $eq->modelo,
+                'marca_modelo' => $eq->marca.' '.$eq->modelo,
                 'usuario' => $usuario,
                 'area' => $area,
                 'oficina' => $eq->oficina ? $eq->oficina->nombre : '',
@@ -345,7 +348,7 @@ class MantenimientoController extends Controller
             ->first();
 
         $usuarioAsignado = $asignacion && $asignacion->usuario
-            ? $asignacion->usuario->nombre . ' ' . $asignacion->usuario->app
+            ? $asignacion->usuario->nombre.' '.$asignacion->usuario->app
             : 'Sin usuario asignado';
 
         $tecnico = $mantenimiento->tecnico;
@@ -432,7 +435,7 @@ class MantenimientoController extends Controller
             ->first();
 
         $usuarioAsignado = $asignacion && $asignacion->usuario
-            ? $asignacion->usuario->nombre . ' ' . $asignacion->usuario->app
+            ? $asignacion->usuario->nombre.' '.$asignacion->usuario->app
             : 'Sin usuario asignado';
 
         $area = $asignacion && $asignacion->area ? $asignacion->area->nombre : null;
@@ -448,25 +451,84 @@ class MantenimientoController extends Controller
         $ubicacion3 = strtoupper(substr($equipo->ubicacion ?? 'SIN', 0, 3));
         $nombreEquipo = $equipo->nombreEquipo ?? 'SIN';
 
-        $numeroReporte = str_pad($numMant, 2, '0', STR_PAD_LEFT) . '-' . $oficina . '-' . $ubicacion3 . '-' . $nombreEquipo;
+        $numeroReporte = str_pad($numMant, 2, '0', STR_PAD_LEFT).'-'.$oficina.'-'.$ubicacion3.'-'.$nombreEquipo;
 
         $logoPath = public_path('img/logo.png');
         $logoBase64 = '';
         if (file_exists($logoPath)) {
             $logoData = file_get_contents($logoPath);
-            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+            $logoBase64 = 'data:image/png;base64,'.base64_encode($logoData);
         }
 
         $pdf = Pdf::loadView('inventario.reporte_mantenimiento', compact(
             'mantenimiento', 'equipo', 'usuarioAsignado', 'area', 'tecnico', 'numeroReporte', 'logoBase64'
         ))->setPaper('letter');
 
-        $fileName = 'Reporte_' . $numeroReporte . '.pdf';
+        $fileName = 'Reporte_'.$numeroReporte.'.pdf';
 
         if ($request->boolean('preview')) {
             return $pdf->stream($fileName);
         }
 
         return $pdf->download($fileName);
+    }
+
+    /**
+     * Reporte general (consolidado) de todos los mantenimientos completados.
+     *
+     * @return \Barryvdh\DomPDF\PDF
+     */
+    public function reporteGeneral()
+    {
+        $mantenimientos = Mantenimiento::with([
+            'equipo.periodoMantenimiento',
+            'equipo.asignaciones.usuario.area',
+            'tecnico',
+            'estatus',
+        ])
+            ->where('activo', true)
+            ->whereNotNull('fechaEjecucion')
+            ->orderBy('fechaEjecucion')
+            ->get()
+            ->map(function ($m) {
+                $asignacion = $m->equipo->asignaciones
+                    ->where('activo', true)
+                    ->first();
+
+                $usuarioAsignado = $asignacion && $asignacion->usuario
+                    ? $asignacion->usuario->nombre.' '.$asignacion->usuario->app
+                    : 'Sin usuario asignado';
+
+                $area = $asignacion && $asignacion->area ? $asignacion->area->nombre : 'N/A';
+
+                $periodo = $m->equipo->periodoMantenimiento;
+                $meses = ($periodo && $periodo->meses > 0) ? $periodo->meses : 2;
+
+                return [
+                    'mantenimiento' => $m,
+                    'nombreEquipo' => $m->equipo->nombreEquipo ?? $m->equipo->marca ?? 'Equipo #'.$m->id_Equipo,
+                    'usuarioAsignado' => $usuarioAsignado,
+                    'area' => $area,
+                    'tecnicoNombre' => $m->tecnico
+                        ? $m->tecnico->nombre.' '.$m->tecnico->app
+                        : 'Sin técnico',
+                    'periodoDescripcion' => $periodo ? $periodo->descripcion : 'Bimestral',
+                    'meses' => $meses,
+                    'proximaFechaSugerida' => $m->fechaEjecucion->copy()->addMonths($meses)->format('d/m/Y'),
+                ];
+            });
+
+        $logoPath = public_path('img/logo.png');
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoData = file_get_contents($logoPath);
+            $logoBase64 = 'data:image/png;base64,'.base64_encode($logoData);
+        }
+
+        $pdf = Pdf::loadView('inventario.reporte_mantenimiento_general', compact(
+            'mantenimientos', 'logoBase64'
+        ))->setPaper('letter');
+
+        return $pdf->download('Reporte_General_Mantenimientos.pdf');
     }
 }

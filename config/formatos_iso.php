@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Iso9001\ActaEntregaController;
 use App\Http\Controllers\Iso9001\InventarioHerramientaController;
+use App\Http\Controllers\Iso9001\InventarioTiController;
 use App\Http\Controllers\Iso9001\RecepcionEquipoController;
 use App\Http\Controllers\Iso9001\ResponsivaErpController;
 
@@ -51,7 +52,13 @@ return [
             'orden' => 4,
             'controlador' => InventarioHerramientaController::class,
         ],
-        ['clave' => 'FO-IT-05', 'nombre' => 'Inventario de TI', 'icono' => 'fas fa-laptop', 'orden' => 5],
+        [
+            'clave' => 'FO-IT-05',
+            'nombre' => 'Inventario de TI',
+            'icono' => 'fas fa-laptop',
+            'orden' => 5,
+            'controlador' => InventarioTiController::class,
+        ],
         ['clave' => 'FO-IT-06', 'nombre' => 'Correos Gmail', 'icono' => 'fas fa-envelope', 'orden' => 6],
         ['clave' => 'FO-IT-07', 'nombre' => 'Correos Alcomex', 'icono' => 'fas fa-inbox', 'orden' => 7],
         ['clave' => 'FO-IT-08', 'nombre' => 'Líneas AT&T', 'icono' => 'fas fa-mobile-screen-button', 'orden' => 8],

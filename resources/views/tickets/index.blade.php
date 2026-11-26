@@ -444,7 +444,7 @@
                             <input type="hidden" name="id_Ticket" id="evidenceTicketId">
                             <div class="ticket-form-upload">
                                 <input type="file" name="evidencia" class="ticket-form-input" accept="image/*,.pdf,.doc,.docx" required>
-                                <button type="submit" class="ticket-btn ticket-btn-outline"><i class="fas fa-upload"></i>Guardar</button>
+                                <button type="submit" class="ticket-btn ticket-btn-outline" id="btnSaveEvidence"><i class="fas fa-upload"></i>Guardar</button>
                             </div>
                         </form>
                     </div>
@@ -560,6 +560,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const div = document.createElement('div');
         div.textContent = texto ?? '';
         return div.innerHTML;
+    }
+
+    // Escapa un valor para meterlo dentro de un atributo HTML (href/src).
+    function escaparAtributo(texto) {
+        return String(texto ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
     }
 
     // Toast efímero: no interrumpe al usuario y se cierra solo.
@@ -784,10 +793,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     const gallery = document.getElementById('evidenceGallery');
                     gallery.innerHTML = '';
                     (t.evidencias || []).forEach(e => {
-                        if (['jpg','jpeg','png','gif'].includes(e.extension?.toLowerCase())) {
-                            gallery.innerHTML += `<div class="ticket-evidence-item"><img src="/${e.rutaArchivo}" onclick="window.open('/${e.rutaArchivo}')"></div>`;
+                        // Las evidencias nuevas viven en Google Drive (e.url);
+                        // las antiguas siguen siendo rutas locales.
+                        const url = e.url || '/' + e.rutaArchivo;
+                        const urlImagen = e.urlImagen || url;
+                        if (['jpg','jpeg','png','gif','webp'].includes(e.extension?.toLowerCase())) {
+                            gallery.innerHTML += `<div class="ticket-evidence-item"><a href="${escaparAtributo(url)}" target="_blank" rel="noopener" style="display:block;width:100%;height:100%"><img src="${escaparAtributo(urlImagen)}" alt="${escaparAtributo(e.nombreArchivo || '')}"></a></div>`;
                         } else {
-                            gallery.innerHTML += `<a href="/${e.rutaArchivo}" target="_blank" class="ticket-evidence-item ticket-evidence-file"><i class="fas fa-file"></i><span>${e.nombreArchivo}</span></a>`;
+                            gallery.innerHTML += `<a href="${escaparAtributo(url)}" target="_blank" class="ticket-evidence-item ticket-evidence-file"><i class="fas fa-file"></i><span>${escaparHtml(e.nombreArchivo)}</span></a>`;
                         }
                     });
                     if (!t.evidencias || t.evidencias.length === 0) {
@@ -842,7 +855,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Envío genérico de los formularios del modal: maneja errores de
     // validación (422) y fallos de red, que antes quedaban silenciosos porque
     // r.json() reventaba contra una respuesta HTML de error.
-    function enviarFormulario(url, form) {
+    function enviarFormulario(url, form, btn = null) {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Subiendo...';
+        }
         const formData = new FormData(form);
         fetch(url, {
             method: 'POST',
@@ -870,6 +887,11 @@ document.addEventListener('DOMContentLoaded', function() {
             notificarError('No se pudo guardar', mensajes);
         }).catch(() => {
             notificarError('Sin conexión', 'No se pudo conectar con el servidor.');
+        }).finally(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-upload"></i>Guardar';
+            }
         });
     }
 
@@ -882,7 +904,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Evidence form
     document.getElementById('formEvidence')?.addEventListener('submit', function(e) {
         e.preventDefault();
-        enviarFormulario('/tickets/evidencia', this);
+        const btn = this.querySelector('button[type="submit"]');
+        enviarFormulario('/tickets/evidencia', this, btn);
     });
 
     // Management form

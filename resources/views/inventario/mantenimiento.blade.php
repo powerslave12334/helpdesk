@@ -102,6 +102,9 @@
 <div class="d-flex justify-content-between align-items-center mb-3 page-header">
     <h4 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Calendario de Mantenimientos</h4>
     <div class="d-flex gap-2">
+        <a href="{{ route('inventario.mantenimientos.reporte-general') }}" target="_blank" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-file-pdf me-1"></i><span class="d-none d-sm-inline">Reporte General</span><span class="d-sm-none">Reporte</span>
+        </a>
         <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createModal">
             <i class="fas fa-plus me-1"></i><span class="d-none d-sm-inline">Nuevo Mantenimiento</span><span class="d-sm-none">Nuevo</span>
         </button>

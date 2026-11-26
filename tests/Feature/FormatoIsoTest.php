@@ -109,12 +109,23 @@ class FormatoIsoTest extends TestCase
             ->assertDontSee('Formato en construcción');
     }
 
-    public function test_formato_sin_controlador_muestra_el_marcador_de_construccion(): void
+    public function test_fo_it_05_esta_habilitado_muestra_lista_de_documentos(): void
     {
         $this->comoUsuario($this->administrador())
             ->get('/iso9001/FO-IT-05')
             ->assertOk()
             ->assertSee('Inventario de TI')
+            ->assertSee('Nuevo activo')
+            ->assertDontSee('Formato en construcción');
+    }
+
+    public function test_formato_sin_controlador_muestra_el_marcador_de_construccion(): void
+    {
+        // FO-IT-06 (Correos Gmail) aún no tiene controlador.
+        $this->comoUsuario($this->administrador())
+            ->get('/iso9001/FO-IT-06')
+            ->assertOk()
+            ->assertSee('Correos Gmail')
             ->assertSee('Formato en construcción');
     }
 
@@ -127,8 +138,9 @@ class FormatoIsoTest extends TestCase
 
     public function test_guardar_en_formato_aun_no_habilitado_devuelve_404(): void
     {
+        // FO-IT-06 (Correos Gmail) aún no tiene controlador.
         $this->comoUsuario($this->administrador())
-            ->post('/iso9001/FO-IT-05')
+            ->post('/iso9001/FO-IT-06')
             ->assertNotFound();
     }
 

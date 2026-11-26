@@ -66,4 +66,24 @@ class Equipo extends Model
     {
         return $this->hasMany(Mantenimiento::class, 'id_Equipo');
     }
+
+    /** Folio de presentación para FO-IT-05: FO-IT-05-0001. */
+    public function getFolioAttribute(): string
+    {
+        return 'FO-IT-05-'.str_pad((string) $this->getKey(), 4, '0', STR_PAD_LEFT);
+    }
+
+    /** Usuario activo asignado al equipo (vía tblEquipoUsuario). */
+    public function getUsuarioAsignadoAttribute(): ?Usuario
+    {
+        return $this->usuarios()->where('tblEquipoUsuario.activo', true)->first();
+    }
+
+    /** Departamento del usuario asignado. */
+    public function getDepartamentoAttribute(): ?string
+    {
+        $usuario = $this->usuario_asignado;
+
+        return $usuario?->depto?->nombre ?? null;
+    }
 }

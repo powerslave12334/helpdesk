@@ -24,6 +24,9 @@ use Tests\TestCase;
  * moverlo, así que lanzaban "file does not exist" (HTTP 500): el archivo
  * quedaba huérfano en disco y nunca se registraba en tblTicketEvidencia,
  * por lo que la galería seguía vacía.
+ *
+ * Hoy la evidencia se guarda en public/evidencias/tickets/{id}/ y el
+ * registro queda en tblTicketEvidencia con la ruta relativa.
  */
 class TicketEvidenciaTest extends TestCase
 {
@@ -37,6 +40,10 @@ class TicketEvidenciaTest extends TestCase
         parent::setUp();
 
         $this->usuario = $this->usuarioRoot();
+
+        config([
+            'services.google_drive.client_id' => 'unused',
+        ]);
     }
 
     /** Borra las carpetas de evidencias que dejó el test en public/. */
@@ -126,7 +133,7 @@ class TicketEvidenciaTest extends TestCase
         ]);
     }
 
-    public function test_la_evidencia_se_registra_en_bd_y_el_archivo_queda_en_disco(): void
+    public function test_la_evidencia_se_registra_en_bd_y_se_guarda_en_disco(): void
     {
         $ticket = $this->crearTicket();
 
@@ -142,7 +149,10 @@ class TicketEvidenciaTest extends TestCase
         $this->assertSame('image/jpeg', $evidencia->tipoContenido);
         $this->assertSame('jpg', $evidencia->extension);
         $this->assertGreaterThan(0, $evidencia->tamanioBytes);
-        $this->assertFileExists(public_path($evidencia->rutaArchivo));
+        // Queda en disco y la ruta relativa se registra en BD (sin fileId de Drive).
+        $this->assertNull($evidencia->driveFileId);
+        $this->assertStringContainsString('evidencias/tickets/'.$ticket->id_Ticket.'/', $evidencia->rutaArchivo);
+        $this->assertTrue(File::exists(public_path($evidencia->rutaArchivo)));
     }
 
     public function test_se_rechaza_un_archivo_que_no_es_imagen_ni_documento(): void
@@ -183,7 +193,8 @@ class TicketEvidenciaTest extends TestCase
         $evidencia = TicketEvidencia::where('id_Ticket', $ticket->id_Ticket)->firstOrFail();
 
         $this->assertSame('image/png', $evidencia->tipoContenido);
-        $this->assertFileExists(public_path($evidencia->rutaArchivo));
+        $this->assertNull($evidencia->driveFileId);
+        $this->assertTrue(File::exists(public_path($evidencia->rutaArchivo)));
     }
 
     /**
@@ -214,5 +225,62 @@ class TicketEvidenciaTest extends TestCase
         $respuesta
             ->assertOk()
             ->assertSee('No se pudo guardar');
+    }
+
+    /**
+     * Cuando PHP rechaza la subida (límites de php.ini) el mensaje debe
+     * traer el código y los límites reales que el sitio web está leyendo:
+     * así se distingue al instante un php.ini mal apuntado o sin reiniciar
+     * de un archivo que simplemente supera el límite.
+     */
+    public function test_subida_rechazada_por_php_indica_los_limites_actuales(): void
+    {
+        $ticket = $this->crearTicket();
+
+        $this->comoUsuario()
+            ->withHeader('Accept', 'application/json')
+            ->post('/tickets/evidencia', [
+                'id_Ticket' => $ticket->id_Ticket,
+                'evidencia' => $this->archivoRechazadoPorPhp(),
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('errors.evidencia.0', function (string $mensaje) {
+                $this->assertStringContainsString('upload_max_filesize = '.ini_get('upload_max_filesize'), $mensaje);
+                $this->assertStringContainsString((string) UPLOAD_ERR_INI_SIZE, $mensaje);
+
+                return true;
+            });
+
+        $this->assertSame(0, TicketEvidencia::count());
+    }
+
+    /** El alta de ticket con la subida rechazada muestra el motivo y no crea el ticket. */
+    public function test_alta_de_ticket_con_subida_rechazada_no_lo_crea(): void
+    {
+        $tipoSoporte = TipoSoporte::create([
+            'descripcion' => 'Soporte TI',
+            'fechaAlta' => now(),
+            'activo' => true,
+            'id_Area' => Area::first()->id_Area,
+        ]);
+
+        $this->comoUsuario()->post('/tickets', [
+            'tipoTicket' => 'falla_tecnica',
+            'asunto' => 'Subida rechazada por PHP',
+            'id_TipoSoporte' => $tipoSoporte->id_TipoSoporte,
+            'problema' => 'La imagen no sube.',
+            'evidencia' => $this->archivoRechazadoPorPhp(),
+        ])->assertSessionHasErrors('evidencia');
+
+        $this->assertDatabaseCount('tblTicket', 0);
+    }
+
+    /** Archivo de prueba con el error de subida que pondría php.ini (tamaño excedido). */
+    private function archivoRechazadoPorPhp(): UploadedFile
+    {
+        $ruta = tempnam(sys_get_temp_dir(), 'evid');
+        file_put_contents($ruta, 'contenido-de-prueba');
+
+        return new UploadedFile($ruta, 'foto.jpg', 'image/jpeg', UPLOAD_ERR_INI_SIZE, true);
     }
 }

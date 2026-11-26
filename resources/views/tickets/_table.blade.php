@@ -17,13 +17,6 @@
                 <td><span class="ticket-folio" data-field="folio">#{{ $ticket->id_Ticket }}</span></td>
                 <td class="ticket-asunto" data-field="asunto">
                     {{ Str::limit($ticket->asunto, 40) }}
-                    @if(($ticket->tipoTicket ?? 'falla_tecnica') === 'instalacion_gps')
-                    <span class="badge bg-success ms-1">Instalación GPS</span>
-                    @elseif(($ticket->tipoTicket ?? 'falla_tecnica') === 'revision_gps')
-                    <span class="badge bg-warning text-dark ms-1">Revisión GPS</span>
-                    @elseif(($ticket->tipoTicket ?? 'falla_tecnica') === 'desarrollo')
-                    <span class="badge bg-primary ms-1">Desarrollo</span>
-                    @endif
                 </td>
                 <td data-field="tipo"><span class="badge bg-info">{{ $ticket->tipoSoporte->descripcion ?? 'N/A' }}</span></td>
                 <td data-field="tecnico">{{ $ticket->tecnico ? $ticket->tecnico->nombre . ' ' . $ticket->tecnico->app : 'Sin asignar' }}</td>

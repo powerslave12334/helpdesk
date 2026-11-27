@@ -100,7 +100,7 @@
             <div class="table-toolbar-left">
                 <div class="table-search">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="buscarMonitoreo" placeholder="Buscar por nombre, host o servicio...">
+                    <input type="text" id="buscarMonitoreo" placeholder="Buscar por nombre, host, IP o servicio...">
                 </div>
                 <select id="filtroTipo" class="table-filter">
                     <option value="">Todos los tipos</option>
@@ -127,7 +127,7 @@
 </div>
 
 {{-- Grid de cards por host --}}
-<div class="row g-3" id="gridMonitoreo">
+<div class="row g-2" id="gridMonitoreo">
     @foreach($hostsPaginados as $nombreHost => $serviciosHost)
         @php
             $primerServicio = $serviciosHost->first();
@@ -153,16 +153,20 @@
             });
         @endphp
 
-        <div class="col-md-6 col-lg-4 col-xl-3">
+        <div class="col-md-4 col-lg-4 col-xl-4">
             <div class="card host-card h-100 {{ $hostActivo ? '' : 'inactive' }}"
                  data-host="{{ $nombreHost }}"
+                 data-ip="{{ $primerServicio->host_o_url }}"
                  data-estatus="{{ $estadoMasGrave }}"
                  data-tipo="{{ $primerServicio->tipo }}"
                  data-id="{{ $primerServicio->id_Monitoreo }}">
                 <div class="card-header d-flex justify-content-between align-items-center gap-2">
                     <div class="d-flex align-items-center gap-2" style="min-width:0;">
                         <i class="fas {{ str_contains(strtolower($nombreHost), 'pc') || str_contains(strtolower($nombreHost), '192') ? 'fa-desktop' : 'fa-server' }}" aria-hidden="true"></i>
-                        <strong class="text-truncate" title="{{ $nombreHost }}">{{ $nombreHost }}</strong>
+                        <div style="min-width:0;">
+                            <strong class="text-truncate" title="{{ $nombreHost }}">{{ $nombreHost }}</strong>
+                            <div class="text-truncate" style="font-size: 11px; color: var(--muted);">{{ $primerServicio->host_o_url }}</div>
+                        </div>
                     </div>
                     <span class="badge {{ $primerServicio->badgeClass() }} service-badge">{{ $primerServicio->etiquetaEstatus() }}</span>
                 </div>
@@ -289,7 +293,7 @@
     @endif
 </div>
 
-{{-- Paginación: 9 tarjetas por página --}}
+{{-- Paginación: 6 tarjetas por página --}}
 @if($hostsPaginados->hasPages())
     <div class="pager-footer">
         <span class="table-info">
@@ -455,10 +459,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         cards.forEach(card => {
             const host = card.dataset.host.toLowerCase();
+            const ip = (card.dataset.ip || '').toLowerCase();
             const tipoCard = card.dataset.tipo;
             const estatusCard = card.dataset.estatus;
 
-            const coincideTexto = host.includes(texto);
+            const coincideTexto = host.includes(texto) || ip.includes(texto);
             const coincideTipo = !tipo || tipoCard === tipo;
             const coincideEstatus = !estatus || estatusCard === estatus;
 

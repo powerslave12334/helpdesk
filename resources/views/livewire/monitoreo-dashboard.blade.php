@@ -297,7 +297,7 @@
     <script>
         (function() {
             const interval = setInterval(() => {
-                Livewire.find('{{ $this->id }}').autoSincronizarNagios();
+                Livewire.find('{{ $componentId }}').autoSincronizarNagios();
             }, 10000);
             // Limpiar el intervalo cuando el componente se destruye
             window.addEventListener('beforeunload', () => clearInterval(interval));

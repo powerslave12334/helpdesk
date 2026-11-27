@@ -32,9 +32,9 @@ class MonitoreoController extends Controller
             return $m->nagios_host_name ?: $m->host_o_url;
         });
 
-        // Paginación: 9 tarjetas (hosts) por página
+        // Paginación: 6 tarjetas (hosts) por página
         $pagina = $request->input('page', 1);
-        $porPagina = 9;
+        $porPagina = 6;
         $offset = ($pagina - 1) * $porPagina;
         $itemsPagina = $hosts->slice($offset, $porPagina)->values();
 

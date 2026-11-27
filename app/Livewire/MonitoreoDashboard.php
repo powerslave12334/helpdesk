@@ -29,6 +29,8 @@ class MonitoreoDashboard extends Component
 
     public $ultimaSync = '--:--';
 
+    public $ultimoSyncTimestamp = 0;
+
     public $syncEnProgreso = false;
 
     public $page = 1;
@@ -244,6 +246,7 @@ class MonitoreoDashboard extends Component
                 DB::commit();
 
                 $this->ultimaSync = now()->toLocaleTimeString('es-MX', ['hour' => '2-digit', 'minute' => '2-digit']);
+                $this->ultimoSyncTimestamp = time();
                 $this->cargarDatos();
                 $this->dispatch('notify', 'success', 'Sincronización con Nagios completada: '.$sincronizados.' servicios actualizados.');
             } catch (\Exception $e) {
@@ -325,6 +328,7 @@ class MonitoreoDashboard extends Component
                 DB::commit();
 
                 $this->ultimaSync = now()->toLocaleTimeString('es-MX', ['hour' => '2-digit', 'minute' => '2-digit']);
+                $this->ultimoSyncTimestamp = time();
                 $this->cargarDatos();
             } catch (\Exception $e) {
                 DB::rollBack();

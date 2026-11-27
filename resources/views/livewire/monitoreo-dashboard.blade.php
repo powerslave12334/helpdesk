@@ -46,6 +46,10 @@
             <span class="badge bg-secondary" id="badgeUltimaSync" title="Última sincronización automática">
                 <i class="fas fa-clock me-1"></i>{{ $ultimaSync }}
             </span>
+            <span id="badgeProximoSync" class="badge bg-info" title="Próxima sincronización automática">
+                <i class="fas fa-sync me-1"></i>Próxima: <span id="segundosRestantes">10</span>s
+            </span>
+            <span id="ultimoSyncTimestamp" style="display:none">{{ $ultimoSyncTimestamp }}</span>
         </div>
     </div>
 
@@ -292,4 +296,37 @@
             </div>
         </div>
     @endif
+
+    {{-- Temporizador de próxima sincronización automática --}}
+    <script>
+        (function() {
+            const ultimoSyncTs = parseInt(document.getElementById('ultimoSyncTimestamp')?.innerText || '0');
+            const badge = document.getElementById('badgeProximoSync');
+            const segundosEl = document.getElementById('segundosRestantes');
+            const INTERVALO = 10; // segundos
+
+            if (!badge || !segundosEl || !ultimoSyncTs) return;
+
+            let intervalo;
+            let segundosRestantes = INTERVALO;
+
+            function actualizarContador() {
+                const ahora = Math.floor(Date.now() / 1000);
+                const transcurrido = ahora - ultimoSyncTs;
+                segundosRestantes = Math.max(0, INTERVALO - transcurrido);
+                segundosEl.textContent = segundosRestantes;
+                if (segundosRestantes <= 0) {
+                    segundosEl.textContent = '0';
+                    badge.classList.replace('bg-info', 'bg-warning');
+                    clearInterval(intervalo);
+                }
+            }
+
+            actualizarContador();
+            intervalo = setInterval(actualizarContador, 1000);
+
+            // Limpiar cuando se navegue fuera o el componente se destruya
+            window.addEventListener('beforeunload', () => clearInterval(intervalo));
+        })();
+    </script>
 </div>

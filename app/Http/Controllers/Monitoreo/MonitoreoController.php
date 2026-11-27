@@ -6,47 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\Monitoreo;
 use App\Services\NagiosService;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class MonitoreoController extends Controller
 {
     public function index(Request $request)
     {
-        $monitoreos = Monitoreo::activos()
-            ->orderBy('tipo')
-            ->orderBy('nombre')
-            ->get();
-
-        $resumen = [
-            'total' => $monitoreos->count(),
-            'online' => $monitoreos->where('estatus', 'online')->count(),
-            'offline' => $monitoreos->where('estatus', 'offline')->count(),
-            'degradado' => $monitoreos->where('estatus', 'degradado')->count(),
-        ];
-
-        $tipos = $monitoreos->pluck('tipo')->unique()->sort()->all();
-
-        // Agrupar por host para mostrar una card por computadora
-        $hosts = $monitoreos->groupBy(function ($m) {
-            return $m->nagios_host_name ?: $m->host_o_url;
-        });
-
-        // Paginación: 6 tarjetas (hosts) por página
-        $pagina = $request->input('page', 1);
-        $porPagina = 6;
-        $offset = ($pagina - 1) * $porPagina;
-        $itemsPagina = $hosts->slice($offset, $porPagina)->values();
-
-        $hostsPaginados = new LengthAwarePaginator(
-            $itemsPagina,
-            $hosts->count(),
-            $porPagina,
-            $pagina,
-            ['path' => $request->url(), 'query' => $request->query()]
-        );
-
-        return view('monitoreo.index', compact('monitoreos', 'resumen', 'tipos', 'hostsPaginados'));
+        return view('monitoreo.index');
     }
 
     public function store(Request $request)

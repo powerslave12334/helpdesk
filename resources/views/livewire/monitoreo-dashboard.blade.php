@@ -1,4 +1,35 @@
 <div>
+    {{-- Estilos locales para KPIs y paginación --}}
+    <style>
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+        .kpi { display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); min-height: 82px; }
+        .kpi-icon { width: 42px; height: 42px; flex-shrink: 0; border-radius: var(--radius-sm); display: grid; place-items: center; background: var(--surface-strong); color: var(--muted); font-size: 16px; }
+        .kpi-value { font-size: 26px; font-weight: 700; line-height: 1.05; letter-spacing: -0.02em; color: var(--text); font-variant-numeric: tabular-nums; }
+        .kpi-label { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; color: var(--muted); margin-top: 2px; }
+        .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+        /* Jerarquía de KPIs */
+        .kpi--primary { border-color: var(--primary); background: var(--primary-soft); }
+        .kpi--primary .kpi-icon { background: var(--primary); color: #ffffff; }
+        .kpi--primary .kpi-value { color: var(--primary-hover); }
+
+        .kpi--secondary { border-color: var(--border); }
+        .kpi--secondary .kpi-icon { color: var(--muted); }
+
+        .kpi--alert { border-color: #c2410c; }
+        .kpi--alert .kpi-icon { background: #c2410c; color: #ffffff; }
+        .kpi--alert .kpi-value { color: #c2410c; }
+
+        /* Paginación */
+        .pager-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 16px; }
+        .pager-footer .pagination { margin: 0; }
+        .pagination a { display: inline-block; padding: 6px 12px; margin: 0 2px; border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); text-decoration: none; font-size: 13px; }
+        .pagination a.active { background: var(--primary); border-color: var(--primary); color: #ffffff; }
+        .pagination a:hover { background: var(--primary-soft); border-color: var(--primary); }
+
+        @media (max-width: 576px) { .kpi-value { font-size: 22px; } .pager-footer { justify-content: center; } }
+    </style>
+
     {{-- Cabecera con botones y estado --}}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0"><i class="fas fa-heart-pulse me-2"></i>Monitoreo de Sistemas</h4>
@@ -20,28 +51,28 @@
 
     {{-- KPIs --}}
     <div class="kpi-grid mb-4" aria-label="Resumen de monitoreo">
-        <div class="kpi kpi-blue">
+        <div class="kpi kpi--primary">
             <div class="kpi-icon"><i class="fas fa-server" aria-hidden="true"></i></div>
             <div>
                 <div class="kpi-value">{{ $resumen['total'] }}</div>
                 <div class="kpi-label">Total Equipos</div>
             </div>
         </div>
-        <div class="kpi kpi-green">
+        <div class="kpi kpi--secondary">
             <div class="kpi-icon"><i class="fas fa-check-circle" aria-hidden="true"></i></div>
             <div>
                 <div class="kpi-value">{{ $resumen['online'] }}</div>
                 <div class="kpi-label">Online</div>
             </div>
         </div>
-        <div class="kpi kpi-red">
+        <div class="kpi kpi--secondary">
             <div class="kpi-icon"><i class="fas fa-times-circle" aria-hidden="true"></i></div>
             <div>
                 <div class="kpi-value">{{ $resumen['offline'] }}</div>
                 <div class="kpi-label">Fuera de línea</div>
             </div>
         </div>
-        <div class="kpi kpi-amber">
+        <div class="kpi kpi--alert">
             <div class="kpi-icon"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i></div>
             <div>
                 <div class="kpi-value">{{ $resumen['degradado'] }}</div>

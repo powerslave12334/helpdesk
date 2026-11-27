@@ -6,52 +6,7 @@
 <livewire:monitoreo-dashboard />
 
 <!-- Modal: Nuevo objetivo -->
-<div class="modal fade" id="modalNuevo" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <form method="POST" action="{{ route('monitoreo.store') }}">
-            @csrf
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="fas fa-plus me-2"></i>Nuevo objetivo de monitoreo</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Nombre *</label>
-                        <input type="text" name="nombre" class="form-control" required placeholder="Ej. Servidor de correos">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Tipo *</label>
-                        <select name="tipo" class="form-select" required>
-                            <option value="servidor">Servidor</option>
-                            <option value="servicio">Servicio</option>
-                            <option value="sitio_web">Sitio web</option>
-                            <option value="equipo">Equipo de cómputo</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Host o URL *</label>
-                        <input type="url" name="host_o_url" class="form-control" required placeholder="Ej. 192.168.1.10 o https://ejemplo.com">
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Puerto</label>
-                            <input type="number" name="puerto" class="form-control" placeholder="80">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Intervalo (min) *</label>
-                            <input type="number" name="intervalo_minutos" class="form-control" value="5" min="1" max="1440" required>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Guardar</button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
+
 
 <!-- Modal: Editar objetivo -->
 <div class="modal fade" id="modalEditar" tabindex="-1" aria-hidden="true">

@@ -33,6 +33,7 @@ class MonitoreoDashboard extends Component
 
     public $syncEnProgreso = false;
 
+    #[Url]
     public $page = 1;
 
     public function mount()

@@ -33,12 +33,10 @@ class MonitoreoDashboard extends Component
 
     public $page = 1;
 
-    public string $componentId = '';
-
     public function mount()
     {
-        $this->componentId = $this->id;
         $this->cargarDatos();
+        $this->autoSincronizarNagios(app(NagiosService::class));
     }
 
     public function cargarDatos()

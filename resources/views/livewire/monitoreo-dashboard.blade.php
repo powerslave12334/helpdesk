@@ -1,4 +1,4 @@
-<div>
+<div wire:poll.10s>
     {{-- Estilos locales para KPIs y paginación --}}
     <style>
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
@@ -292,15 +292,4 @@
             </div>
         </div>
     @endif
-
-    {{-- Auto-sincronización con Nagios cada 10 segundos --}}
-    <script>
-        (function() {
-            const interval = setInterval(() => {
-                Livewire.find('{{ $componentId }}').autoSincronizarNagios();
-            }, 10000);
-            // Limpiar el intervalo cuando el componente se destruye
-            window.addEventListener('beforeunload', () => clearInterval(interval));
-        })();
-    </script>
 </div>

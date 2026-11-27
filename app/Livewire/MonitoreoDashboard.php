@@ -254,6 +254,85 @@ class MonitoreoDashboard extends Component
         }
     }
 
+    public function autoSincronizarNagios(NagiosService $nagios)
+    {
+        $this->syncEnProgreso = true;
+
+        try {
+            $resultado = $nagios->obtenerEstado();
+
+            if (! $resultado['success']) {
+                return;
+            }
+
+            $servicios = $nagios->normalizarServicios($resultado['data']);
+
+            $sincronizados = 0;
+
+            DB::beginTransaction();
+            try {
+                foreach ($servicios as $svc) {
+                    $monitoreo = Monitoreo::where('nagios_host_name', $svc['host'])
+                        ->where('nagios_service_description', $svc['service'])
+                        ->first();
+
+                    $estadoMapeado = $nagios->mapearEstado($svc['estado']);
+                    $ultimoCheck = $svc['last_check'] ?? now();
+
+                    $datosMetricas = [
+                        'cpu_porcentaje' => $svc['cpu_porcentaje'] ?? null,
+                        'memoria_porcentaje' => $svc['memoria_porcentaje'] ?? null,
+                        'memoria_usada_gb' => $svc['memoria_usada_gb'] ?? null,
+                        'memoria_total_gb' => $svc['memoria_total_gb'] ?? null,
+                        'memoria_libre_gb' => $svc['memoria_libre_gb'] ?? null,
+                        'disco_porcentaje' => $svc['disco_porcentaje'] ?? null,
+                        'disco_usado_gb' => $svc['disco_usado_gb'] ?? null,
+                        'disco_total_gb' => $svc['disco_total_gb'] ?? null,
+                        'disco_libre_gb' => $svc['disco_libre_gb'] ?? null,
+                    ];
+
+                    if ($monitoreo) {
+                        $monitoreo->update(array_merge([
+                            'estatus' => $estadoMapeado,
+                            'tiempo_respuesta_ms' => $svc['latency'],
+                            'mensaje_ultimo_check' => $svc['output'],
+                            'ultimo_check' => $ultimoCheck,
+                            'ultimo_sincronizado_nagios' => now(),
+                        ], $datosMetricas));
+                    } else {
+                        Monitoreo::create(array_merge([
+                            'nombre' => $svc['host'].' - '.$svc['service'],
+                            'tipo' => 'servicio',
+                            'host_o_url' => $svc['host'],
+                            'puerto' => null,
+                            'intervalo_minutos' => 5,
+                            'estatus' => $estadoMapeado,
+                            'tiempo_respuesta_ms' => $svc['latency'],
+                            'ultimo_check' => $ultimoCheck,
+                            'mensaje_ultimo_check' => $svc['output'],
+                            'activo' => true,
+                            'fechaAlta' => now(),
+                            'nagios_host_name' => $svc['host'],
+                            'nagios_service_description' => $svc['service'],
+                            'ultimo_sincronizado_nagios' => now(),
+                        ], $datosMetricas));
+                    }
+
+                    $sincronizados++;
+                }
+
+                DB::commit();
+
+                $this->ultimaSync = now()->toLocaleTimeString('es-MX', ['hour' => '2-digit', 'minute' => '2-digit']);
+                $this->cargarDatos();
+            } catch (\Exception $e) {
+                DB::rollBack();
+            }
+        } finally {
+            $this->syncEnProgreso = false;
+        }
+    }
+
     public function toggle($id)
     {
         $monitoreo = Monitoreo::findOrFail($id);
